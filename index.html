@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopLineHub | Gestão Integrada v1.3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f0fdf4; color: #1e293b; margin: 0; overflow-x: hidden; }
+        .brand-name { font-weight: 800; letter-spacing: -0.05em; display: flex; align-items: center; }
+        .topline-text { color: #334155; }
+        .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        
+        #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        
+        /* Status Colors */
+        .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
+        .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
+        .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
+        .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
+        .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
+        .analise { background-color: #fff7ed !important; color: #c2410c !important; }
+
+        .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
+        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        
+        .scroll-container { max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
+        th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
+        td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        
+        .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
+        .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
+        .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+        <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
+        <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
+    </div>
+
+    <div class="p-6 max-w-[1600px] mx-auto">
+        <header class="white-card p-5 flex justify-between items-center mb-6">
+            <div>
+                <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                <nav class="flex gap-6 mt-3">
+                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
+                    <button onclick="switchTab('sheet')" id="tab-sheet" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Planilha</button>
+                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
+                    <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
+                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
+                <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
+                <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
+            </div>
+        </header>
+
+        <div id="view-dash">
+            <div class="grid grid-cols-6 gap-4 mb-6">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
+                    <span class="text-xs font-bold text-slate-700">Vencidos</span>
+                </button>
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
+                    <span class="text-xs font-bold text-slate-700">30 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
+                    <span class="text-xs font-bold text-slate-700">60 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
+                    <span class="text-xs font-bold text-slate-700">90 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
+                    <span class="text-xs font-bold text-slate-700">Andamento</span>
+                </button>
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
+                    <span class="text-xs font-bold text-slate-700">Análise</span>
+                </button>
+            </div>
+            <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
+            <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Conectando ao Google Sheets...</div>
+            <div class="white-card overflow-hidden">
+                <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+            </div>
+        </div>
+
+        <div id="view-tasks" class="hidden">
+            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
+                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+            </div>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
+                    <div id="list-jordan" class="space-y-2"></div>
+                </div>
+                <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
+                    <div id="list-silene" class="space-y-2"></div>
+                </div>
+                <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
+                    <div id="list-patricia" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-auditoria" class="hidden">
+            <div class="white-card p-6 min-h-[500px]">
+                <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl">
+                    <div class="flex-1">
+                        <label class="text-[9px] font-bold uppercase text-slate-400">Colaborador</label>
+                        <select id="auditUserFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
+                            <option value="">Todos</option>
+                            <option value="Jordan">Jordan</option>
+                            <option value="Silene">Silene</option>
+                            <option value="Patricia">Patricia</option>
+                            <option value="Sistema">Sistema</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="logContainer" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <div id="view-senhas" class="hidden">
+            <div class="white-card p-6">
+                <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                <div class="scroll-container">
+                    <table class="w-full text-left">
+                        <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
+                        <tbody id="senhasBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-sheet" class="hidden">
+            <div id="masterSheetTable" class="white-card scroll-container p-6 text-xs text-slate-400 font-bold uppercase">
+                Os dados brutos são espelhados do Google Sheets em tempo real.
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
+            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar</h4>
+            <div id="modalContent" class="space-y-4"></div>
+            <div class="flex gap-3 mt-8">
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
+                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO DOS LINKS GOOGLE SHEETS
+        const URL_DADOS_PRINCIPAIS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?gid=0&single=true&output=csv";
+        const URL_SENHAS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?gid=49695199&single=true&output=csv";
+
+        let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
+        let activeDoc = null, activeStatus = null;
+        let currentEditTarget = {};
+        const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "Certf.Digital", "COMAS", "COVISA"];
+
+        window.onload = () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 500);
+            }, 1200);
+            const container = document.getElementById('docButtons');
+            docList.forEach(doc => {
+                const btn = document.createElement('button');
+                btn.className = "btn-mini doc-filter-btn";
+                btn.id = "btn-doc-" + doc; btn.innerText = doc;
+                btn.onclick = () => toggleDocFilter(doc);
+                container.appendChild(btn);
+            });
+            fetchGoogleSheets();
+        };
+
+        async function fetchGoogleSheets() {
+            const syncBtn = document.getElementById('syncBtn');
+            const loading = document.getElementById('loadingIndicator');
+            syncBtn.innerText = "Sincronizando...";
+            syncBtn.disabled = true;
+            loading.classList.remove('hidden');
+
+            try {
+                const resDados = await fetch(URL_DADOS_PRINCIPAIS);
+                const csvDados = await resDados.text();
+                Papa.parse(csvDados, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        rawData = results.data.map(row => {
+                            const nr = {};
+                            Object.keys(row).forEach(k => {
+                                let key = k.trim();
+                                if(key === 'CRCE_1') key = 'Certf.Digital';
+                                let val = row[k];
+                                if(typeof val === 'string' && val.includes('/')) {
+                                    const p = val.split('/');
+                                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
+                                }
+                                nr[key] = val;
+                            });
+                            return nr;
+                        });
+                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
+                        renderTable();
+                    }
+                });
+
+                const resSenhas = await fetch(URL_SENHAS);
+                const csvSenhas = await resSenhas.text();
+                Papa.parse(csvSenhas, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        passwordData = results.data;
+                        addLog("Sistema", "Sincronização com Google Sheets completa.");
+                    }
+                });
+            } catch (e) {
+                alert("Erro ao conectar com o Google Sheets. Verifique o compartilhamento.");
+            } finally {
+                syncBtn.innerText = "Sincronizar Sheets";
+                syncBtn.disabled = false;
+                loading.classList.add('hidden');
+            }
+        }
+
+        function addLog(user, msg) {
+            logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg });
+            if(logs.length > 100) logs.pop();
+        }
+
+        function getStatus(val, row, col) {
+            const strVal = String(val || "").toUpperCase().trim();
+            if (strVal === "EM ANDAMENTO") return 'andamento';
+            if (strVal === "ANALISE") return 'analise';
+            if (row && col && row[col + "_DONE"]) return 'andamento';
+            if (!(val instanceof Date)) return null;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const diff = Math.ceil((val - today) / (1000 * 60 * 60 * 24));
+            if (diff < 0) return 'vencido';
+            if (diff <= 30) return '30';
+            if (diff <= 60) return '60';
+            if (diff <= 90) return '90';
+            return 'ok';
+        }
+
+        function toggleStatusFilter(status) {
+            activeStatus = (activeStatus === status) ? null : status;
+            document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active'));
+            if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active');
+            renderTable();
+        }
+
+        function toggleDocFilter(doc) {
+            activeDoc = (activeDoc === doc) ? null : doc;
+            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
+            if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white');
+            renderTable();
+        }
+
+        function renderTable() {
+            const head = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            if(!headers.length) return;
+            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            const filtered = rawData.filter(row => {
+                if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
+                if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : !!row[activeDoc];
+                if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
+                return true;
+            });
+            body.innerHTML = filtered.map(row => `
+                <tr>${headers.map(h => {
+                    const s = getStatus(row[h], row, h);
+                    const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+                }).join('')}</tr>`).join('');
+        }
+
+        function openEditCell(r, c, user = "Sistema") {
+            if(c === 'CLIENTE') return;
+            currentEditTarget = { r, c, user };
+            const v = rawData[r][c];
+            let info = "";
+            if (v instanceof Date) {
+                const d = Math.ceil((v - new Date().setHours(0,0,0,0)) / 86400000);
+                info = `<div class="text-[9px] font-bold ${d < 0 ? 'text-red-500':'text-emerald-500'} mb-2 uppercase">${d < 0 ? 'Vencido há '+Math.abs(d) : 'Vence em '+d} dias</div>`;
+            }
+            document.getElementById('modalTitle').innerText = `${rawData[r].CLIENTE}`;
+            document.getElementById('modalContent').innerHTML = `
+                <div class="mb-4"><label class="text-[8px] font-black text-slate-400 uppercase">Documento: ${c}</label>${info}</div>
+                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border mb-4">
+                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
+                    <label class="text-[10px] font-bold uppercase text-slate-600">Concluído</label>
+                </div>
+                <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-3">
+                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Observações...">${rawData[r][c+"_OBS"] || ''}</textarea>`;
+            document.getElementById('modalSaveBtn').onclick = saveEdit;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function saveEdit() {
+            const { r, c, user } = currentEditTarget;
+            const input = document.getElementById('editVal').value;
+            if(input) rawData[r][c] = new Date(input + "T12:00:00");
+            rawData[r][c+"_DONE"] = document.getElementById('taskDone').checked;
+            rawData[r][c+"_OBS"] = document.getElementById('editObs').value;
+            addLog(user, `Editou ${c} de ${rawData[r].CLIENTE}`);
+            closeModal(); renderTable(); updateTaskUI();
+        }
+
+        function exportarExcel() {
+            const data = rawData.map(row => {
+                const nr = { ...row };
+                headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); });
+                return nr;
+            });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base");
+            XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
+        }
+
+        function distribuirTarefas(status) {
+            let tasks = [];
+            rawData.forEach((row, rIdx) => {
+                headers.forEach(col => { if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); });
+            });
+            if(!tasks.length) return alert("Nada para sortear.");
+            tasks.sort(() => Math.random() - 0.5);
+            currentTasks = { Jordan: [], Silene: [], Patricia: [] };
+            const names = ['Jordan', 'Silene', 'Patricia'];
+            tasks.forEach((t, i) => currentTasks[names[i % 3]].push(t));
+            addLog("Sistema", `Tarefas ${status} distribuídas.`);
+            updateTaskUI();
+        }
+
+        function updateTaskUI() {
+            ['Jordan', 'Silene', 'Patricia'].forEach(name => {
+                const list = currentTasks[name].filter(t => !rawData[t.r][t.c + "_DONE"]);
+                document.getElementById(`count-${name.toLowerCase()}`).innerText = list.length;
+                document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `<div class="white-card p-3 text-[10px] border-l-4 border-emerald-400" onclick="openEditCell(${t.r}, '${t.c}', '${name}')"><b class="uppercase">${t.cliente}</b><br>${t.c}</div>`).join('');
+            });
+        }
+
+        function renderSenhas() {
+            const q = document.getElementById('searchSenhas').value.toLowerCase();
+            const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
+            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${cols.slice(3).map(c => `<td>${p[c] || '-'}</td>`).join('')}</tr>`).join('');
+        }
+
+        function renderLogs() {
+            const filter = document.getElementById('auditUserFilter').value;
+            document.getElementById('logContainer').innerHTML = logs.filter(l => !filter || l.user === filter).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
+        }
+
+        function switchTab(tab) {
+            ['dash', 'sheet', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
+            document.getElementById('view-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('tab-active');
+            if(tab === 'senhas') renderSenhas();
+            if(tab === 'auditoria') renderLogs();
+        }
+
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
+    </script>
+</body>
+</html>
