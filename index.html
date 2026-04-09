@@ -14,24 +14,18 @@
         .brand-name { font-weight: 800; letter-spacing: -0.05em; display: flex; align-items: center; }
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
-        
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        
-        /* Status Colors */
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
         .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
-
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        
         .scroll-container { max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
-        
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
@@ -170,10 +164,12 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO DOS LINKS GOOGLE SHEETS
-        const URL_DADOS_PRINCIPAIS = "https://docs.google.com/spreadsheets/d/1kXAYnbHPdJ6UoILliMP-eOduxxpRhIsRvcu4cNYVOxA/pub?gid=0&output=csv";
-        const URL_SENHAS = "https://docs.google.com/spreadsheets/d/1kXAYnbHPdJ6UoILliMP-eOduxxpRhIsRvcu4cNYVOxA/pub?gid=49695199&output=csv";
-        
+        // --- LINKS CORRIGIDOS PARA O GOOGLE SHEETS (IMPORTANTE) ---
+        // Usamos o seu ID de publicação com o parâmetro output=csv
+        const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
+        const URL_DADOS_PRINCIPAIS = BASE_URL + "&gid=0";
+        const URL_SENHAS = BASE_URL + "&gid=49695199";
+
         let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
@@ -181,9 +177,13 @@
 
         window.onload = () => {
             setTimeout(() => {
-                document.getElementById('splash-screen').style.opacity = '0';
-                setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 500);
+                const splash = document.getElementById('splash-screen');
+                if(splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 500);
+                }
             }, 1200);
+            
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
                 const btn = document.createElement('button');
@@ -203,8 +203,11 @@
             loading.classList.remove('hidden');
 
             try {
+                // Busca Dados Principais
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS);
+                if (!resDados.ok) throw new Error("Erro ao baixar aba principal");
                 const csvDados = await resDados.text();
+                
                 Papa.parse(csvDados, {
                     header: true,
                     dynamicTyping: true,
@@ -229,18 +232,23 @@
                     }
                 });
 
+                // Busca Senhas
                 const resSenhas = await fetch(URL_SENHAS);
+                if (!resSenhas.ok) throw new Error("Erro ao baixar aba de senhas");
                 const csvSenhas = await resSenhas.text();
+                
                 Papa.parse(csvSenhas, {
                     header: true,
                     skipEmptyLines: true,
                     complete: (results) => {
                         passwordData = results.data;
-                        addLog("Sistema", "Sincronização com Google Sheets completa.");
+                        addLog("Sistema", "Sincronização completa.");
                     }
                 });
+
             } catch (e) {
-                alert("Erro ao conectar com o Google Sheets. Verifique o compartilhamento.");
+                console.error(e);
+                alert("Erro ao conectar com o Google Sheets. Verifique se a planilha está 'Publicada na Web'.");
             } finally {
                 syncBtn.innerText = "Sincronizar Sheets";
                 syncBtn.disabled = false;
@@ -248,11 +256,8 @@
             }
         }
 
-        function addLog(user, msg) {
-            logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg });
-            if(logs.length > 100) logs.pop();
-        }
-
+        // --- AS DEMAIS FUNÇÕES DE LOGICA PERMANECEM IGUAIS ---
+        function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg }); if(logs.length > 100) logs.pop(); }
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
@@ -267,21 +272,8 @@
             if (diff <= 90) return '90';
             return 'ok';
         }
-
-        function toggleStatusFilter(status) {
-            activeStatus = (activeStatus === status) ? null : status;
-            document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active'));
-            if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active');
-            renderTable();
-        }
-
-        function toggleDocFilter(doc) {
-            activeDoc = (activeDoc === doc) ? null : doc;
-            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
-            if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white');
-            renderTable();
-        }
-
+        function toggleStatusFilter(status) { activeStatus = (activeStatus === status) ? null : status; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); renderTable(); }
+        function toggleDocFilter(doc) { activeDoc = (activeDoc === doc) ? null : doc; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); renderTable(); }
         function renderTable() {
             const head = document.getElementById('tableHeader');
             const body = document.getElementById('tableBody');
@@ -294,14 +286,12 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map(row => `
-                <tr>${headers.map(h => {
-                    const s = getStatus(row[h], row, h);
-                    const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
-                }).join('')}</tr>`).join('');
+            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
+                const s = getStatus(row[h], row, h);
+                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+            }).join('')}</tr>`).join('');
         }
-
         function openEditCell(r, c, user = "Sistema") {
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c, user };
@@ -323,7 +313,6 @@
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
-
         function saveEdit() {
             const { r, c, user } = currentEditTarget;
             const input = document.getElementById('editVal').value;
@@ -333,7 +322,6 @@
             addLog(user, `Editou ${c} de ${rawData[r].CLIENTE}`);
             closeModal(); renderTable(); updateTaskUI();
         }
-
         function exportarExcel() {
             const data = rawData.map(row => {
                 const nr = { ...row };
@@ -344,7 +332,6 @@
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base");
             XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
         }
-
         function distribuirTarefas(status) {
             let tasks = [];
             rawData.forEach((row, rIdx) => {
@@ -358,7 +345,6 @@
             addLog("Sistema", `Tarefas ${status} distribuídas.`);
             updateTaskUI();
         }
-
         function updateTaskUI() {
             ['Jordan', 'Silene', 'Patricia'].forEach(name => {
                 const list = currentTasks[name].filter(t => !rawData[t.r][t.c + "_DONE"]);
@@ -366,18 +352,15 @@
                 document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `<div class="white-card p-3 text-[10px] border-l-4 border-emerald-400" onclick="openEditCell(${t.r}, '${t.c}', '${name}')"><b class="uppercase">${t.cliente}</b><br>${t.c}</div>`).join('');
             });
         }
-
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${cols.slice(3).map(c => `<td>${p[c] || '-'}</td>`).join('')}</tr>`).join('');
         }
-
         function renderLogs() {
             const filter = document.getElementById('auditUserFilter').value;
             document.getElementById('logContainer').innerHTML = logs.filter(l => !filter || l.user === filter).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
         }
-
         function switchTab(tab) {
             ['dash', 'sheet', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
             document.getElementById('view-' + tab).classList.remove('hidden');
@@ -385,7 +368,6 @@
             if(tab === 'senhas') renderSenhas();
             if(tab === 'auditoria') renderLogs();
         }
-
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
         function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
     </script>
