@@ -32,7 +32,17 @@
     </style>
 </head>
 <body>
-
+<div id="login-screen" class="fixed inset-0 z-[10000] bg-emerald-900 flex items-center justify-center p-4">
+    <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl text-center">
+        <div class="brand-name text-3xl justify-center mb-8"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+        <div class="space-y-4">
+            <input type="text" id="userLogin" placeholder="Usuário" class="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 ring-emerald-500">
+            <input type="password" id="passLogin" placeholder="Senha" class="w-full p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 ring-emerald-500">
+            <button onclick="handleLogin()" id="btnLogin" class="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase hover:bg-emerald-600 transition-all">Entrar no Sistema</button>
+            <p id="loginError" class="text-red-500 text-xs hidden font-bold uppercase">Usuário ou senha incorretos</p>
+        </div>
+    </div>
+</div>
     <div id="splash-screen">
         <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
         <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
