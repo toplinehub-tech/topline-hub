@@ -14,23 +14,13 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; }
         
-        /* Splash Screen */
-        #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease; }
-        
-        /* Login Screen */
-        #login-screen { position: fixed; inset: 0; z-index: 9998; background: #064e3b; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .login-card { background: white; padding: 1.5rem; border-radius: 24px; width: 100%; max-width: 300px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
-
-        /* Sistema Principal */
-        #main-system { display: none; }
-
-        /* Cores de Status */
+        /* Status Cores */
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; }
-        .scroll-container { max-height: 60vh; overflow: auto; border-radius: 12px; }
+        .scroll-container { max-height: 65vh; overflow: auto; border-radius: 12px; }
         
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; white-space: nowrap; }
@@ -38,51 +28,24 @@
         
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; transition: 0.2s; }
         .status-btn-active { ring: 2px solid #10b981; background-color: #f0fdf4; border-color: #10b981; }
-        
         .tab-active { color: #10b981; border-bottom: 2px solid #10b981; }
     </style>
 </head>
 <body>
 
-    <div id="splash-screen">
-        <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-        <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
-        <div class="w-10 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
-    </div>
-
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="brand-name text-xl justify-center mb-6"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-            <div class="space-y-3">
-                <input type="text" id="userLogin" placeholder="Usuário" class="w-full p-3 bg-slate-100 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500">
-                <div class="relative">
-                    <input type="password" id="passLogin" placeholder="Senha" class="w-full p-3 bg-slate-100 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500">
-                    <button onclick="togglePass()" class="absolute right-3 top-3 text-[10px] font-bold text-emerald-600 uppercase">Ver</button>
-                </div>
-                <div class="flex items-center gap-2 px-1">
-                    <input type="checkbox" id="rememberMe" class="rounded text-emerald-500">
-                    <label for="rememberMe" class="text-[10px] text-slate-500 font-bold uppercase cursor-pointer">Lembrar acesso</label>
-                </div>
-                <button onclick="handleLogin()" id="btnLogin" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold uppercase text-xs hover:bg-emerald-600 transition-all">Entrar</button>
-                <p id="loginError" class="text-red-500 text-[9px] hidden font-black uppercase text-center">Credenciais Inválidas</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="main-system" class="p-6 max-w-[1600px] mx-auto">
-        <header class="white-card p-5 flex justify-between items-center mb-6">
+    <div class="p-6 max-w-[1600px] mx-auto">
+        <header class="white-card p-5 flex justify-between items-center mb-6 shadow-sm">
             <div>
                 <div class="brand-name text-2xl"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                 <nav class="flex gap-6 mt-4">
-                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel Geral</button>
+                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas Urgentes</button>
+                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Banco de Senhas</button>
                 </nav>
             </div>
             <div class="flex items-center gap-3">
-                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
-                <button onclick="fetchGoogleSheets()" class="btn-mini text-emerald-700 bg-emerald-50">Sincronizar</button>
-                <button onclick="logout()" class="btn-mini text-red-500 bg-red-50 border-red-100">Sair</button>
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente ou documento..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none focus:ring-2 ring-emerald-500">
+                <button onclick="fetchGoogleSheets()" class="btn-mini text-emerald-700 bg-emerald-50 hover:bg-emerald-100">Sincronizar Planilha</button>
             </div>
         </header>
 
@@ -113,19 +76,19 @@
         </div>
 
         <div id="view-tasks" class="hidden">
-            <div class="grid grid-cols-3 gap-6" id="tasksGrid"></div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="tasksGrid"></div>
         </div>
 
         <div id="view-senhas" class="hidden">
-            <div class="white-card p-6 scroll-container">
-                <table class="w-full text-left" id="senhasTable"></table>
+            <div class="white-card p-6 scroll-container shadow-sm">
+                <table class="w-full text-left border-collapse" id="senhasTable"></table>
             </div>
         </div>
     </div>
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-sm w-full">
-            <h4 id="modalTitle" class="text-xs font-black uppercase mb-4 border-b pb-2">Editar Registro</h4>
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h4 id="modalTitle" class="text-xs font-black uppercase mb-4 border-b pb-2 text-emerald-600">Editar Registro</h4>
             <div id="modalContent" class="space-y-4"></div>
             <div class="flex gap-2 mt-6">
                 <button onclick="saveEdit()" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold uppercase text-[10px]">Salvar</button>
@@ -136,75 +99,35 @@
 
     <script>
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbyDnH1bPGZmuRsoyWBGm6XD0azRDC9fDuwuyEZREkTpFi4kXHLAEjxh1UZgOjqOhUXU/exec";
-        const URL_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
+        const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
         
         let rawData = [], headers = [], passwordData = [], activeStatus = null, activeDoc = null;
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
-        // --- INICIALIZAÇÃO ---
         window.onload = () => {
-            setTimeout(() => {
-                document.getElementById('splash-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('splash-screen').style.display = 'none';
-                    checkAutoLogin();
-                }, 800);
-            }, 2500);
+            initDocButtons();
+            fetchGoogleSheets();
+            fetchPasswords();
         };
 
-        function togglePass() {
-            const p = document.getElementById('passLogin');
-            p.type = p.type === 'password' ? 'text' : 'password';
-        }
-
-        async function handleLogin() {
-            const u = document.getElementById('userLogin').value;
-            const p = document.getElementById('passLogin').value;
-            const btn = document.getElementById('btnLogin');
-            if(!u || !p) return;
-            btn.innerText = "Verificando...";
-            
-            try {
-                const response = await fetch(URL_SCRIPT_GOOGLE, { method: 'POST', body: JSON.stringify({ action: 'login', user: u, pass: p }) });
-                const res = await response.json();
-                if(res.status === "success") {
-                    if(document.getElementById('rememberMe').checked) localStorage.setItem('topline_remember', JSON.stringify({u, p}));
-                    document.getElementById('login-screen').style.display = 'none';
-                    document.getElementById('main-system').style.display = 'block';
-                    initSystem();
-                } else {
-                    alert("Usuário ou Senha incorretos!");
-                    btn.innerText = "Entrar";
-                }
-            } catch(e) { alert("Erro de conexão."); btn.innerText = "Entrar"; }
-        }
-
-        function checkAutoLogin() {
-            const saved = localStorage.getItem('topline_remember');
-            if(saved) { handleLogin(); } else { document.getElementById('login-screen').style.display = 'flex'; }
-        }
-
-        function logout() { localStorage.removeItem('topline_remember'); location.reload(); }
-
-        function initSystem() {
+        function initDocButtons() {
             const container = document.getElementById('docButtons');
             container.innerHTML = "";
             docList.forEach(doc => {
                 const btn = document.createElement('button');
-                btn.className = "btn-mini"; btn.id = "btn-doc-" + doc;
-                btn.innerText = doc; btn.onclick = () => toggleDocFilter(doc);
+                btn.className = "btn-mini";
+                btn.id = "btn-doc-" + doc;
+                btn.innerText = doc;
+                btn.onclick = () => toggleDocFilter(doc);
                 container.appendChild(btn);
             });
-            fetchGoogleSheets();
-            fetchPasswords();
         }
 
-        // --- LÓGICA DE DADOS ---
         async function fetchGoogleSheets() {
-            const res = await fetch(URL_PLANILHA + "&gid=0");
+            const res = await fetch(BASE_URL + "&gid=0");
             const csv = await res.text();
             Papa.parse(csv, {
-                header: true, skipEmptyLines: true,
+                header: true, dynamicTyping: true, skipEmptyLines: true,
                 complete: (results) => {
                     rawData = results.data.map(row => {
                         const nr = {};
@@ -228,7 +151,7 @@
         }
 
         async function fetchPasswords() {
-            const res = await fetch(URL_PLANILHA + "&gid=49695199");
+            const res = await fetch(BASE_URL + "&gid=49695199");
             const csv = await res.text();
             Papa.parse(csv, {
                 header: true, complete: (results) => {
@@ -239,9 +162,10 @@
         }
 
         function getStatus(val, row, col) {
-            if (row && col && row[col + "_DONE"] === "TRUE") return 'andamento';
+            if (row && col && row[col + "_DONE"] === "TRUE" || row[col + "_DONE"] === true) return 'andamento';
             if (!(val instanceof Date)) return null;
-            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            const today = new Date().setHours(0,0,0,0);
+            const diff = Math.ceil((val - today) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             return 'ok';
@@ -264,25 +188,27 @@
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
                 const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s === '30' ? 'vence-30' : (s || ''))}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+                const css = h === 'CLIENTE' ? 'col-fixed' : (s === '30' ? 'vence-30' : (s || ''));
+                return `<td class="${css}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
             }).join('')}</tr>`).join('');
         }
 
         function renderTasks() {
             const grid = document.getElementById('tasksGrid');
             grid.innerHTML = "";
-            const urgentRows = rawData.filter(r => headers.some(h => getStatus(r[h], r, h) === 'vencido'));
-            urgentRows.forEach(row => {
-                const card = document.createElement('div');
-                card.className = "white-card p-4";
-                card.innerHTML = `<h5 class="font-bold text-xs uppercase">${row.CLIENTE}</h5><p class="text-[10px] text-red-500 mt-2 font-bold">Possui documentos vencidos!</p>`;
-                grid.appendChild(card);
+            rawData.filter(r => headers.some(h => getStatus(r[h], r, h) === 'vencido')).forEach(row => {
+                const div = document.createElement('div');
+                div.className = "white-card p-4 border-l-4 border-red-500";
+                div.innerHTML = `<h5 class="font-bold text-xs uppercase">${row.CLIENTE}</h5><p class="text-[10px] text-red-500 mt-1 font-bold">DÉBITOS VENCIDOS</p>`;
+                grid.appendChild(div);
             });
         }
 
         function renderPasswords() {
             const table = document.getElementById('senhasTable');
-            table.innerHTML = passwordData.map(row => `<tr>${Object.values(row).map(v => `<td class="border-b p-2">${v}</td>`).join('')}</tr>`).join('');
+            if(!passwordData.length) return;
+            const h = Object.keys(passwordData[0]);
+            table.innerHTML = `<thead><tr>${h.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody>${passwordData.map(row => `<tr>${h.map(k => `<td>${row[k] || '-'}</td>`).join('')}</tr>`).join('')}</tbody>`;
         }
 
         function openEditCell(r, c) {
@@ -291,7 +217,7 @@
             document.getElementById('modalTitle').innerText = rawData[r].CLIENTE;
             document.getElementById('modalContent').innerHTML = `
                 <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border">
-                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] === "TRUE" ? 'checked' : ''}>
+                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
                     <label class="text-[10px] font-bold uppercase">Em Andamento</label>
                 </div>
                 <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs">
@@ -309,17 +235,14 @@
         }
 
         function toggleStatusFilter(s) {
-            activeStatus = (activeStatus === s) ? null : s;
+            activeStatus = activeStatus === s ? null : s;
             ['vencido', '30', 'andamento'].forEach(id => document.getElementById('btn-'+id).classList.toggle('status-btn-active', activeStatus === id));
             renderTable();
         }
 
         function toggleDocFilter(d) {
-            activeDoc = (activeDoc === d) ? null : d;
-            docList.forEach(doc => {
-                const btn = document.getElementById('btn-doc-'+doc);
-                if(btn) btn.classList.toggle('status-btn-active', activeDoc === doc);
-            });
+            activeDoc = activeDoc === d ? null : d;
+            docList.forEach(doc => document.getElementById('btn-doc-'+doc).classList.toggle('status-btn-active', activeDoc === doc));
             renderTable();
         }
 
