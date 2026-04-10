@@ -15,7 +15,7 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         
-        /* Splash e Login Screens */
+        /* Telas de Bloqueio */
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         
         #login-screen { 
@@ -25,7 +25,7 @@
         }
         
         .login-card { 
-            background: white; padding: 2rem; border-radius: 24px; width: 100%; max-width: 320px; 
+            background: white; padding: 2.5rem; border-radius: 32px; width: 100%; max-width: 360px; 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
         }
 
@@ -71,20 +71,20 @@
             <div class="brand-name text-2xl justify-center mb-8"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
             <div class="space-y-4">
                 <div>
-                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Usuário</label>
-                    <input type="text" id="userInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Usuário</label>
+                    <input type="text" id="userInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500 transition-all">
                 </div>
                 <div>
-                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Senha</label>
-                    <input type="password" id="passInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Senha</label>
+                    <input type="password" id="passInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500 transition-all">
                 </div>
-                <button onclick="handleLogin()" class="w-full bg-emerald-500 text-white py-4 rounded-xl font-bold uppercase text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-600 transition-all mt-4">Entrar no Sistema</button>
-                <p id="loginError" class="text-red-500 text-[10px] font-bold text-center hidden uppercase">Acesso negado</p>
+                <button onclick="handleLogin()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-600 active:scale-[0.98] transition-all mt-4">Entrar no Sistema</button>
+                <p id="loginError" class="text-red-500 text-[10px] font-bold text-center hidden uppercase tracking-wider">Usuário ou senha incorretos</p>
             </div>
         </div>
     </div>
 
-    <div id="main-content" style="visibility: hidden;">
+    <div id="main-content" style="display: none;">
         <div class="p-6 max-w-[1600px] mx-auto">
             <header class="white-card p-5 flex justify-between items-center mb-6">
                 <div>
@@ -226,14 +226,23 @@
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
+            // Sequência de inicialização: Splash -> Login
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('splash-screen').style.display = 'none';
                     document.getElementById('login-screen').style.display = 'flex';
                 }, 500);
-            }, 1200);
+            }, 1500);
             
+            // Atalho teclado para login
+            document.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter' && document.getElementById('login-screen').style.display === 'flex') {
+                    handleLogin();
+                }
+            });
+
+            // Preparar botões de documentos (em background)
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
                 const btn = document.createElement('button');
@@ -244,20 +253,20 @@
             });
         };
 
-        // FUNÇÃO DE LOGIN
+        // LÓGICA DE ACESSO
         function handleLogin() {
             const u = document.getElementById('userInput').value;
             const p = document.getElementById('passInput').value;
             const err = document.getElementById('loginError');
 
-            // Defina aqui seu usuário e senha
+            // Credenciais
             if(u === "admin" && p === "topline2026") {
                 document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-content').style.visibility = 'visible';
-                fetchGoogleSheets(); // Só puxa os dados após o login
+                document.getElementById('main-content').style.display = 'block';
+                fetchGoogleSheets(); // Inicia carregamento dos dados
             } else {
                 err.classList.remove('hidden');
-                setTimeout(() => err.classList.add('hidden'), 2000);
+                setTimeout(() => err.classList.add('hidden'), 2500);
             }
         }
 
@@ -280,9 +289,7 @@
                             const nr = {};
                             Object.keys(row).forEach(k => {
                                 let key = k.trim().toUpperCase();
-                                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') {
-                                    key = 'CERTIF.DIGITAL';
-                                }
+                                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') key = 'CERTIF.DIGITAL';
                                 let val = row[k];
                                 if(typeof val === 'string' && val.includes('/')) {
                                     const p = val.split('/');
@@ -307,6 +314,7 @@
             }
         }
 
+        // Funções de lógica de dados e interface (mantidas íntegras conforme Versão 1.0)
         async function saveEdit() {
             const { r, c, user } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
@@ -360,7 +368,6 @@
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
-            
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) {
@@ -370,7 +377,6 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
                 const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
@@ -426,12 +432,10 @@
 
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
-            const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `
                 <tr>
                     <td class="col-fixed">${p.CLIENTE || '-'}</td>
-                    <td>${p.CNPJ || '-'}</td>
-                    <td>${p.CCM || '-'}</td>
+                    <td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
                     <td><span class="password-cell">${p["SENHA WEB"] || '-'}</span></td>
                     <td><span class="password-cell">${p["SENHA GOV"] || '-'}</span></td>
                     <td><span class="password-cell">${p["SENHA 156"] || '-'}</span></td>
@@ -444,7 +448,6 @@
             const userFilter = document.getElementById('auditUserFilter').value;
             const clientSearch = document.getElementById('auditSearchClient').value.toLowerCase();
             const dateFilter = document.getElementById('auditDateFilter').value;
-
             document.getElementById('logContainer').innerHTML = logs.filter(l => {
                 const matchUser = !userFilter || l.user === userFilter;
                 const matchClient = !clientSearch || l.msg.toLowerCase().includes(clientSearch);
@@ -458,11 +461,8 @@
                 document.getElementById('view-' + t).classList.add('hidden'); 
                 document.getElementById('tab-' + t).classList.remove('tab-active'); 
             });
-            
             const searchContainer = document.getElementById('searchContainer');
-            if(tab === 'dash') searchContainer.style.display = 'block';
-            else searchContainer.style.display = 'none';
-
+            searchContainer.style.display = (tab === 'dash') ? 'block' : 'none';
             document.getElementById('view-' + tab).classList.remove('hidden');
             document.getElementById('tab-' + tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
