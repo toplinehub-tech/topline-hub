@@ -44,7 +44,9 @@
         #btn-analise.status-btn-active { background-color: #ffedd5; }
 
         /* Estilo Senhas */
-        .password-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; border-radius: 4px; padding: 2px 6px; border: 1px solid #e2e8f0; }
+        .password-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; border-radius: 4px; padding: 2px 6px; border: 1px solid #e2e8f0; transition: all 0.2s; }
+        .password-cell:hover { background-color: #e2e8f0; border-color: #10b981; }
+        .copy-toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; font-size: 12px; font-weight: bold; z-index: 1000; display: none; }
     </style>
 </head>
 <body>
@@ -54,6 +56,8 @@
         <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
     </div>
+
+    <div id="toast" class="copy-toast">Copiado com sucesso!</div>
 
     <div class="p-6 max-w-[1600px] mx-auto">
         <header class="white-card p-5 flex justify-between items-center mb-6">
@@ -261,19 +265,49 @@
             }
         }
 
+        // Melhoria 2: Copiar Senha
+        function copyPassword(text) {
+            if(!text || text === '-') return;
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 2000);
+            });
+        }
+
         async function saveEdit() {
             const { r, c, user } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
             const isDone = document.getElementById('taskDone').checked;
             const obs = document.getElementById('editObs').value;
+            
             if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
             rawData[r][c+"_DONE"] = isDone;
             rawData[r][c+"_OBS"] = obs;
+
             try {
-                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
-                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                const payload = { 
+                    cliente: rawData[r].CLIENTE, 
+                    coluna: c, 
+                    novaData: inputDate, 
+                    concluido: isDone,
+                    obs: obs,
+                    usuario: user
+                };
+                
+                // Envio Real para o Apps Script
+                fetch(URL_SCRIPT_GOOGLE, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) 
+                });
+                
                 addLog(user, `Alteração enviada: ${rawData[r].CLIENTE} - ${c}`);
-            } catch (e) { addLog("Sistema", "Falha ao enviar dados."); }
+            } catch (e) { 
+                addLog("Sistema", "Falha ao enviar dados."); 
+            }
+            
             closeModal(); renderTable(); updateTaskUI();
         }
 
@@ -359,14 +393,30 @@
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
         }
 
+        // Melhoria 1: Sorteio Fisher-Yates (Mais aleatório e justo)
         function distribuirTarefas(status) {
             let tasks = [];
-            rawData.forEach((row, rIdx) => { headers.forEach(col => { if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); }); });
+            rawData.forEach((row, rIdx) => { 
+                headers.forEach(col => { 
+                    if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) 
+                        tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); 
+                }); 
+            });
+
             if(!tasks.length) return alert("Nada para sortear.");
-            tasks.sort(() => Math.random() - 0.5);
+            
+            // Embaralhamento Robusto
+            for (let i = tasks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tasks[i], tasks[j]] = [tasks[j], tasks[i]];
+            }
+
             currentTasks = { Jordan: [], Silene: [], Patricia: [] };
             const names = ['Jordan', 'Silene', 'Patricia'];
-            tasks.forEach((t, i) => currentTasks[names[i % 3]].push(t));
+            
+            tasks.forEach((t, i) => {
+                currentTasks[names[i % 3]].push(t);
+            });
             updateTaskUI();
         }
 
@@ -380,17 +430,16 @@
 
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
-            const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `
                 <tr>
                     <td class="col-fixed">${p.CLIENTE || '-'}</td>
                     <td>${p.CNPJ || '-'}</td>
                     <td>${p.CCM || '-'}</td>
-                    <td><span class="password-cell">${p["SENHA WEB"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SENHA GOV"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SENHA 156"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SENHA CRCE"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SIGEP"] || '-'}</span></td>
+                    <td><span class="password-cell" onclick="copyPassword('${p["SENHA WEB"]}')">${p["SENHA WEB"] || '-'}</span></td>
+                    <td><span class="password-cell" onclick="copyPassword('${p["SENHA GOV"]}')">${p["SENHA GOV"] || '-'}</span></td>
+                    <td><span class="password-cell" onclick="copyPassword('${p["SENHA 156"]}')">${p["SENHA 156"] || '-'}</span></td>
+                    <td><span class="password-cell" onclick="copyPassword('${p["SENHA CRCE"]}')">${p["SENHA CRCE"] || '-'}</span></td>
+                    <td><span class="password-cell" onclick="copyPassword('${p["SIGEP"]}')">${p["SIGEP"] || '-'}</span></td>
                 </tr>`).join('');
         }
 
@@ -413,7 +462,6 @@
                 document.getElementById('tab-' + t).classList.remove('tab-active'); 
             });
             
-            // Controle de visibilidade da busca de cliente
             const searchContainer = document.getElementById('searchContainer');
             if(tab === 'dash') searchContainer.style.display = 'block';
             else searchContainer.style.display = 'none';
