@@ -29,6 +29,8 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
+        /* Destaque para as Senhas */
+        .password-highlight { font-family: monospace; color: #059669; font-weight: 700; background: #ecfdf5; padding: 2px 6px; border-radius: 4px; border: 1px solid #d1fae5; }
     </style>
 </head>
 <body>
@@ -45,9 +47,7 @@
                 <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                 <nav class="flex gap-6 mt-3">
                     <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                    <button onclick="switchTab('sheet')" id="tab-sheet" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Planilha</button>
                     <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                    <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
                     <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                 </nav>
             </div>
@@ -167,24 +167,6 @@
             </div>
         </div>
 
-        <div id="view-auditoria" class="hidden">
-            <div class="white-card p-6 min-h-[500px]">
-                <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl">
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold uppercase text-slate-400">Colaborador</label>
-                        <select id="auditUserFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
-                            <option value="">Todos</option>
-                            <option value="Jordan">Jordan</option>
-                            <option value="Silene">Silene</option>
-                            <option value="Patricia">Patricia</option>
-                            <option value="Sistema">Sistema</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="logContainer" class="space-y-2"></div>
-            </div>
-        </div>
-
         <div id="view-senhas" class="hidden">
             <div class="white-card p-6">
                 <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
@@ -194,12 +176,6 @@
                         <tbody id="senhasBody"></tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-
-        <div id="view-sheet" class="hidden">
-            <div id="masterSheetTable" class="white-card scroll-container p-6 text-xs text-slate-400 font-bold uppercase">
-                Os dados brutos são espelhados do Google Sheets em tempo real.
             </div>
         </div>
     </div>
@@ -285,7 +261,7 @@
 
                 const resSenhas = await fetch(URL_SENHAS);
                 const csvSenhas = await resSenhas.text();
-                Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (results) => { passwordData = results.data; addLog("Sistema", "Sincronização completa."); } });
+                Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (results) => { passwordData = results.data; } });
             } catch (e) {
                 alert("Erro ao conectar com o Google Sheets.");
             } finally {
@@ -304,13 +280,10 @@
             try {
                 const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                addLog(user, `Alteração enviada: ${rawData[r].CLIENTE} - ${c}`);
-            } catch (e) { addLog("Sistema", "Falha ao enviar dados."); }
+            } catch (e) { console.error("Erro ao enviar dados."); }
             closeModal(); renderTable(); updateTaskUI();
         }
 
-        function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg }); if(logs.length > 100) logs.pop(); }
-        
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
@@ -326,10 +299,8 @@
             return 'ok';
         }
 
-        // --- NOVA FUNÇÃO DE DASHBOARD ANIMADO ---
         function updateAnalytics() {
             let counts = { vencido: 0, andamento: 0, analise: 0 };
-            
             rawData.forEach(row => {
                 headers.forEach(col => {
                     if (col === 'CLIENTE') return;
@@ -339,38 +310,22 @@
                     if (status === 'analise') counts.analise++;
                 });
             });
-
             const total = counts.vencido + counts.andamento + counts.analise;
-            const totalDisplay = total || 0;
-            
             document.getElementById('dash-count-vencido').innerText = counts.vencido;
             document.getElementById('dash-count-andamento').innerText = counts.andamento;
             document.getElementById('dash-count-analise').innerText = counts.analise;
-            document.getElementById('dash-count-total').innerText = totalDisplay;
-
-            // Lógica do Gráfico Circular
+            document.getElementById('dash-count-total').innerText = total;
             const safeTotal = total || 1;
             const pVenc = (counts.vencido / safeTotal) * 100;
             const pAnd = (counts.andamento / safeTotal) * 100;
             const pAna = (counts.analise / safeTotal) * 100;
-
-            const circVenc = document.getElementById('circle-vencido');
-            const circAnd = document.getElementById('circle-andamento');
-            const circAna = document.getElementById('circle-analise');
-
-            // Set stroke-dasharray (valor do segmento) e stroke-dashoffset (posição de início)
-            circVenc.setAttribute('stroke-dasharray', `${pVenc} 100`);
-            
-            circAnd.setAttribute('stroke-dashoffset', `-${pVenc}`);
-            circAnd.setAttribute('stroke-dasharray', `${pAnd} 100`);
-            
-            circAna.setAttribute('stroke-dashoffset', `-${pVenc + pAnd}`);
-            circAna.setAttribute('stroke-dasharray', `${pAna} 100`);
-
-            // Percentual de "Saúde" do Painel (Inverso de vencidos sobre o total analisado)
+            document.getElementById('circle-vencido').setAttribute('stroke-dasharray', `${pVenc} 100`);
+            document.getElementById('circle-andamento').setAttribute('stroke-dashoffset', `-${pVenc}`);
+            document.getElementById('circle-andamento').setAttribute('stroke-dasharray', `${pAnd} 100`);
+            document.getElementById('circle-analise').setAttribute('stroke-dashoffset', `-${pVenc + pAnd}`);
+            document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${pAna} 100`);
             const percentSaude = total > 0 ? Math.round(((total - counts.vencido) / total) * 100) : 100;
             document.getElementById('dash-percent').innerText = percentSaude + "%";
-            
             document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
@@ -384,7 +339,6 @@
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
-            
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) {
@@ -394,14 +348,12 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
                 const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                 return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
             }).join('')}</tr>`).join('');
-
-            updateAnalytics(); // Sincroniza o dashboard superior
+            updateAnalytics();
         }
 
         function openEditCell(r, c, user = "Sistema") {
@@ -453,20 +405,30 @@
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
-            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${cols.slice(3).map(c => `<td>${p[c] || '-'}</td>`).join('')}</tr>`).join('');
-        }
-
-        function renderLogs() {
-            const filter = document.getElementById('auditUserFilter').value;
-            document.getElementById('logContainer').innerHTML = logs.filter(l => !filter || l.user === filter).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
+            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `
+                <tr>
+                    <td class="col-fixed">${p.CLIENTE || '-'}</td>
+                    <td>${p.CNPJ || '-'}</td>
+                    <td>${p.CCM || '-'}</td>
+                    <td><span class="${p['SENHA WEB'] ? 'password-highlight' : ''}">${p['SENHA WEB'] || '-'}</span></td>
+                    <td><span class="${p['SENHA GOV'] ? 'password-highlight' : ''}">${p['SENHA GOV'] || '-'}</span></td>
+                    <td><span class="${p['SENHA 156'] ? 'password-highlight' : ''}">${p['SENHA 156'] || '-'}</span></td>
+                    <td><span class="${p['SENHA CRCE'] ? 'password-highlight' : ''}">${p['SENHA CRCE'] || '-'}</span></td>
+                    <td><span class="${p['SIGEP'] ? 'password-highlight' : ''}">${p['SIGEP'] || '-'}</span></td>
+                </tr>
+            `).join('');
         }
 
         function switchTab(tab) {
-            ['dash', 'sheet', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
+            ['dash', 'tasks', 'senhas'].forEach(t => { 
+                const view = document.getElementById('view-' + t);
+                const btn = document.getElementById('tab-' + t);
+                if(view) view.classList.add('hidden'); 
+                if(btn) btn.classList.remove('tab-active'); 
+            });
             document.getElementById('view-' + tab).classList.remove('hidden');
             document.getElementById('tab-' + tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
-            if(tab === 'auditoria') renderLogs();
         }
 
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
