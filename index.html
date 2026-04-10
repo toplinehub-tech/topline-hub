@@ -15,7 +15,6 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         
-        /* Telas de Bloqueio */
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         
         #login-screen { 
@@ -29,7 +28,6 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
         }
 
-        /* Status Colors */
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -56,6 +54,9 @@
         #btn-analise.status-btn-active { background-color: #ffedd5; }
 
         .password-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; border-radius: 4px; padding: 2px 6px; border: 1px solid #e2e8f0; }
+        
+        /* Estilo para o botão de ver senha */
+        .pass-toggle { position: absolute; right: 15px; top: 38px; cursor: pointer; color: #94a3b8; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -72,14 +73,19 @@
             <div class="space-y-4">
                 <div>
                     <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Usuário</label>
-                    <input type="text" id="userInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500 transition-all">
+                    <input type="text" id="userInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500">
                 </div>
-                <div>
+                <div class="relative">
                     <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Senha</label>
-                    <input type="password" id="passInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500 transition-all">
+                    <input type="password" id="passInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500">
+                    <span class="pass-toggle" onclick="togglePassVisibility()">👁️</span>
+                </div>
+                <div class="flex items-center gap-2 ml-1">
+                    <input type="checkbox" id="rememberMe" class="rounded border-slate-300">
+                    <label for="rememberMe" class="text-[10px] font-bold uppercase text-slate-500">Lembrar acesso</label>
                 </div>
                 <button onclick="handleLogin()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-600 active:scale-[0.98] transition-all mt-4">Entrar no Sistema</button>
-                <p id="loginError" class="text-red-500 text-[10px] font-bold text-center hidden uppercase tracking-wider">Usuário ou senha incorretos</p>
+                <p id="loginError" class="text-red-500 text-[10px] font-bold text-center hidden uppercase">Usuário ou senha incorretos</p>
             </div>
         </div>
     </div>
@@ -226,23 +232,25 @@
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
-            // Sequência de inicialização: Splash -> Login
+            // Verificar se já existe login salvo
+            const savedLogin = localStorage.getItem('topline_auth');
+            
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('splash-screen').style.display = 'none';
-                    document.getElementById('login-screen').style.display = 'flex';
+                    if(savedLogin === 'true') {
+                        showSystem();
+                    } else {
+                        document.getElementById('login-screen').style.display = 'flex';
+                    }
                 }, 500);
             }, 1500);
             
-            // Atalho teclado para login
             document.addEventListener('keypress', (e) => {
-                if(e.key === 'Enter' && document.getElementById('login-screen').style.display === 'flex') {
-                    handleLogin();
-                }
+                if(e.key === 'Enter' && document.getElementById('login-screen').style.display === 'flex') handleLogin();
             });
 
-            // Preparar botões de documentos (em background)
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
                 const btn = document.createElement('button');
@@ -253,21 +261,30 @@
             });
         };
 
-        // LÓGICA DE ACESSO
+        function togglePassVisibility() {
+            const input = document.getElementById('passInput');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
         function handleLogin() {
-            const u = document.getElementById('userInput').value;
-            const p = document.getElementById('passInput').value;
+            const u = document.getElementById('userInput').value.trim();
+            const p = document.getElementById('passInput').value.trim();
+            const remember = document.getElementById('rememberMe').checked;
             const err = document.getElementById('loginError');
 
-            // Credenciais
             if(u === "admin" && p === "topline2026") {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-                fetchGoogleSheets(); // Inicia carregamento dos dados
+                if(remember) localStorage.setItem('topline_auth', 'true');
+                showSystem();
             } else {
                 err.classList.remove('hidden');
                 setTimeout(() => err.classList.add('hidden'), 2500);
             }
+        }
+
+        function showSystem() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            fetchGoogleSheets();
         }
 
         async function fetchGoogleSheets() {
@@ -276,14 +293,11 @@
             syncBtn.innerText = "Sincronizando...";
             syncBtn.disabled = true;
             loading.classList.remove('hidden');
-
             try {
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS);
                 const csvDados = await resDados.text();
                 Papa.parse(csvDados, {
-                    header: true,
-                    dynamicTyping: true,
-                    skipEmptyLines: true,
+                    header: true, dynamicTyping: true, skipEmptyLines: true,
                     complete: (results) => {
                         rawData = results.data.map(row => {
                             const nr = {};
@@ -303,18 +317,13 @@
                         renderTable();
                     }
                 });
-
                 const resSenhas = await fetch(URL_SENHAS);
                 const csvSenhas = await resSenhas.text();
                 Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (results) => { passwordData = results.data; addLog("Sistema", "Sincronização completa."); } });
-            } catch (e) {
-                alert("Erro ao conectar com o Google Sheets.");
-            } finally {
-                syncBtn.innerText = "Sincronizar Sheets"; syncBtn.disabled = false; loading.classList.add('hidden');
-            }
+            } catch (e) { alert("Erro ao conectar com o Google Sheets."); } 
+            finally { syncBtn.innerText = "Sincronizar Sheets"; syncBtn.disabled = false; loading.classList.add('hidden'); }
         }
 
-        // Funções de lógica de dados e interface (mantidas íntegras conforme Versão 1.0)
         async function saveEdit() {
             const { r, c, user } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
@@ -332,7 +341,6 @@
         }
 
         function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleDateString('pt-BR'), fullDate: new Date(), user, msg }); if(logs.length > 100) logs.pop(); }
-        
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
@@ -354,14 +362,12 @@
             if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); 
             renderTable(); 
         }
-        
         function toggleDocFilter(doc) { 
             activeDoc = (activeDoc === doc) ? null : doc; 
             document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); 
             if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); 
             renderTable(); 
         }
-        
         function renderTable() {
             const head = document.getElementById('tableHeader');
             const body = document.getElementById('tableBody');
@@ -370,10 +376,7 @@
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
-                if(activeDoc) {
-                    const s = getStatus(row[activeDoc], row, activeDoc);
-                    return activeStatus ? s === activeStatus : !!row[activeDoc];
-                }
+                if(activeDoc) { const s = getStatus(row[activeDoc], row, activeDoc); return activeStatus ? s === activeStatus : !!row[activeDoc]; }
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
@@ -457,12 +460,8 @@
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'auditoria', 'senhas'].forEach(t => { 
-                document.getElementById('view-' + t).classList.add('hidden'); 
-                document.getElementById('tab-' + t).classList.remove('tab-active'); 
-            });
-            const searchContainer = document.getElementById('searchContainer');
-            searchContainer.style.display = (tab === 'dash') ? 'block' : 'none';
+            ['dash', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
+            document.getElementById('searchContainer').style.display = (tab === 'dash') ? 'block' : 'none';
             document.getElementById('view-' + tab).classList.remove('hidden');
             document.getElementById('tab-' + tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
