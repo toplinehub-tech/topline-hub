@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.4</title>
+    <title>TopLineHub | Gestão Integrada v1.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -11,23 +11,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f0fdf4; color: #1e293b; margin: 0; }
         .brand-name { font-weight: 800; letter-spacing: -0.05em; display: flex; align-items: center; }
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         
-        /* Status Colors */
-        .vencido { background-color: #fef2f2 !important; color: #dc2626 !important; font-weight: 600; }
-        .andamento { background-color: #f5f3ff !important; color: #7c3aed !important; font-weight: 600; }
-        .analise { background-color: #fff7ed !important; color: #ea580c !important; font-weight: 600; }
+        /* Status Colors - Mantendo o padrão solicitado */
+        .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
+        .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
+        .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
+        .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
+        .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
+        .analise { background-color: #fff7ed !important; color: #c2410c !important; }
         
-        .white-card { background: white; border: 1px solid rgba(0,0,0,0.05); border-radius: 20px; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
-        .tab-active { border-bottom: 2px solid #10b981; color: #059669 !important; }
-        th { background: #f8fafc; padding: 12px; font-size: 10px; position: sticky; top: 0; z-index: 20; border-bottom: 1px solid #e2e8f0; }
-        td { padding: 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
-        .col-fixed { position: sticky; left: 0; background: white !important; z-index: 10; border-right: 1px solid #e2e8f0; }
-        .btn-mini { padding: 6px 12px; font-size: 10px; border-radius: 10px; font-weight: 700; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; }
+        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .status-btn-active { ring: 2px solid #10b981; transform: translateY(-2px); }
+        .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
+        
+        th { background: #f8fafc; padding: 12px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        .col-fixed { position: sticky; left: 0; background: white !important; z-index: 10; border-right: 1px solid #e2e8f0; font-weight: 600; }
+        .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; font-weight: 800; text-transform: uppercase; border: 1px solid #e2e8f0; background: white; }
     </style>
 </head>
 <body>
@@ -40,7 +45,7 @@
     <div class="p-6 max-w-[1600px] mx-auto">
         <header class="white-card p-5 flex justify-between items-center mb-6">
             <div>
-                <div class="brand-name text-2xl cursor-pointer"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                 <nav class="flex gap-6 mt-3">
                     <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
                     <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
@@ -49,40 +54,74 @@
                 </nav>
             </div>
             <div class="flex items-center gap-3">
-                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none focus:ring-2 ring-emerald-100">
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none focus:ring-2 ring-emerald-100">
                 <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 bg-emerald-50 border-emerald-100">Sincronizar</button>
+                <button onclick="resetFilters()" class="btn-mini text-slate-500">Limpar</button>
             </div>
         </header>
 
         <div id="view-dash">
             <div class="grid grid-cols-12 gap-6 mb-6">
-                <div class="col-span-4 white-card p-6 flex items-center justify-center">
-                    <div style="width: 280px; height: 280px;">
+                <div class="col-span-4 white-card p-6 flex flex-col items-center justify-center relative">
+                    <div style="width: 220px; height: 220px;">
                         <canvas id="statusChart"></canvas>
+                    </div>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-4">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Total Geral</span>
+                        <span id="total-count" class="text-3xl font-black text-slate-700">0</span>
                     </div>
                 </div>
                 
-                <div class="col-span-8 grid grid-cols-3 gap-4">
-                    <div class="white-card p-6 border-l-4 border-red-500 bg-gradient-to-br from-white to-red-50">
-                        <span class="text-[10px] font-black text-red-500 uppercase">Vencidos</span>
-                        <h2 id="stat-vencido" class="text-4xl font-black mt-2">0</h2>
-                        <p class="text-[10px] text-slate-400 mt-1">Processos fora do prazo</p>
+                <div class="col-span-8 flex flex-col gap-4">
+                    <div class="grid grid-cols-3 gap-4 h-full">
+                        <div class="white-card p-6 border-l-8 border-red-500 flex flex-col justify-center">
+                            <span class="text-[10px] font-black text-red-500 uppercase">Crítico</span>
+                            <h2 id="stat-vencido" class="text-5xl font-black text-slate-700 mt-1">0</h2>
+                            <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Processos Vencidos</p>
+                        </div>
+                        <div class="white-card p-6 border-l-8 border-purple-500 flex flex-col justify-center">
+                            <span class="text-[10px] font-black text-purple-500 uppercase">Produção</span>
+                            <h2 id="stat-andamento" class="text-5xl font-black text-slate-700 mt-1">0</h2>
+                            <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Em Andamento</p>
+                        </div>
+                        <div class="white-card p-6 border-l-8 border-orange-500 flex flex-col justify-center">
+                            <span class="text-[10px] font-black text-orange-500 uppercase">Triagem</span>
+                            <h2 id="stat-analise" class="text-5xl font-black text-slate-700 mt-1">0</h2>
+                            <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Em Análise</p>
+                        </div>
                     </div>
-                    <div class="white-card p-6 border-l-4 border-purple-500 bg-gradient-to-br from-white to-purple-50">
-                        <span class="text-[10px] font-black text-purple-500 uppercase">Em Andamento</span>
-                        <h2 id="stat-andamento" class="text-4xl font-black mt-2">0</h2>
-                        <p class="text-[10px] text-slate-400 mt-1">Aguardando conclusão</p>
-                    </div>
-                    <div class="white-card p-6 border-l-4 border-orange-500 bg-gradient-to-br from-white to-orange-50">
-                        <span class="text-[10px] font-black text-orange-500 uppercase">Em Análise</span>
-                        <h2 id="stat-analise" class="text-4xl font-black mt-2">0</h2>
-                        <p class="text-[10px] text-slate-400 mt-1">Triagem técnica</p>
-                    </div>
-                    <div class="col-span-3 white-card p-3 flex flex-wrap gap-2 items-center">
-                        <span class="text-[9px] font-bold text-slate-400 ml-2 mr-2 uppercase">Filtrar Doc:</span>
+                    <div class="white-card p-4 flex flex-wrap gap-2 items-center">
+                        <span class="text-[9px] font-black text-slate-400 uppercase mr-2">Filtrar Documento:</span>
                         <div id="docButtons" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
+            </div>
+
+            <div class="grid grid-cols-6 gap-4 mb-6">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all hover:bg-red-50">
+                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
+                    <span class="text-xs font-bold text-slate-700">Vencidos</span>
+                </button>
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all hover:bg-amber-50">
+                    <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
+                    <span class="text-xs font-bold text-slate-700">30 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all hover:bg-emerald-50">
+                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
+                    <span class="text-xs font-bold text-slate-700">60 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all hover:bg-sky-50">
+                    <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
+                    <span class="text-xs font-bold text-slate-700">90 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all hover:bg-purple-50">
+                    <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
+                    <span class="text-xs font-bold text-slate-700">Andamento</span>
+                </button>
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all hover:bg-orange-50">
+                    <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
+                    <span class="text-xs font-bold text-slate-700">Análise</span>
+                </button>
             </div>
 
             <div class="white-card overflow-hidden">
@@ -96,34 +135,10 @@
         </div>
 
         <div id="view-tasks" class="hidden">
-            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
-                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                <button onclick="distribuirTarefas('andamento')" class="btn-mini border-purple-200 text-purple-700">Sortear Andamento</button>
-            </div>
-            <div class="grid grid-cols-3 gap-6">
-                <div id="col-jordan" class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between">Jordan <span id="count-jordan">0</span></h3>
-                    <div id="list-jordan" class="space-y-2"></div>
-                </div>
-                <div id="col-silene" class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between">Silene <span id="count-silene">0</span></h3>
-                    <div id="list-silene" class="space-y-2"></div>
-                </div>
-                <div id="col-patricia" class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between">Patricia <span id="count-patricia">0</span></h3>
-                    <div id="list-patricia" class="space-y-2"></div>
-                </div>
-            </div>
+            <div class="grid grid-cols-3 gap-6" id="tasks-container"></div>
         </div>
-
         <div id="view-auditoria" class="hidden"><div id="logContainer" class="white-card p-6 space-y-2"></div></div>
-        
-        <div id="view-senhas" class="hidden">
-            <div class="white-card p-6">
-                <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar senhas..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
-                <div class="overflow-auto"><table class="w-full text-left"><tbody id="senhasBody"></tbody></table></div>
-            </div>
-        </div>
+        <div id="view-senhas" class="hidden"><div class="white-card p-6 overflow-auto"><table class="w-full text-left"><tbody id="senhasBody"></tbody></table></div></div>
     </div>
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
@@ -143,28 +158,14 @@
         const URL_SENHAS = BASE_URL + "&gid=49695199";
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbyDnH1bPGZmuRsoyWBGm6XD0azRDC9fDuwuyEZREkTpFi4kXHLAEjxh1UZgOjqOhUXU/exec";
 
-        let rawData = [], headers = [], passwordData = [], logs = [];
-        let activeDoc = null;
-        let chartInstance = null;
-
+        let rawData = [], headers = [], passwordData = [], activeDoc = null, activeStatus = null, chartInstance = null;
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
             initChart();
-            docList.forEach(doc => {
-                const btn = document.createElement('button');
-                btn.className = "btn-mini doc-filter-btn";
-                btn.innerText = doc;
-                btn.onclick = () => {
-                    activeDoc = (activeDoc === doc) ? null : doc;
-                    document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
-                    if(activeDoc) btn.classList.add('bg-emerald-500', 'text-white');
-                    renderTable();
-                };
-                document.getElementById('docButtons').appendChild(btn);
-            });
+            renderDocButtons();
             fetchGoogleSheets();
-            setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 1000);
+            setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 1200);
         };
 
         async function fetchGoogleSheets() {
@@ -172,13 +173,13 @@
                 const res = await fetch(URL_DADOS_PRINCIPAIS);
                 const csv = await res.text();
                 Papa.parse(csv, {
-                    header: true,
-                    skipEmptyLines: true,
+                    header: true, skipEmptyLines: true,
                     complete: (results) => {
                         rawData = results.data.map(row => {
                             let nr = {};
                             Object.keys(row).forEach(k => {
                                 let key = k.trim().toUpperCase();
+                                if(key === 'CRCE_1' || key === 'CERTF.DIGITAL') key = 'CERTIF.DIGITAL';
                                 let val = row[k];
                                 if(typeof val === 'string' && val.includes('/')) {
                                     const p = val.split('/');
@@ -192,39 +193,41 @@
                         renderTable();
                     }
                 });
-                
                 const resS = await fetch(URL_SENHAS);
                 const csvS = await resS.text();
                 Papa.parse(csvS, { header: true, complete: r => passwordData = r.data });
-            } catch (e) { console.error("Erro ao carregar", e); }
+            } catch (e) { alert("Erro ao sincronizar dados."); }
         }
 
         function getStatus(val, row, col) {
             const str = String(val || "").toUpperCase().trim();
             if (str === "EM ANDAMENTO" || (row && row[col + "_DONE"])) return 'andamento';
             if (str === "ANALISE" || str === "ANÁLISE") return 'analise';
-            if (val instanceof Date) {
-                const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
-                return diff < 0 ? 'vencido' : 'ok';
-            }
-            return null;
+            if (!(val instanceof Date)) return null;
+            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            if (diff < 0) return 'vencido';
+            if (diff <= 30) return '30';
+            if (diff <= 60) return '60';
+            if (diff <= 90) return '90';
+            return 'ok';
         }
 
         function updateDashboard() {
-            let stats = { vencido: 0, andamento: 0, analise: 0 };
-            
+            let stats = { vencido: 0, andamento: 0, analise: 0, total: 0 };
             rawData.forEach(row => {
                 headers.forEach(h => {
                     if(h === 'CLIENTE') return;
                     const s = getStatus(row[h], row, h);
-                    if(stats[s] !== undefined) stats[s]++;
+                    if(s === 'vencido') stats.vencido++;
+                    if(s === 'andamento') stats.andamento++;
+                    if(s === 'analise') stats.analise++;
+                    if(s) stats.total++;
                 });
             });
-
             document.getElementById('stat-vencido').innerText = stats.vencido;
             document.getElementById('stat-andamento').innerText = stats.andamento;
             document.getElementById('stat-analise').innerText = stats.analise;
-
+            document.getElementById('total-count').innerText = stats.total;
             chartInstance.data.datasets[0].data = [stats.vencido, stats.andamento, stats.analise];
             chartInstance.update();
         }
@@ -238,45 +241,68 @@
                     datasets: [{
                         data: [0, 0, 0],
                         backgroundColor: ['#ef4444', '#8b5cf6', '#f97316'],
-                        borderWidth: 0,
-                        hoverOffset: 10
+                        hoverOffset: 15,
+                        borderRadius: 5,
+                        spacing: 2
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '75%',
-                    plugins: { 
-                        legend: { display: false }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false } } }
             });
+        }
+
+        function toggleStatusFilter(status) {
+            activeStatus = (activeStatus === status) ? null : status;
+            document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active'));
+            if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active');
+            renderTable();
         }
 
         function renderTable() {
             const q = document.getElementById('searchInput').value.toLowerCase();
             const body = document.getElementById('tableBody');
             const head = document.getElementById('tableHeader');
-            
+            if(!headers.length) return;
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             
             const filtered = rawData.filter(row => {
                 const matchSearch = row.CLIENTE?.toString().toLowerCase().includes(q);
-                if(activeDoc) return matchSearch && row[activeDoc];
-                return matchSearch;
+                if(!matchSearch) return false;
+                if(activeDoc) {
+                    const s = getStatus(row[activeDoc], row, activeDoc);
+                    if(activeStatus) return s === activeStatus;
+                    return row[activeDoc] !== null && row[activeDoc] !== "";
+                }
+                if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
+                return true;
             });
 
-            body.innerHTML = filtered.map((row, rIdx) => `
+            body.innerHTML = filtered.map(row => `
                 <tr>
                     ${headers.map(h => {
                         const s = getStatus(row[h], row, h);
                         const display = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                        return `<td class="${h==='CLIENTE'?'col-fixed':''} ${s||''}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${display}</td>`;
+                        const cssClass = (s === '30' || s === '60' || s === '90') ? 'vence-'+s : (s || '');
+                        return `<td class="${h==='CLIENTE'?'col-fixed':''} ${cssClass}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${display}</td>`;
                     }).join('')}
                 </tr>
             `).join('');
-            
             updateDashboard();
+        }
+
+        function renderDocButtons() {
+            const container = document.getElementById('docButtons');
+            docList.forEach(doc => {
+                const btn = document.createElement('button');
+                btn.className = "btn-mini doc-filter-btn";
+                btn.innerText = doc;
+                btn.onclick = () => {
+                    activeDoc = (activeDoc === doc) ? null : doc;
+                    document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
+                    if(activeDoc) btn.classList.add('bg-emerald-500', 'text-white');
+                    renderTable();
+                };
+                container.appendChild(btn);
+            });
         }
 
         function openEditCell(r, c) {
@@ -288,29 +314,29 @@
                     <span class="text-[10px] font-bold text-slate-400 uppercase">Documento</span>
                     <div class="text-sm font-black text-emerald-600">${c}</div>
                 </div>
-                <div class="flex items-center gap-3 p-3 border rounded-2xl">
+                <div class="flex items-center gap-3 p-3 border rounded-2xl mb-4">
                     <input type="checkbox" id="taskDone" class="w-5 h-5 accent-emerald-500" ${row[c+"_DONE"] ? 'checked' : ''}>
-                    <label class="text-xs font-bold text-slate-600 uppercase">Marcar como Concluído</label>
+                    <label class="text-xs font-bold text-slate-600 uppercase">Concluído</label>
                 </div>
-                <input type="date" id="editVal" class="w-full border p-3 rounded-2xl text-xs" value="${row[c] instanceof Date ? row[c].toISOString().split('T')[0] : ''}">
+                <input type="date" id="editVal" class="w-full border p-3 rounded-2xl text-xs mb-3" value="${row[c] instanceof Date ? row[c].toISOString().split('T')[0] : ''}">
                 <textarea id="editObs" placeholder="Observações..." class="w-full border p-3 rounded-2xl text-xs">${row[c+"_OBS"] || ''}</textarea>
             `;
-            document.getElementById('modalSaveBtn').onclick = () => saveEdit(r, c);
+            document.getElementById('modalSaveBtn').onclick = () => {
+                rawData[r][c + "_DONE"] = document.getElementById('taskDone').checked;
+                if(document.getElementById('editVal').value) rawData[r][c] = new Date(document.getElementById('editVal').value + "T12:00:00");
+                rawData[r][c + "_OBS"] = document.getElementById('editObs').value;
+                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ cliente: row.CLIENTE, coluna: c, concluido: rawData[r][c+"_DONE"] }) });
+                closeModal(); renderTable();
+            };
             document.getElementById('editModal').classList.remove('hidden');
         }
 
-        async function saveEdit(r, c) {
-            const isDone = document.getElementById('taskDone').checked;
-            const newVal = document.getElementById('editVal').value;
-            
-            rawData[r][c + "_DONE"] = isDone;
-            if(newVal) rawData[r][c] = new Date(newVal + "T12:00:00");
-            
-            // Envio fake/post para o script
-            fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ cliente: rawData[r].CLIENTE, coluna: c, concluido: isDone }) });
-            
-            closeModal();
-            renderTable(); // Isso já chama updateDashboard()
+        function resetFilters() {
+            activeDoc = null; activeStatus = null;
+            document.querySelectorAll('.status-btn-active').forEach(b => b.classList.remove('status-btn-active'));
+            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
+            document.getElementById('searchInput').value = "";
+            renderTable();
         }
 
         function switchTab(tab) {
