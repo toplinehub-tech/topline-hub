@@ -278,7 +278,6 @@
             });
         }
 
-        // MELHORIA: Função de salvamento com feedback em tempo real
         async function saveEdit() {
             const { r, c, user } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
@@ -287,7 +286,6 @@
             const cellId = `cell-${r}-${c}`;
             const cellElement = document.getElementById(cellId);
             
-            // 1. Atualização Visual Local
             if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
             rawData[r][c+"_DONE"] = isDone;
             rawData[r][c+"_OBS"] = obs;
@@ -304,9 +302,10 @@
                     usuario: user
                 };
                 
-                // 2. Envio REAL para o Google Sheets (Apps Script)
-                const response = await fetch(URL_SCRIPT_GOOGLE, { 
+                await fetch(URL_SCRIPT_GOOGLE, { 
                     method: 'POST', 
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload) 
                 });
 
@@ -316,13 +315,13 @@
                     setTimeout(() => cellElement.classList.remove('sync-success'), 2000);
                 }
                 
-                addLog(user, `Alteração enviada e salva no Sheets: ${rawData[r].CLIENTE} - ${c}`);
+                addLog(user, `Alteração enviada: ${rawData[r].CLIENTE} - ${c}`);
             } catch (e) { 
                 if(cellElement) {
                     cellElement.classList.remove('syncing');
                     cellElement.classList.add('sync-error');
                 }
-                addLog("Sistema", "Falha ao sincronizar com o Sheets."); 
+                addLog("Sistema", "Falha ao sincronizar."); 
             }
             
             closeModal(); renderTable(); updateTaskUI();
@@ -382,10 +381,7 @@
                     const s = getStatus(row[h], row, h);
                     const isDone = row[h + "_DONE"];
                     const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                    
-                    // MELHORIA: Adiciona Check de Concluído Visual
                     const displayVal = isDone ? `<span class="text-emerald-500">✅</span> ${val}` : val;
-                    
                     return `<td id="cell-${rowIndex}-${h}" 
                                class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')} ${isDone ? 'opacity-40' : ''}" 
                                onclick="openEditCell(${rowIndex}, '${h}')">
