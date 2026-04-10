@@ -15,20 +15,36 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        
+        /* Status Colors */
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
         .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
+        
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .scroll-container { max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
+        
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
+        
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
-        .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
+        
+        /* Destaque dos Cards Selecionados */
+        .status-btn-active { border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2) !important; transform: translateY(-2px); }
+        #btn-vencido.status-btn-active { background-color: #fee2e2; }
+        #btn-30.status-btn-active { background-color: #fef3c7; }
+        #btn-60.status-btn-active { background-color: #d1fae5; }
+        #btn-90.status-btn-active { background-color: #e0f2fe; }
+        #btn-andamento.status-btn-active { background-color: #f3e8ff; }
+        #btn-analise.status-btn-active { background-color: #ffedd5; }
+
+        /* Estilo Senhas */
+        .password-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; border-radius: 4px; padding: 2px 6px; border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body>
@@ -45,14 +61,15 @@
                 <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                 <nav class="flex gap-6 mt-3">
                     <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                    <button onclick="switchTab('sheet')" id="tab-sheet" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Planilha</button>
                     <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
                     <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
                     <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                 </nav>
             </div>
             <div class="flex items-center gap-3">
-                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+                <div id="searchContainer">
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+                </div>
                 <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
                 <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
                 <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
@@ -61,27 +78,27 @@
 
         <div id="view-dash">
             <div class="grid grid-cols-6 gap-4 mb-6">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left">
-                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
-                    <span class="text-xs font-bold text-slate-700">Vencidos</span>
-                </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left">
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all">
                     <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left">
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all">
                     <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left">
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all">
                     <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all">
+                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
+                    <span class="text-xs font-bold text-slate-700">Vencidos</span>
+                </button>
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all">
                     <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left">
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all">
                     <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
@@ -117,8 +134,12 @@
 
         <div id="view-auditoria" class="hidden">
             <div class="white-card p-6 min-h-[500px]">
-                <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl">
+                <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl items-end">
                     <div class="flex-1">
+                        <label class="text-[9px] font-bold uppercase text-slate-400">Pesquisar Cliente</label>
+                        <input type="text" id="auditSearchClient" oninput="renderLogs()" placeholder="Nome do cliente..." class="w-full p-2 border rounded-lg text-xs outline-none">
+                    </div>
+                    <div class="w-48">
                         <label class="text-[9px] font-bold uppercase text-slate-400">Colaborador</label>
                         <select id="auditUserFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
                             <option value="">Todos</option>
@@ -128,6 +149,11 @@
                             <option value="Sistema">Sistema</option>
                         </select>
                     </div>
+                    <div class="w-48">
+                        <label class="text-[9px] font-bold uppercase text-slate-400">Filtrar Data</label>
+                        <input type="date" id="auditDateFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
+                    </div>
+                    <button onclick="document.getElementById('auditSearchClient').value=''; document.getElementById('auditUserFilter').value=''; document.getElementById('auditDateFilter').value=''; renderLogs();" class="btn-mini text-slate-400">Limpar</button>
                 </div>
                 <div id="logContainer" class="space-y-2"></div>
             </div>
@@ -142,12 +168,6 @@
                         <tbody id="senhasBody"></tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-
-        <div id="view-sheet" class="hidden">
-            <div id="masterSheetTable" class="white-card scroll-container p-6 text-xs text-slate-400 font-bold uppercase">
-                Os dados brutos são espelhados do Google Sheets em tempo real.
             </div>
         </div>
     </div>
@@ -173,7 +193,6 @@
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
         
-        // PADRONIZADO PARA CERTIF.DIGITAL
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
@@ -215,7 +234,6 @@
                             const nr = {};
                             Object.keys(row).forEach(k => {
                                 let key = k.trim().toUpperCase();
-                                // NORMALIZAÇÃO DA COLUNA CERTIF.DIGITAL
                                 if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') {
                                     key = 'CERTIF.DIGITAL';
                                 }
@@ -259,7 +277,7 @@
             closeModal(); renderTable(); updateTaskUI();
         }
 
-        function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg }); if(logs.length > 100) logs.pop(); }
+        function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleDateString('pt-BR'), fullDate: new Date(), user, msg }); if(logs.length > 100) logs.pop(); }
         
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
@@ -276,9 +294,19 @@
             return 'ok';
         }
 
-        function toggleStatusFilter(status) { activeStatus = (activeStatus === status) ? null : status; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); renderTable(); }
+        function toggleStatusFilter(status) { 
+            activeStatus = (activeStatus === status) ? null : status; 
+            document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); 
+            if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); 
+            renderTable(); 
+        }
         
-        function toggleDocFilter(doc) { activeDoc = (activeDoc === doc) ? null : doc; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); renderTable(); }
+        function toggleDocFilter(doc) { 
+            activeDoc = (activeDoc === doc) ? null : doc; 
+            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); 
+            if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); 
+            renderTable(); 
+        }
         
         function renderTable() {
             const head = document.getElementById('tableHeader');
@@ -289,14 +317,10 @@
             
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
-                
                 if(activeDoc) {
-                    if(activeStatus) {
-                        return getStatus(row[activeDoc], row, activeDoc) === activeStatus;
-                    }
-                    return row[activeDoc] !== null && row[activeDoc] !== undefined && row[activeDoc] !== "";
+                    const s = getStatus(row[activeDoc], row, activeDoc);
+                    return activeStatus ? s === activeStatus : !!row[activeDoc];
                 }
-                
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
@@ -357,16 +381,43 @@
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
-            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${cols.slice(3).map(c => `<td>${p[c] || '-'}</td>`).join('')}</tr>`).join('');
+            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `
+                <tr>
+                    <td class="col-fixed">${p.CLIENTE || '-'}</td>
+                    <td>${p.CNPJ || '-'}</td>
+                    <td>${p.CCM || '-'}</td>
+                    <td><span class="password-cell">${p["SENHA WEB"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SENHA GOV"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SENHA 156"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SENHA CRCE"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SIGEP"] || '-'}</span></td>
+                </tr>`).join('');
         }
 
         function renderLogs() {
-            const filter = document.getElementById('auditUserFilter').value;
-            document.getElementById('logContainer').innerHTML = logs.filter(l => !filter || l.user === filter).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
+            const userFilter = document.getElementById('auditUserFilter').value;
+            const clientSearch = document.getElementById('auditSearchClient').value.toLowerCase();
+            const dateFilter = document.getElementById('auditDateFilter').value;
+
+            document.getElementById('logContainer').innerHTML = logs.filter(l => {
+                const matchUser = !userFilter || l.user === userFilter;
+                const matchClient = !clientSearch || l.msg.toLowerCase().includes(clientSearch);
+                const matchDate = !dateFilter || l.fullDate.toISOString().split('T')[0] === dateFilter;
+                return matchUser && matchClient && matchDate;
+            }).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
         }
 
         function switchTab(tab) {
-            ['dash', 'sheet', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
+            ['dash', 'tasks', 'auditoria', 'senhas'].forEach(t => { 
+                document.getElementById('view-' + t).classList.add('hidden'); 
+                document.getElementById('tab-' + t).classList.remove('tab-active'); 
+            });
+            
+            // Controle de visibilidade da busca de cliente
+            const searchContainer = document.getElementById('searchContainer');
+            if(tab === 'dash') searchContainer.style.display = 'block';
+            else searchContainer.style.display = 'none';
+
             document.getElementById('view-' + tab).classList.remove('hidden');
             document.getElementById('tab-' + tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
@@ -374,7 +425,7 @@
         }
 
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
-        function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
+        function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); renderTable(); }
     </script>
 </body>
 </html>
