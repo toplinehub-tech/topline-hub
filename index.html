@@ -22,25 +22,13 @@
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
-        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.2s ease; }
+        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .scroll-container { max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
-        
-        .card-active { 
-            ring: 3px solid #10b981; 
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
-            background-color: #f8fafc !important;
-            transform: translateY(-2px);
-        }
-        .doc-active {
-            background-color: #10b981 !important;
-            color: white !important;
-            border-color: #059669 !important;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
+        .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
     </style>
 </head>
 <body>
@@ -131,12 +119,14 @@
             <div class="white-card p-6 min-h-[500px]">
                 <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl">
                     <div class="flex-1">
-                        <label class="text-[9px] font-bold uppercase text-slate-400">Buscar Colaborador</label>
-                        <input type="text" id="auditUserSearch" oninput="renderLogs()" placeholder="Ex: Jordan..." class="w-full p-2 border rounded-lg text-xs outline-none">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold uppercase text-slate-400">Buscar Data/Evento</label>
-                        <input type="text" id="auditDateSearch" oninput="renderLogs()" placeholder="Ex: 10/04 ou Nome do Cliente..." class="w-full p-2 border rounded-lg text-xs outline-none">
+                        <label class="text-[9px] font-bold uppercase text-slate-400">Colaborador</label>
+                        <select id="auditUserFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
+                            <option value="">Todos</option>
+                            <option value="Jordan">Jordan</option>
+                            <option value="Silene">Silene</option>
+                            <option value="Patricia">Patricia</option>
+                            <option value="Sistema">Sistema</option>
+                        </select>
                     </div>
                 </div>
                 <div id="logContainer" class="space-y-2"></div>
@@ -174,20 +164,16 @@
     </div>
 
     <script>
-        // URLs parametrizadas com o ID da sua planilha
-        const BASE_URL_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
-        const URL_DADOS_PRINCIPAIS = BASE_URL_CSV + "&gid=0";
-        const URL_SENHAS = BASE_URL_CSV + "&gid=49695199";
-        
-        // URL da sua aba AUDITORIA_PERMANENTE (GID 742472684)
-        const URL_AUDITORIA_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv&gid=742472684"; 
-        
+        const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
+        const URL_DADOS_PRINCIPAIS = BASE_URL + "&gid=0";
+        const URL_SENHAS = BASE_URL + "&gid=49695199";
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbyDnH1bPGZmuRsoyWBGm6XD0azRDC9fDuwuyEZREkTpFi4kXHLAEjxh1UZgOjqOhUXU/exec";
 
         let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
         
+        // PADRONIZADO PARA CERTIF.DIGITAL
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
@@ -229,7 +215,10 @@
                             const nr = {};
                             Object.keys(row).forEach(k => {
                                 let key = k.trim().toUpperCase();
-                                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') key = 'CERTIF.DIGITAL';
+                                // NORMALIZAÇÃO DA COLUNA CERTIF.DIGITAL
+                                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') {
+                                    key = 'CERTIF.DIGITAL';
+                                }
                                 let val = row[k];
                                 if(typeof val === 'string' && val.includes('/')) {
                                     const p = val.split('/');
@@ -246,32 +235,12 @@
 
                 const resSenhas = await fetch(URL_SENHAS);
                 const csvSenhas = await resSenhas.text();
-                Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (results) => { passwordData = results.data; } });
-                
-                // Carrega auditoria do Sheets
-                fetchAuditoria();
-
+                Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (results) => { passwordData = results.data; addLog("Sistema", "Sincronização completa."); } });
             } catch (e) {
                 alert("Erro ao conectar com o Google Sheets.");
             } finally {
                 syncBtn.innerText = "Sincronizar Sheets"; syncBtn.disabled = false; loading.classList.add('hidden');
             }
-        }
-
-        async function fetchAuditoria() {
-            try {
-                const res = await fetch(URL_AUDITORIA_CSV);
-                const csv = await res.text();
-                Papa.parse(csv, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: (results) => {
-                        // Filtra linhas vazias e inverte para mostrar os mais recentes primeiro
-                        logs = results.data.filter(l => l.DATA_HORA || l.ACAO).reverse();
-                        if(!document.getElementById('view-auditoria').classList.contains('hidden')) renderLogs();
-                    }
-                });
-            } catch (e) { console.error("Erro ao carregar auditoria"); }
         }
 
         async function saveEdit() {
@@ -283,21 +252,14 @@
             rawData[r][c+"_DONE"] = isDone;
             rawData[r][c+"_OBS"] = obs;
             try {
-                const payload = { 
-                    cliente: rawData[r].CLIENTE, 
-                    coluna: c, 
-                    novaData: inputDate, 
-                    concluido: isDone,
-                    user: user 
-                };
-                // Envia para o Apps Script que deve estar configurado para salvar na aba Auditoria_Permanente
+                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                
-                // Adiciona localmente para feedback visual imediato
-                logs.unshift({ DATA_HORA: new Date().toLocaleString('pt-BR'), COLABORADOR: user, ACAO: `Alterou ${rawData[r].CLIENTE} (${c})` });
-            } catch (e) { console.error("Falha ao enviar"); }
+                addLog(user, `Alteração enviada: ${rawData[r].CLIENTE} - ${c}`);
+            } catch (e) { addLog("Sistema", "Falha ao enviar dados."); }
             closeModal(); renderTable(); updateTaskUI();
         }
+
+        function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg }); if(logs.length > 100) logs.pop(); }
         
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
@@ -314,19 +276,9 @@
             return 'ok';
         }
 
-        function toggleStatusFilter(status) { 
-            activeStatus = (activeStatus === status) ? null : status; 
-            document.querySelectorAll('#view-dash .grid button').forEach(b => b.classList.remove('card-active'));
-            if(activeStatus) document.getElementById('btn-' + status).classList.add('card-active');
-            renderTable(); 
-        }
+        function toggleStatusFilter(status) { activeStatus = (activeStatus === status) ? null : status; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); renderTable(); }
         
-        function toggleDocFilter(doc) { 
-            activeDoc = (activeDoc === doc) ? null : doc; 
-            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-active'));
-            if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('doc-active');
-            renderTable(); 
-        }
+        function toggleDocFilter(doc) { activeDoc = (activeDoc === doc) ? null : doc; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); renderTable(); }
         
         function renderTable() {
             const head = document.getElementById('tableHeader');
@@ -337,10 +289,14 @@
             
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
+                
                 if(activeDoc) {
-                    if(activeStatus) return getStatus(row[activeDoc], row, activeDoc) === activeStatus;
+                    if(activeStatus) {
+                        return getStatus(row[activeDoc], row, activeDoc) === activeStatus;
+                    }
                     return row[activeDoc] !== null && row[activeDoc] !== undefined && row[activeDoc] !== "";
                 }
+                
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
@@ -374,50 +330,11 @@
             document.getElementById('editModal').classList.remove('hidden');
         }
 
-        function renderSenhas() {
-            const q = document.getElementById('searchSenhas').value.toLowerCase();
-            const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
-            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${cols.slice(3).map(c => `<td>${p[c] || '-'}</td>`).join('')}</tr>`).join('');
+        function exportarExcel() {
+            const data = rawData.map(row => { const nr = { ...row }; headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); }); return nr; });
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
         }
 
-        function renderLogs() {
-            const userQ = document.getElementById('auditUserSearch').value.toLowerCase();
-            const dateQ = document.getElementById('auditDateSearch').value.toLowerCase();
-            
-            const filteredLogs = logs.filter(l => {
-                const matchUser = (l.COLABORADOR || "").toLowerCase().includes(userQ);
-                const matchData = (l.DATA_HORA || "").toLowerCase().includes(dateQ) || (l.ACAO || "").toLowerCase().includes(dateQ);
-                return matchUser && matchData;
-            });
-
-            document.getElementById('logContainer').innerHTML = filteredLogs.map(l => `
-                <div class="p-3 bg-white border rounded-lg text-[10px] hover:shadow-md transition-shadow">
-                    <div class="flex justify-between mb-1">
-                        <span class="text-emerald-600 font-black uppercase">${l.COLABORADOR || 'N/A'}</span>
-                        <span class="text-slate-400">${l.DATA_HORA || ''}</span>
-                    </div>
-                    <div class="text-slate-700">${l.ACAO || ''}</div>
-                </div>
-            `).join('');
-        }
-
-        function switchTab(tab) {
-            ['dash', 'sheet', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
-            document.getElementById('view-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.add('tab-active');
-            if(tab === 'senhas') renderSenhas();
-            if(tab === 'auditoria') fetchAuditoria(); 
-        }
-
-        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
-        
-        function resetAllFilters() { 
-            activeDoc = null; activeStatus = null; 
-            document.getElementById('searchInput').value = ""; 
-            document.querySelectorAll('#view-dash .grid button, .doc-filter-btn').forEach(b => b.classList.remove('card-active', 'doc-active'));
-            renderTable(); 
-        }
-        
         function distribuirTarefas(status) {
             let tasks = [];
             rawData.forEach((row, rIdx) => { headers.forEach(col => { if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); }); });
@@ -437,10 +354,27 @@
             });
         }
 
-        function exportarExcel() {
-            const data = rawData.map(row => { const nr = { ...row }; headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); }); return nr; });
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
+        function renderSenhas() {
+            const q = document.getElementById('searchSenhas').value.toLowerCase();
+            const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
+            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${cols.slice(3).map(c => `<td>${p[c] || '-'}</td>`).join('')}</tr>`).join('');
         }
+
+        function renderLogs() {
+            const filter = document.getElementById('auditUserFilter').value;
+            document.getElementById('logContainer').innerHTML = logs.filter(l => !filter || l.user === filter).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
+        }
+
+        function switchTab(tab) {
+            ['dash', 'sheet', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
+            document.getElementById('view-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('tab-active');
+            if(tab === 'senhas') renderSenhas();
+            if(tab === 'auditoria') renderLogs();
+        }
+
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
     </script>
 </body>
 </html>
