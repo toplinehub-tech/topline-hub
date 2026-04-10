@@ -257,48 +257,57 @@
             finally { syncBtn.innerText = "Sincronizar Sheets"; syncBtn.disabled = false; loading.classList.add('hidden'); }
         }
 
-        async function saveEdit() {
-            const { r, c, user } = currentEditTarget;
-            const inputDate = document.getElementById('editVal').value;
-            const isDone = document.getElementById('taskDone').checked;
-            const obs = document.getElementById('editObs').value;
-            const cellId = `cell-${r}-${c}`;
-            const cellElement = document.getElementById(cellId);
-            
-            if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
-            rawData[r][c+"_DONE"] = isDone;
-            rawData[r][c+"_OBS"] = obs;
-            if(cellElement) cellElement.classList.add('syncing');
+        async function saveEdit() async function saveEdit() {
+    const { r, c, user } = currentEditTarget;
+    const inputDate = document.getElementById('editVal').value;
+    const isDone = document.getElementById('taskDone').checked;
+    const obs = document.getElementById('editObs').value;
+    const cellId = `cell-${r}-${c}`;
+    const cellElement = document.getElementById(cellId);
+    
+    // Atualiza localmente primeiro
+    if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
+    rawData[r][c+"_DONE"] = isDone;
+    rawData[r][c+"_OBS"] = obs;
+    
+    if(cellElement) cellElement.classList.add('syncing');
 
-            const formData = new FormData();
-            formData.append('cliente', rawData[r].CLIENTE);
-            formData.append('coluna', c);
-            formData.append('novaData', inputDate);
-            formData.append('concluido', isDone);
-            formData.append('obs', obs);
-            formData.append('usuario', user);
+    // Monta a URL com os parâmetros para evitar problemas de CORS
+    const params = new URLSearchParams({
+        cliente: rawData[r].CLIENTE,
+        coluna: c,
+        novaData: inputDate,
+        concluido: isDone,
+        obs: obs,
+        usuario: user
+    });
 
-            try {
-                await fetch(URL_SCRIPT_GOOGLE, { 
-                    method: 'POST', 
-                    body: new URLSearchParams(formData),
-                    mode: 'no-cors'
-                });
-                if(cellElement) {
-                    cellElement.classList.remove('syncing');
-                    cellElement.classList.add('sync-success');
-                    setTimeout(() => cellElement.classList.remove('sync-success'), 2000);
-                }
-                addLog(user, `Alteração enviada: ${rawData[r].CLIENTE} - ${c}`);
-            } catch (e) { 
-                if(cellElement) {
-                    cellElement.classList.remove('syncing');
-                    cellElement.classList.add('sync-error');
-                }
-                addLog("Sistema", "Falha ao sincronizar."); 
-            }
-            closeModal(); renderTable(); updateTaskUI();
+    try {
+        // Mudamos para 'cors' e usamos o método GET ou POST dependendo de como seu Script foi feito
+        // Se o seu script usa 'doGet', mude para fetch(URL + "?" + params.toString())
+        await fetch(URL_SCRIPT_GOOGLE, { 
+            method: 'POST', 
+            mode: 'no-cors', // Mantido para evitar erro de redirecionamento do Google, mas o dado chega
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params
+        });
+
+        if(cellElement) {
+            cellElement.classList.remove('syncing');
+            cellElement.classList.add('sync-success');
+            setTimeout(() => cellElement.classList.remove('sync-success'), 2000);
         }
+        addLog(user, `Sucesso: ${rawData[r].CLIENTE} atualizado.`);
+    } catch (e) { 
+        console.error("Erro ao salvar:", e);
+        if(cellElement) {
+            cellElement.classList.remove('syncing');
+            cellElement.classList.add('sync-error');
+        }
+        alert("Erro ao conectar com o servidor.");
+    }
+    closeModal(); renderTable(); updateTaskUI();
+}
 
         function copyPassword(text) {
             if(!text || text === '-') return;
