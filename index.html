@@ -16,9 +16,8 @@
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        #login-screen { position: fixed; inset: 0; z-index: 9998; background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); display: none; align-items: center; justify-content: center; padding: 20px; }
-        .login-card { background: white; padding: 2.5rem; border-radius: 32px; width: 100%; max-width: 360px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
 
+        /* Estilos de Status */
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -37,7 +36,6 @@
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         .status-btn-active { border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2) !important; transform: translateY(-2px); }
         .password-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; border-radius: 4px; padding: 2px 6px; border: 1px solid #e2e8f0; }
-        .pass-toggle { position: absolute; right: 15px; top: 38px; cursor: pointer; color: #94a3b8; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -48,30 +46,7 @@
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
     </div>
 
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="brand-name text-2xl justify-center mb-8"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Usuário</label>
-                    <input type="text" id="userInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500">
-                </div>
-                <div class="relative">
-                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Senha</label>
-                    <input type="password" id="passInput" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-emerald-500">
-                    <span class="pass-toggle" onclick="togglePassVisibility()">👁️</span>
-                </div>
-                <div class="flex items-center gap-2 ml-1">
-                    <input type="checkbox" id="rememberMe" class="rounded border-slate-300">
-                    <label for="rememberMe" class="text-[10px] font-bold uppercase text-slate-500">Lembrar acesso</label>
-                </div>
-                <button onclick="handleLogin()" id="loginBtn" class="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-600 transition-all mt-4">Entrar</button>
-                <p id="loginError" class="text-red-500 text-[10px] font-bold text-center hidden uppercase">Acesso negado</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="main-content" style="display: none;">
+    <div id="main-content">
         <div class="p-6 max-w-[1600px] mx-auto">
             <header class="white-card p-5 flex justify-between items-center mb-6">
                 <div>
@@ -84,26 +59,33 @@
                     </nav>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span id="loggedUserName" class="text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full"></span>
                     <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
                     <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700">Sincronizar</button>
-                    <button onclick="exportarExcel()" class="btn-mini text-blue-700">Backup</button>
-                    <button onclick="logout()" class="btn-mini text-red-500">Sair</button>
+                    <button onclick="exportarExcel()" class="btn-mini text-blue-700">Backup Excel</button>
                 </div>
             </header>
 
             <div id="view-dash">
                 <div class="grid grid-cols-6 gap-4 mb-6">
-                    <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
-                    <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
-                    <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all"><span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span><span class="text-xs font-bold text-slate-700">90 Dias</span></button>
-                    <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
-                    <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all"><span class="block text-[8px] font-black text-purple-500 uppercase">Status</span><span class="text-xs font-bold text-slate-700">Andamento</span></button>
-                    <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all"><span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span><span class="text-xs font-bold text-slate-700">Análise</span></button>
+                    <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
+                    <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
+                    <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span><span class="text-xs font-bold text-slate-700">90 Dias</span></button>
+                    <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
+                    <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-purple-500 uppercase">Status</span><span class="text-xs font-bold text-slate-700">Andamento</span></button>
+                    <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span><span class="text-xs font-bold text-slate-700">Análise</span></button>
                 </div>
+
                 <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
-                <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Carregando...</div>
-                <div class="white-card overflow-hidden"><div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div></div>
+                <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Carregando dados...</div>
+
+                <div class="white-card overflow-hidden">
+                    <div class="scroll-container">
+                        <table class="w-full text-left border-collapse">
+                            <thead id="tableHeader"></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div id="view-tasks" class="hidden">
@@ -113,21 +95,24 @@
                     <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
                 </div>
                 <div class="grid grid-cols-3 gap-6">
-                    <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]"><h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3><div id="list-jordan" class="space-y-2"></div></div>
-                    <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]"><h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3><div id="list-silene" class="space-y-2"></div></div>
-                    <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]"><h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3><div id="list-patricia" class="space-y-2"></div></div>
+                    <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
+                        <div id="list-jordan" class="space-y-2"></div>
+                    </div>
+                    <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
+                        <div id="list-silene" class="space-y-2"></div>
+                    </div>
+                    <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
+                        <div id="list-patricia" class="space-y-2"></div>
+                    </div>
                 </div>
             </div>
 
             <div id="view-auditoria" class="hidden">
                 <div class="white-card p-6 min-h-[500px]">
-                    <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl items-end">
-                        <div class="flex-1">
-                            <label class="text-[9px] font-bold uppercase text-slate-400">Pesquisar Cliente</label>
-                            <input type="text" id="auditSearchClient" oninput="renderLogs()" placeholder="Nome do cliente..." class="w-full p-2 border rounded-lg text-xs outline-none">
-                        </div>
-                        <button onclick="renderLogs()" class="btn-mini text-slate-400">Atualizar</button>
-                    </div>
+                    <h2 class="text-xs font-black uppercase mb-4 text-slate-400">Histórico de Alterações</h2>
                     <div id="logContainer" class="space-y-2"></div>
                 </div>
             </div>
@@ -136,7 +121,18 @@
                 <div class="white-card p-6">
                     <div class="scroll-container">
                         <table class="w-full text-left">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th class="col-fixed">CLIENTE</th>
+                                    <th>CNPJ</th>
+                                    <th>CCM</th>
+                                    <th>SENHA WEB</th>
+                                    <th>SENHA GOV</th>
+                                    <th>SENHA 156</th>
+                                    <th>SENHA CRCE</th>
+                                    <th>SIGEP</th>
+                                </tr>
+                            </thead>
                             <tbody id="senhasBody"></tbody>
                         </table>
                     </div>
@@ -147,11 +143,24 @@
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black uppercase mb-6 text-center border-b pb-4">Editar</h4>
-            <div id="modalContent" class="space-y-4"></div>
+            <h4 id="modalTitle" class="text-xs font-black uppercase mb-6 text-center border-b pb-4">Editar Registro</h4>
+            <div id="modalContent" class="space-y-4">
+                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border">
+                    <input type="checkbox" id="taskDone">
+                    <label class="text-[10px] font-bold uppercase text-slate-600">Marcar como Concluído</label>
+                </div>
+                <div>
+                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Data de Vencimento</label>
+                    <input type="date" id="editVal" class="w-full border p-3 rounded-xl text-xs outline-none focus:ring-2 ring-emerald-500">
+                </div>
+                <div>
+                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Observações</label>
+                    <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs outline-none focus:ring-2 ring-emerald-500" placeholder="Digite aqui..."></textarea>
+                </div>
+            </div>
             <div class="flex gap-3 mt-8">
-                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
-                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-emerald-600 transition-all">Salvar</button>
+                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-200 transition-all">Sair</button>
             </div>
         </div>
     </div>
@@ -160,71 +169,31 @@
         const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
         const GID_DADOS = "0";
         const GID_SENHAS = "49695199";
-        const GID_USUARIOS = "0"; // <-- Certifique-se que o ID da aba USUARIOS está correto
 
-        let rawData = [], headers = [], logs = [], passwordData = [], usersList = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
-        let currentUser = { nome: "Sistema" };
+        let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
-        window.onload = async () => {
-            await loadUsers();
-            const savedLogin = localStorage.getItem('topline_auth_v2');
+        window.onload = () => {
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('splash-screen').style.display = 'none';
-                    if(savedLogin) {
-                        currentUser = JSON.parse(savedLogin);
-                        showSystem();
-                    } else {
-                        document.getElementById('login-screen').style.display = 'flex';
-                    }
+                    fetchGoogleSheets();
                 }, 500);
-            }, 1500);
+            }, 1000);
 
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
                 const btn = document.createElement('button');
                 btn.className = "btn-mini doc-filter-btn";
-                btn.id = "btn-doc-" + doc; btn.innerText = doc;
+                btn.id = "btn-doc-" + doc;
+                btn.innerText = doc;
                 btn.onclick = () => toggleDocFilter(doc);
                 container.appendChild(btn);
             });
         };
-
-        async function loadUsers() {
-            try {
-                const res = await fetch(`${BASE_URL}&gid=${GID_USUARIOS}`);
-                const csv = await res.text();
-                Papa.parse(csv, { header: true, complete: (res) => { usersList = res.data; }});
-            } catch (e) { console.error("Erro ao carregar usuários"); }
-        }
-
-        function handleLogin() {
-            const u = document.getElementById('userInput').value.trim();
-            const p = document.getElementById('passInput').value.trim();
-            const remember = document.getElementById('rememberMe').checked;
-            const found = usersList.find(item => item.USUARIO == u && item.SENHA == p);
-            if(found) {
-                currentUser = { usuario: found.USUARIO, nome: found.NOME };
-                if(remember) localStorage.setItem('topline_auth_v2', JSON.stringify(currentUser));
-                showSystem();
-            } else {
-                const err = document.getElementById('loginError');
-                err.classList.remove('hidden');
-                setTimeout(() => err.classList.add('hidden'), 2500);
-            }
-        }
-
-        function showSystem() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-            document.getElementById('loggedUserName').innerText = currentUser.nome;
-            addLog("Sistema", `Login realizado por ${currentUser.nome}`);
-            fetchGoogleSheets();
-        }
 
         async function fetchGoogleSheets() {
             document.getElementById('syncBtn').innerText = "Sincronizando...";
@@ -253,11 +222,16 @@
                         renderTable();
                     }
                 });
+
                 const resSenhas = await fetch(`${BASE_URL}&gid=${GID_SENHAS}`);
                 const csvSenhas = await resSenhas.text();
                 Papa.parse(csvSenhas, { header: true, complete: (res) => { passwordData = res.data; } });
-            } catch (e) { alert("Erro ao carregar dados."); }
-            finally { document.getElementById('syncBtn').innerText = "Sincronizar"; document.getElementById('loadingIndicator').classList.add('hidden'); }
+
+            } catch (e) { alert("Erro ao carregar os dados."); }
+            finally { 
+                document.getElementById('syncBtn').innerText = "Sincronizar"; 
+                document.getElementById('loadingIndicator').classList.add('hidden'); 
+            }
         }
 
         function getStatus(val, row, col) {
@@ -280,13 +254,19 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
+
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
-                if(activeDoc) { const s = getStatus(row[activeDoc], row, activeDoc); return activeStatus ? s === activeStatus : !!row[activeDoc]; }
+                if(activeDoc) {
+                    const s = getStatus(row[activeDoc], row, activeDoc);
+                    return activeStatus ? s === activeStatus : !!row[activeDoc];
+                }
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
+
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
                 const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
@@ -299,16 +279,9 @@
             currentEditTarget = { r, c };
             const v = rawData[r][c];
             document.getElementById('modalTitle').innerText = rawData[r].CLIENTE;
-            document.getElementById('modalContent').innerHTML = `
-                <div class="mb-4">
-                    <label class="text-[8px] font-black text-slate-400 uppercase">Documento: ${c}</label>
-                </div>
-                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border mb-4">
-                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
-                    <label class="text-[10px] font-bold uppercase text-slate-600">Concluído</label>
-                </div>
-                <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-3">
-                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Observações...">${rawData[r][c+"_OBS"] || ''}</textarea>`;
+            document.getElementById('taskDone').checked = !!rawData[r][c+"_DONE"];
+            document.getElementById('editVal').value = v instanceof Date ? v.toISOString().split('T')[0] : "";
+            document.getElementById('editObs').value = rawData[r][c+"_OBS"] || "";
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -316,74 +289,114 @@
         function saveEdit() {
             const { r, c } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
-            const isDone = document.getElementById('taskDone').checked;
-            const obs = document.getElementById('editObs').value;
             if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
-            rawData[r][c+"_DONE"] = isDone;
-            rawData[r][c+"_OBS"] = obs;
-            addLog(currentUser.nome, `Editou ${rawData[r].CLIENTE} (${c})`);
-            closeModal(); renderTable(); updateTaskUI();
+            rawData[r][c+"_DONE"] = document.getElementById('taskDone').checked;
+            rawData[r][c+"_OBS"] = document.getElementById('editObs').value;
+            
+            addLog("Usuário", `Alterou ${rawData[r].CLIENTE} (${c}) - OBS: ${rawData[r][c+"_OBS"]}`);
+            closeModal();
+            renderTable();
+            updateTaskUI();
         }
 
         function distribuirTarefas(status) {
             let tasks = [];
             rawData.forEach((row, rIdx) => { 
                 headers.forEach(col => { 
-                    if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); 
+                    if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) {
+                        tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); 
+                    }
                 }); 
             });
-            if(!tasks.length) return alert("Nada para sortear.");
+            if(!tasks.length) return alert("Nenhum item encontrado com este status.");
+            
             tasks.sort(() => Math.random() - 0.5);
             currentTasks = { Jordan: [], Silene: [], Patricia: [] };
             const names = ['Jordan', 'Silene', 'Patricia'];
             tasks.forEach((t, i) => currentTasks[names[i % 3]].push(t));
+            
             updateTaskUI();
-            addLog("Sistema", `Sorteio realizado para status: ${status}`);
+            addLog("Sistema", `Realizou sorteio para o status: ${status}`);
         }
 
         function updateTaskUI() {
             ['Jordan', 'Silene', 'Patricia'].forEach(name => {
                 const list = currentTasks[name].filter(t => !rawData[t.r][t.c + "_DONE"]);
                 document.getElementById(`count-${name.toLowerCase()}`).innerText = list.length;
-                document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `<div class="white-card p-3 text-[10px] border-l-4 border-emerald-400 cursor-pointer" onclick="openEditCell(${t.r}, '${t.c}')"><b class="uppercase">${t.cliente}</b><br>${t.c}</div>`).join('');
+                document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `
+                    <div class="white-card p-3 text-[10px] border-l-4 border-emerald-400 cursor-pointer hover:bg-slate-50" onclick="openEditCell(${t.r}, '${t.c}')">
+                        <b class="uppercase text-slate-700">${t.cliente}</b><br>
+                        <span class="text-slate-400 font-bold">${t.c}</span>
+                    </div>`).join('');
             });
         }
 
-        function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg }); if(logs.length > 50) logs.pop(); }
-        
+        function addLog(user, msg) {
+            logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg });
+            if(logs.length > 50) logs.pop();
+            if(!document.getElementById('view-auditoria').classList.contains('hidden')) renderLogs();
+        }
+
         function renderLogs() {
-            const q = document.getElementById('auditSearchClient').value.toLowerCase();
-            document.getElementById('logContainer').innerHTML = logs.filter(l => l.msg.toLowerCase().includes(q) || l.user.toLowerCase().includes(q)).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
+            document.getElementById('logContainer').innerHTML = logs.map(l => `
+                <div class="p-3 bg-white border rounded-lg text-[10px] flex justify-between items-center shadow-sm">
+                    <span><b>${l.time}</b> | <span class="text-emerald-600 font-bold uppercase">${l.user}</span>: ${l.msg}</span>
+                </div>`).join('');
         }
 
         function exportarExcel() {
-            const data = rawData.map(row => { const nr = { ...row }; headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); }); return nr; });
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
-        }
-
-        function togglePassVisibility() {
-            const input = document.getElementById('passInput');
-            input.type = input.type === 'password' ? 'text' : 'password';
+            const data = rawData.map(row => {
+                const nr = { ...row };
+                headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); });
+                return nr;
+            });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Painel Geral");
+            XLSX.writeFile(wb, `Backup_TopLineHub.xlsx`);
         }
 
         function renderSenhas() {
             const q = document.getElementById('searchInput').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `
-                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td><td><span class="password-cell">${p["SENHA WEB"] || '-'}</span></td><td><span class="password-cell">${p["SENHA GOV"] || '-'}</span></td><td><span class="password-cell">${p["SENHA 156"] || '-'}</span></td><td><span class="password-cell">${p["SENHA CRCE"] || '-'}</span></td><td><span class="password-cell">${p["SIGEP"] || '-'}</span></td></tr>`).join('');
+                <tr>
+                    <td class="col-fixed">${p.CLIENTE || '-'}</td>
+                    <td>${p.CNPJ || '-'}</td>
+                    <td>${p.CCM || '-'}</td>
+                    <td><span class="password-cell">${p["SENHA WEB"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SENHA GOV"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SENHA 156"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SENHA CRCE"] || '-'}</span></td>
+                    <td><span class="password-cell">${p["SIGEP"] || '-'}</span></td>
+                </tr>`).join('');
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active', 'text-slate-400'); });
+            ['dash', 'tasks', 'auditoria', 'senhas'].forEach(t => { 
+                document.getElementById('view-' + t).classList.add('hidden'); 
+                document.getElementById('tab-' + t).classList.remove('tab-active');
+                document.getElementById('tab-' + t).classList.add('text-slate-400');
+            });
             document.getElementById('view-' + tab).classList.remove('hidden');
             document.getElementById('tab-' + tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
             if(tab === 'auditoria') renderLogs();
         }
 
-        function logout() { localStorage.clear(); window.location.reload(); }
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
-        function toggleStatusFilter(s) { activeStatus = activeStatus === s ? null : s; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); if(activeStatus) document.getElementById('btn-'+s).classList.add('status-btn-active'); renderTable(); }
-        function toggleDocFilter(d) { activeDoc = activeDoc === d ? null : d; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); if(activeDoc) document.getElementById('btn-doc-'+d).classList.add('bg-emerald-500', 'text-white'); renderTable(); }
+        
+        function toggleStatusFilter(s) { 
+            activeStatus = activeStatus === s ? null : s; 
+            document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active'));
+            if(activeStatus) document.getElementById('btn-'+s).classList.add('status-btn-active');
+            renderTable(); 
+        }
+
+        function toggleDocFilter(d) { 
+            activeDoc = activeDoc === d ? null : d; 
+            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
+            if(activeDoc) document.getElementById('btn-doc-'+d).classList.add('bg-emerald-500', 'text-white');
+            renderTable(); 
+        }
     </script>
 </body>
 </html>
