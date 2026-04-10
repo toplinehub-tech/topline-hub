@@ -385,6 +385,46 @@
 
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
         function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
+   async function handleLogin() {
+    const user = document.getElementById('userLogin').value;
+    const pass = document.getElementById('passLogin').value;
+    const btn = document.getElementById('btnLogin');
+    const errorMsg = document.getElementById('loginError');
+
+    btn.innerText = "Verificando...";
+    errorMsg.classList.add('hidden');
+
+    try {
+        // Como o 'no-cors' não permite ler a resposta, para o LOGIN 
+        // precisamos de uma técnica de 'fetch' normal ou aceitar que o Google 
+        // redirecionará. Para simplificar e manter seguro:
+        const response = await fetch(URL_SCRIPT_GOOGLE, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'login', user: user, pass: pass })
+        });
+        
+        const result = await response.json();
+
+        if (result.status === "success") {
+            localStorage.setItem('topline_user', result.nome);
+            document.getElementById('login-screen').classList.add('hidden');
+            addLog("Sistema", `Usuário ${result.nome} logado.`);
+        } else {
+            errorMsg.classList.remove('hidden');
+        }
+    } catch (e) {
+        // Se der erro de CORS, usaremos uma alternativa: o login via URL de busca (GET)
+        // Mas tente primeiro assim.
+        console.error(e);
+        btn.innerText = "Entrar no Sistema";
+    }
+}
+
+// Verificar se já está logado ao carregar a página
+if (localStorage.getItem('topline_user')) {
+    document.getElementById('login-screen').classList.add('hidden');
+}
+    
     </script>
 </body>
 </html>
