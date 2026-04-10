@@ -29,8 +29,23 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
-        /* Destaque para as Senhas */
         .password-highlight { font-family: monospace; color: #059669; font-weight: 700; background: #ecfdf5; padding: 2px 6px; border-radius: 4px; border: 1px solid #d1fae5; }
+
+        /* Estilo do Popup de Notificação */
+        #notification-toast {
+            position: fixed;
+            bottom: 24px;
+            right: -400px;
+            width: 320px;
+            background: white;
+            border-left: 6px solid #10b981;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            z-index: 1000;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #notification-toast.show { right: 24px; }
     </style>
 </head>
 <body>
@@ -39,6 +54,19 @@
         <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
         <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
+    </div>
+
+    <div id="notification-toast">
+        <div class="flex items-start gap-3">
+            <div class="bg-emerald-100 p-2 rounded-lg">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            </div>
+            <div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização em tempo real</h4>
+                <p id="notif-message" class="text-xs font-bold text-slate-700 leading-tight mt-1">Uma tarefa foi atualizada.</p>
+                <p id="notif-cliente" class="text-[11px] text-emerald-600 font-black mt-1 uppercase"></p>
+            </div>
+        </div>
     </div>
 
     <div class="p-6 max-w-[1600px] mx-auto">
@@ -85,7 +113,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="relative w-32 h-32">
                         <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
                             <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="4"></circle>
@@ -99,15 +126,12 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">
-                        Monitoramento em tempo real de certidões e documentos. O gráfico ao lado consolida os volumes de processos críticos que exigem ação imediata da equipe.
-                    </p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Patricia.</p>
                     <div class="mt-4 flex gap-2">
-                        <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Sync Online</span>
-                        <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Aguardando dados...</span>
+                        <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
+                        <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
                     </div>
                 </div>
             </div>
@@ -139,7 +163,6 @@
                 </button>
             </div>
             <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
-            <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Conectando ao Google Sheets...</div>
             <div class="white-card overflow-hidden">
                 <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
             </div>
@@ -197,21 +220,15 @@
         const URL_SENHAS = BASE_URL + "&gid=49695199";
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbyDnH1bPGZmuRsoyWBGm6XD0azRDC9fDuwuyEZREkTpFi4kXHLAEjxh1UZgOjqOhUXU/exec";
 
-        let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
+        let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
+        let lastKnownDataHash = ""; // Para detectar mudanças de terceiros
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
-            setTimeout(() => {
-                const splash = document.getElementById('splash-screen');
-                if(splash) {
-                    splash.style.opacity = '0';
-                    setTimeout(() => splash.style.display = 'none', 500);
-                }
-            }, 1200);
-            
+            setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; }, 1200);
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
                 const btn = document.createElement('button');
@@ -220,68 +237,94 @@
                 btn.onclick = () => toggleDocFilter(doc);
                 container.appendChild(btn);
             });
-            fetchGoogleSheets();
+            fetchGoogleSheets(true);
+            
+            // Loop de atualização automática (A cada 30 segundos)
+            setInterval(() => fetchGoogleSheets(false), 30000);
         };
 
-        async function fetchGoogleSheets() {
-            const syncBtn = document.getElementById('syncBtn');
-            const loading = document.getElementById('loadingIndicator');
-            syncBtn.innerText = "Sincronizando...";
-            syncBtn.disabled = true;
-            loading.classList.remove('hidden');
-
+        async function fetchGoogleSheets(isFirstLoad) {
             try {
-                const resDados = await fetch(URL_DADOS_PRINCIPAIS);
+                const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
                 const csvDados = await resDados.text();
+                
+                // Verifica se algo mudou comparando o conteúdo bruto
+                if (!isFirstLoad && csvDados === lastKnownDataHash) return;
+                
                 Papa.parse(csvDados, {
-                    header: true,
-                    dynamicTyping: true,
-                    skipEmptyLines: true,
+                    header: true, dynamicTyping: true, skipEmptyLines: true,
                     complete: (results) => {
-                        rawData = results.data.map(row => {
-                            const nr = {};
-                            Object.keys(row).forEach(k => {
-                                let key = k.trim().toUpperCase();
-                                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') {
-                                    key = 'CERTIF.DIGITAL';
-                                }
-                                let val = row[k];
-                                if(typeof val === 'string' && val.includes('/')) {
-                                    const p = val.split('/');
-                                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
-                                }
-                                nr[key] = val;
-                            });
-                            return nr;
-                        });
+                        const newData = results.data.map(processRow);
+                        
+                        // Detectar qual cliente foi alterado (se não for o primeiro load)
+                        if (!isFirstLoad && rawData.length > 0) {
+                            detectChanges(rawData, newData);
+                        }
+
+                        rawData = newData;
+                        lastKnownDataHash = csvDados;
                         if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
                     }
                 });
 
-                const resSenhas = await fetch(URL_SENHAS);
-                const csvSenhas = await resSenhas.text();
-                Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (results) => { passwordData = results.data; } });
-            } catch (e) {
-                alert("Erro ao conectar com o Google Sheets.");
-            } finally {
-                syncBtn.innerText = "Sincronizar Sheets"; syncBtn.disabled = false; loading.classList.add('hidden');
+                if(isFirstLoad) {
+                    const resSenhas = await fetch(URL_SENHAS);
+                    const csvSenhas = await resSenhas.text();
+                    Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = r.data; } });
+                }
+            } catch (e) { console.error("Erro na sincronização."); }
+        }
+
+        function processRow(row) {
+            const nr = {};
+            Object.keys(row).forEach(k => {
+                let key = k.trim().toUpperCase();
+                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL') key = 'CERTIF.DIGITAL';
+                let val = row[k];
+                if(typeof val === 'string' && val.includes('/')) {
+                    const p = val.split('/');
+                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
+                }
+                nr[key] = val;
+            });
+            return nr;
+        }
+
+        // Detecta mudanças feitas por outros usuários
+        function detectChanges(oldData, newData) {
+            for (let i = 0; i < newData.length; i++) {
+                const oldRow = JSON.stringify(oldData[i]);
+                const newRow = JSON.stringify(newData[i]);
+                if (oldRow !== newRow && oldData[i]?.CLIENTE) {
+                    showNotification(newData[i].CLIENTE);
+                    break; // Mostra apenas uma por vez para não poluir
+                }
             }
         }
 
+        function showNotification(cliente) {
+            const toast = document.getElementById('notification-toast');
+            document.getElementById('notif-cliente').innerText = cliente;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 5000);
+        }
+
         async function saveEdit() {
-            const { r, c, user } = currentEditTarget;
+            const { r, c } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
             const isDone = document.getElementById('taskDone').checked;
             const obs = document.getElementById('editObs').value;
+            
             if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
             rawData[r][c+"_DONE"] = isDone;
             rawData[r][c+"_OBS"] = obs;
+
             try {
                 const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            } catch (e) { console.error("Erro ao enviar dados."); }
-            closeModal(); renderTable(); updateTaskUI();
+            } catch (e) { }
+            closeModal(); renderTable();
         }
 
         function getStatus(val, row, col) {
@@ -290,8 +333,7 @@
             if (strVal === "ANALISE") return 'analise';
             if (row && col && row[col + "_DONE"]) return 'andamento';
             if (!(val instanceof Date)) return null;
-            const today = new Date(); today.setHours(0,0,0,0);
-            const diff = Math.ceil((val - today) / (1000 * 60 * 60 * 24));
+            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -300,39 +342,36 @@
         }
 
         function updateAnalytics() {
-            let counts = { vencido: 0, andamento: 0, analise: 0 };
+            let c = { vencido: 0, andamento: 0, analise: 0 };
             rawData.forEach(row => {
                 headers.forEach(col => {
                     if (col === 'CLIENTE') return;
                     const status = getStatus(row[col], row, col);
-                    if (status === 'vencido') counts.vencido++;
-                    if (status === 'andamento') counts.andamento++;
-                    if (status === 'analise') counts.analise++;
+                    if (status === 'vencido') c.vencido++;
+                    if (status === 'andamento') c.andamento++;
+                    if (status === 'analise') c.analise++;
                 });
             });
-            const total = counts.vencido + counts.andamento + counts.analise;
-            document.getElementById('dash-count-vencido').innerText = counts.vencido;
-            document.getElementById('dash-count-andamento').innerText = counts.andamento;
-            document.getElementById('dash-count-analise').innerText = counts.analise;
+            const total = c.vencido + c.andamento + c.analise;
+            document.getElementById('dash-count-vencido').innerText = c.vencido;
+            document.getElementById('dash-count-andamento').innerText = c.andamento;
+            document.getElementById('dash-count-analise').innerText = c.analise;
             document.getElementById('dash-count-total').innerText = total;
-            const safeTotal = total || 1;
-            const pVenc = (counts.vencido / safeTotal) * 100;
-            const pAnd = (counts.andamento / safeTotal) * 100;
-            const pAna = (counts.analise / safeTotal) * 100;
-            document.getElementById('circle-vencido').setAttribute('stroke-dasharray', `${pVenc} 100`);
-            document.getElementById('circle-andamento').setAttribute('stroke-dashoffset', `-${pVenc}`);
-            document.getElementById('circle-andamento').setAttribute('stroke-dasharray', `${pAnd} 100`);
-            document.getElementById('circle-analise').setAttribute('stroke-dashoffset', `-${pVenc + pAnd}`);
-            document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${pAna} 100`);
-            const percentSaude = total > 0 ? Math.round(((total - counts.vencido) / total) * 100) : 100;
-            document.getElementById('dash-percent').innerText = percentSaude + "%";
+            
+            const safe = total || 1;
+            document.getElementById('circle-vencido').setAttribute('stroke-dasharray', `${(c.vencido/safe)*100} 100`);
+            document.getElementById('circle-andamento').setAttribute('stroke-dashoffset', `-${(c.vencido/safe)*100}`);
+            document.getElementById('circle-andamento').setAttribute('stroke-dasharray', `${(c.andamento/safe)*100} 100`);
+            document.getElementById('circle-analise').setAttribute('stroke-dashoffset', `-${((c.vencido+c.andamento)/safe)*100}`);
+            document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${(c.analise/safe)*100} 100`);
+            
+            document.getElementById('dash-percent').innerText = total > 0 ? Math.round(((total-c.vencido)/total)*100)+"%" : "100%";
             document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
-        function toggleStatusFilter(status) { activeStatus = (activeStatus === status) ? null : status; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); renderTable(); }
-        
-        function toggleDocFilter(doc) { activeDoc = (activeDoc === doc) ? null : doc; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); renderTable(); }
-        
+        function toggleStatusFilter(s) { activeStatus = (activeStatus === s) ? null : s; renderTable(); }
+        function toggleDocFilter(d) { activeDoc = (activeDoc === d) ? null : d; renderTable(); }
+
         function renderTable() {
             const head = document.getElementById('tableHeader');
             const body = document.getElementById('tableBody');
@@ -341,10 +380,7 @@
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
-                if(activeDoc) {
-                    if(activeStatus) return getStatus(row[activeDoc], row, activeDoc) === activeStatus;
-                    return row[activeDoc] !== null && row[activeDoc] !== undefined && row[activeDoc] !== "";
-                }
+                if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
@@ -356,83 +392,40 @@
             updateAnalytics();
         }
 
-        function openEditCell(r, c, user = "Sistema") {
+        function openEditCell(r, c) {
             if(c === 'CLIENTE') return;
-            currentEditTarget = { r, c, user };
+            currentEditTarget = { r, c };
             const v = rawData[r][c];
-            let info = "";
-            if (v instanceof Date) {
-                const d = Math.ceil((v - new Date().setHours(0,0,0,0)) / 86400000);
-                info = `<div class="text-[9px] font-bold ${d < 0 ? 'text-red-500':'text-emerald-500'} mb-2 uppercase">${d < 0 ? 'Vencido há '+Math.abs(d) : 'Vence em '+d} dias</div>`;
-            }
-            document.getElementById('modalTitle').innerText = `${rawData[r].CLIENTE}`;
+            document.getElementById('modalTitle').innerText = rawData[r].CLIENTE;
             document.getElementById('modalContent').innerHTML = `
-                <div class="mb-4"><label class="text-[8px] font-black text-slate-400 uppercase">Documento: ${c}</label>${info}</div>
+                <div class="mb-4 font-bold text-[10px] text-slate-400 uppercase">${c}</div>
                 <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border mb-4">
                     <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
                     <label class="text-[10px] font-bold uppercase text-slate-600">Concluído</label>
                 </div>
                 <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-3">
-                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Observações...">${rawData[r][c+"_OBS"] || ''}</textarea>`;
+                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Obs...">${rawData[r][c+"_OBS"] || ''}</textarea>`;
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
 
-        function exportarExcel() {
-            const data = rawData.map(row => { const nr = { ...row }; headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); }); return nr; });
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
-        }
-
-        function distribuirTarefas(status) {
-            let tasks = [];
-            rawData.forEach((row, rIdx) => { headers.forEach(col => { if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); }); });
-            if(!tasks.length) return alert("Nada para sortear.");
-            tasks.sort(() => Math.random() - 0.5);
-            currentTasks = { Jordan: [], Silene: [], Patricia: [] };
-            const names = ['Jordan', 'Silene', 'Patricia'];
-            tasks.forEach((t, i) => currentTasks[names[i % 3]].push(t));
-            updateTaskUI();
-        }
-
-        function updateTaskUI() {
-            ['Jordan', 'Silene', 'Patricia'].forEach(name => {
-                const list = currentTasks[name].filter(t => !rawData[t.r][t.c + "_DONE"]);
-                document.getElementById(`count-${name.toLowerCase()}`).innerText = list.length;
-                document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `<div class="white-card p-3 text-[10px] border-l-4 border-emerald-400" onclick="openEditCell(${t.r}, '${t.c}', '${name}')"><b class="uppercase">${t.cliente}</b><br>${t.c}</div>`).join('');
-            });
-        }
-
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
-            const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
-            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `
-                <tr>
-                    <td class="col-fixed">${p.CLIENTE || '-'}</td>
-                    <td>${p.CNPJ || '-'}</td>
-                    <td>${p.CCM || '-'}</td>
-                    <td><span class="${p['SENHA WEB'] ? 'password-highlight' : ''}">${p['SENHA WEB'] || '-'}</span></td>
-                    <td><span class="${p['SENHA GOV'] ? 'password-highlight' : ''}">${p['SENHA GOV'] || '-'}</span></td>
-                    <td><span class="${p['SENHA 156'] ? 'password-highlight' : ''}">${p['SENHA 156'] || '-'}</span></td>
-                    <td><span class="${p['SENHA CRCE'] ? 'password-highlight' : ''}">${p['SENHA CRCE'] || '-'}</span></td>
-                    <td><span class="${p['SIGEP'] ? 'password-highlight' : ''}">${p['SIGEP'] || '-'}</span></td>
-                </tr>
-            `).join('');
+            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
+                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'senhas'].forEach(t => { 
-                const view = document.getElementById('view-' + t);
-                const btn = document.getElementById('tab-' + t);
-                if(view) view.classList.add('hidden'); 
-                if(btn) btn.classList.remove('tab-active'); 
-            });
-            document.getElementById('view-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.add('tab-active');
+            ['dash', 'tasks', 'senhas'].forEach(t => { document.getElementById('view-'+t).classList.add('hidden'); document.getElementById('tab-'+t).classList.remove('tab-active'); });
+            document.getElementById('view-'+tab).classList.remove('hidden');
+            document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
         }
 
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
         function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
+        function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
     </script>
 </body>
 </html>
