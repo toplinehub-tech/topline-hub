@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.3</title>
+    <title>TopLineHub | Gestão Integrada v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -11,244 +11,221 @@
     
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f0fdf4; color: #1e293b; margin: 0; overflow-x: hidden; }
-        .brand-name { font-weight: 800; letter-spacing: -0.05em; display: flex; align-items: center; }
+        .brand-name { font-weight: 800; letter-spacing: -0.05em; }
         .topline-text { color: #334155; }
-        .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
         
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
 
-        /* Estilos de Status */
-        .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
+        /* Estilização de Status */
+        .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; font-weight: bold; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
-        .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
         
-        .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .scroll-container { max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
+        .scroll-container { max-height: 65vh; overflow: auto; background: white; border-radius: 12px; }
         
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
-        td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
-        .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
+        td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s; }
+        td:hover { background-color: #f8fafc; }
+        .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; min-width: 180px; }
         
-        .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
-        .status-btn-active { border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2) !important; transform: translateY(-2px); }
-        .password-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; border-radius: 4px; padding: 2px 6px; border: 1px solid #e2e8f0; }
+        .tab-active { border-bottom: 3px solid #10b981; color: #065f46 !important; }
+        .btn-mini { padding: 6px 14px; font-size: 9px; border-radius: 8px; text-transform: uppercase; font-weight: 800; cursor: pointer; border: 1px solid #e2e8f0; background: white; transition: 0.2s; }
+        .btn-mini:hover { background: #f1f5f9; transform: translateY(-1px); }
+        .status-btn-active { border: 2px solid #10b981 !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+        
+        /* Modal Style */
+        #editModal input, #editModal textarea { border: 1px solid #e2e8f0; width: 100%; padding: 12px; border-radius: 12px; font-size: 12px; outline: none; transition: 0.2s; }
+        #editModal input:focus, #editModal textarea:focus { border-color: #10b981; ring: 2px solid rgba(16, 185, 129, 0.1); }
     </style>
 </head>
 <body>
 
     <div id="splash-screen">
         <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-        <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
-        <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
+        <div class="text-slate-400 text-[10px] uppercase font-black tracking-widest animate-pulse">Sincronizando Dados...</div>
     </div>
 
-    <div id="main-content">
-        <div class="p-6 max-w-[1600px] mx-auto">
-            <header class="white-card p-5 flex justify-between items-center mb-6">
-                <div>
-                    <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                    <nav class="flex gap-6 mt-3">
-                        <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                        <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                        <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
-                        <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
-                    </nav>
-                </div>
-                <div class="flex items-center gap-3">
-                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
-                    <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700">Sincronizar</button>
-                    <button onclick="exportarExcel()" class="btn-mini text-blue-700">Backup Excel</button>
-                </div>
-            </header>
+    <div class="p-6 max-w-[1600px] mx-auto">
+        <header class="white-card p-5 flex justify-between items-center mb-6">
+            <div>
+                <div class="brand-name text-2xl"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                <nav class="flex gap-6 mt-3">
+                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel Geral</button>
+                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Distribuir Tarefas</button>
+                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas Clientes</button>
+                    <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none focus:border-emerald-500">
+                <button onclick="fetchGoogleSheets()" class="btn-mini text-emerald-700">Atualizar</button>
+                <button onclick="exportarExcel()" class="btn-mini text-blue-700">Backup Excel</button>
+            </div>
+        </header>
 
-            <div id="view-dash">
-                <div class="grid grid-cols-6 gap-4 mb-6">
-                    <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
-                    <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
-                    <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span><span class="text-xs font-bold text-slate-700">90 Dias</span></button>
-                    <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
-                    <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-purple-500 uppercase">Status</span><span class="text-xs font-bold text-slate-700">Andamento</span></button>
-                    <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all hover:scale-[1.02]"><span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span><span class="text-xs font-bold text-slate-700">Análise</span></button>
-                </div>
-
-                <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
-                <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Carregando dados...</div>
-
-                <div class="white-card overflow-hidden">
-                    <div class="scroll-container">
-                        <table class="w-full text-left border-collapse">
-                            <thead id="tableHeader"></thead>
-                            <tbody id="tableBody"></tbody>
-                        </table>
-                    </div>
+        <div id="view-dash">
+            <div class="grid grid-cols-6 gap-4 mb-6">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-red-500 uppercase tracking-tighter">Urgente</span>
+                    <span class="text-xs font-bold">Vencidos</span>
+                </button>
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-amber-500 uppercase tracking-tighter">Atenção</span>
+                    <span class="text-xs font-bold">30 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-emerald-500 uppercase tracking-tighter">Normal</span>
+                    <span class="text-xs font-bold">60 Dias</span>
+                </button>
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-purple-500 uppercase tracking-tighter">Status</span>
+                    <span class="text-xs font-bold">Andamento</span>
+                </button>
+                <div class="white-card col-span-2 p-4 flex items-center justify-center">
+                    <span id="rowCount" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronizado</span>
                 </div>
             </div>
 
-            <div id="view-tasks" class="hidden">
-                <div class="white-card p-4 mb-8 flex gap-3 justify-center">
-                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
-                </div>
-                <div class="grid grid-cols-3 gap-6">
-                    <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
-                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
-                        <div id="list-jordan" class="space-y-2"></div>
-                    </div>
-                    <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
-                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
-                        <div id="list-silene" class="space-y-2"></div>
-                    </div>
-                    <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
-                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
-                        <div id="list-patricia" class="space-y-2"></div>
-                    </div>
+            <div id="docButtons" class="white-card p-3 mb-6 flex flex-wrap gap-2"></div>
+
+            <div class="white-card overflow-hidden">
+                <div class="scroll-container">
+                    <table class="w-full text-left border-collapse">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
                 </div>
             </div>
+        </div>
 
-            <div id="view-auditoria" class="hidden">
-                <div class="white-card p-6 min-h-[500px]">
-                    <h2 class="text-xs font-black uppercase mb-4 text-slate-400">Histórico de Alterações</h2>
-                    <div id="logContainer" class="space-y-2"></div>
+        <div id="view-tasks" class="hidden">
+            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
+                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+            </div>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 text-blue-600 flex justify-between">Jordan <span id="count-jordan">0</span></h3>
+                    <div id="list-jordan" class="space-y-2"></div>
+                </div>
+                <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 text-purple-600 flex justify-between">Silene <span id="count-silene">0</span></h3>
+                    <div id="list-silene" class="space-y-2"></div>
+                </div>
+                <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 text-pink-600 flex justify-between">Patricia <span id="count-patricia">0</span></h3>
+                    <div id="list-patricia" class="space-y-2"></div>
                 </div>
             </div>
+        </div>
 
-            <div id="view-senhas" class="hidden">
-                <div class="white-card p-6">
-                    <div class="scroll-container">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr>
-                                    <th class="col-fixed">CLIENTE</th>
-                                    <th>CNPJ</th>
-                                    <th>CCM</th>
-                                    <th>SENHA WEB</th>
-                                    <th>SENHA GOV</th>
-                                    <th>SENHA 156</th>
-                                    <th>SENHA CRCE</th>
-                                    <th>SIGEP</th>
-                                </tr>
-                            </thead>
-                            <tbody id="senhasBody"></tbody>
-                        </table>
-                    </div>
-                </div>
+        <div id="view-senhas" class="hidden">
+            <div class="white-card p-6 scroll-container">
+                <table class="w-full text-left">
+                    <thead><tr id="senhasHeader"></tr></thead>
+                    <tbody id="senhasBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-auditoria" class="hidden">
+            <div class="white-card p-6 min-h-[400px]">
+                <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4">Log de Sincronização em Tempo Real</h2>
+                <div id="logContainer" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black uppercase mb-6 text-center border-b pb-4">Editar Registro</h4>
-            <div id="modalContent" class="space-y-4">
-                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border">
-                    <input type="checkbox" id="taskDone">
-                    <label class="text-[10px] font-bold uppercase text-slate-600">Marcar como Concluído</label>
+            <h4 id="modalTitle" class="text-[10px] font-black uppercase mb-6 text-center border-b pb-4 text-emerald-600 tracking-widest">Atualizar Planilha</h4>
+            <div class="space-y-4">
+                <div class="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <input type="checkbox" id="taskDone" class="accent-emerald-500 w-5 h-5 cursor-pointer">
+                    <label class="text-[10px] font-bold uppercase text-slate-600 cursor-pointer">Marcar como Concluído</label>
                 </div>
                 <div>
-                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Data de Vencimento</label>
-                    <input type="date" id="editVal" class="w-full border p-3 rounded-xl text-xs outline-none">
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-1">Data ou Informação</label>
+                    <input type="text" id="editVal" placeholder="Ex: 20/05/2025">
                 </div>
                 <div>
-                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Observações</label>
-                    <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs outline-none" placeholder="Nota de auditoria..."></textarea>
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-1">Observações Internas</label>
+                    <textarea id="editObs" rows="3" placeholder="Digite as notas aqui..."></textarea>
                 </div>
             </div>
             <div class="flex gap-3 mt-8">
-                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
-                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200">Salvar na Planilha</button>
+                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-200 transition-all">Cancelar</button>
             </div>
         </div>
     </div>
 
     <script>
-        const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
-        const GID_DADOS = "0";
-        const GID_SENHAS = "49695199";
-
+        // --- LINKS DE INTEGRAÇÃO ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzMRx5gVh2y7Yk3JU3Ht1WwDWvZoiLXuItDEMkCryakguKcZDDBAc6qsw5Iz2P9oayv/exec"; 
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
+        
         let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
-        let activeDoc = null, activeStatus = null;
-        let currentEditTarget = {};
+        let activeDoc = null, activeStatus = null, currentEditTarget = {};
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
-            // Remove a tela splash e inicia o sistema direto
-            setTimeout(() => {
-                document.getElementById('splash-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('splash-screen').style.display = 'none';
-                    fetchGoogleSheets(); // Inicia a carga de dados imediatamente
-                }, 500);
-            }, 1500);
-
-            // Monta filtros de documentos
+            fetchGoogleSheets();
+            setTimeout(() => { document.getElementById('splash-screen').style.opacity = '0'; 
+            setTimeout(() => document.getElementById('splash-screen').style.display='none', 500); }, 1500);
+            
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
                 const btn = document.createElement('button');
                 btn.className = "btn-mini doc-filter-btn";
-                btn.id = "btn-doc-" + doc;
-                btn.innerText = doc;
+                btn.id = "btn-doc-" + doc; btn.innerText = doc;
                 btn.onclick = () => toggleDocFilter(doc);
                 container.appendChild(btn);
             });
         };
 
         async function fetchGoogleSheets() {
-            document.getElementById('syncBtn').innerText = "Sincronizando...";
-            document.getElementById('loadingIndicator').classList.remove('hidden');
             try {
-                const resDados = await fetch(`${BASE_URL}&gid=${GID_DADOS}`);
-                const csvDados = await resDados.text();
-                Papa.parse(csvDados, {
-                    header: true, dynamicTyping: true, skipEmptyLines: true,
+                const res = await fetch(`${CSV_URL}&gid=0&t=${new Date().getTime()}`);
+                const csv = await res.text();
+                Papa.parse(csv, {
+                    header: true, skipEmptyLines: true,
                     complete: (results) => {
-                        rawData = results.data.map(row => {
-                            const nr = {};
-                            Object.keys(row).forEach(k => {
-                                let key = k.trim().toUpperCase();
-                                if(key.includes('CERTIF') || key.includes('CERTF')) key = 'CERTIF.DIGITAL';
-                                let val = row[k];
-                                if(typeof val === 'string' && val.includes('/')) {
-                                    const p = val.split('/');
-                                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
-                                }
-                                nr[key] = val;
-                            });
-                            return nr;
-                        });
+                        rawData = results.data;
                         headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
                     }
                 });
-
-                const resSenhas = await fetch(`${BASE_URL}&gid=${GID_SENHAS}`);
-                const csvSenhas = await resSenhas.text();
-                Papa.parse(csvSenhas, { header: true, complete: (res) => { passwordData = res.data; } });
-
-            } catch (e) { console.error("Erro na carga:", e); }
-            finally { 
-                document.getElementById('syncBtn').innerText = "Sincronizar"; 
-                document.getElementById('loadingIndicator').classList.add('hidden'); 
-            }
+                const resS = await fetch(`${CSV_URL}&gid=49695199`);
+                const csvS = await resS.text();
+                Papa.parse(csvS, { header: true, complete: (r) => { 
+                    passwordData = r.data; 
+                    if(passwordData.length) {
+                        const hRow = Object.keys(passwordData[0]);
+                        document.getElementById('senhasHeader').innerHTML = hRow.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('');
+                    }
+                }});
+            } catch (e) { console.error("Erro no fetch"); }
         }
 
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
+            if (row[col + "_DONE"] === "TRUE") return 'andamento';
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
-            if (row && col && row[col + "_DONE"]) return 'andamento';
-            if (!(val instanceof Date)) return null;
+            if (!val || !val.includes('/')) return null;
+            const p = val.split('/');
+            const d = new Date(p[2], p[1]-1, p[0]);
             const today = new Date(); today.setHours(0,0,0,0);
-            const diff = Math.ceil((val - today) / 86400000);
+            const diff = Math.ceil((d - today) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
-            if (diff <= 90) return '90';
-            return 'ok';
+            return null;
         }
 
         function renderTable() {
@@ -256,11 +233,9 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
-            
             const filtered = rawData.filter(row => {
-                if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
+                if(!row.CLIENTE?.toLowerCase().includes(q)) return false;
                 if(activeDoc) {
                     const s = getStatus(row[activeDoc], row, activeDoc);
                     return activeStatus ? s === activeStatus : !!row[activeDoc];
@@ -268,125 +243,84 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-
+            document.getElementById('rowCount').innerText = filtered.length + " ITENS EXIBIDOS";
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
-                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+                return `<td class="${h==='CLIENTE'?'col-fixed':''} ${s||''}" onclick="openEdit(${rawData.indexOf(row)}, '${h}')">${row[h] || '-'}</td>`
             }).join('')}</tr>`).join('');
         }
 
-        function openEditCell(r, c) {
+        function openEdit(r, c) {
             if(c === 'CLIENTE') return;
-            currentEditTarget = { r, c };
-            const v = rawData[r][c];
+            currentEditTarget = { r, c, cliente: rawData[r].CLIENTE };
             document.getElementById('modalTitle').innerText = rawData[r].CLIENTE;
-            document.getElementById('taskDone').checked = !!rawData[r][c+"_DONE"];
-            document.getElementById('editVal').value = v instanceof Date ? v.toISOString().split('T')[0] : "";
+            document.getElementById('taskDone').checked = rawData[r][c+"_DONE"] === "TRUE";
+            document.getElementById('editVal').value = rawData[r][c] || "";
             document.getElementById('editObs').value = rawData[r][c+"_OBS"] || "";
-            document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('modalSaveBtn').onclick = saveToCloud;
         }
 
-        function saveEdit() {
-            const { r, c } = currentEditTarget;
-            const inputDate = document.getElementById('editVal').value;
-            if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
-            rawData[r][c+"_DONE"] = document.getElementById('taskDone').checked;
-            rawData[r][c+"_OBS"] = document.getElementById('editObs').value;
+        async function saveToCloud() {
+            const btn = document.getElementById('modalSaveBtn');
+            btn.innerText = "SINCRONIZANDO..."; btn.disabled = true;
             
-            addLog("Manual", `Editou ${rawData[r].CLIENTE} - ${c}`);
-            closeModal();
-            renderTable();
-            updateTaskUI();
+            const payload = {
+                cliente: currentEditTarget.cliente,
+                coluna: currentEditTarget.c,
+                valor: document.getElementById('editVal').value,
+                concluido: document.getElementById('taskDone').checked,
+                observacao: document.getElementById('editObs').value
+            };
+
+            try {
+                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                addLog(`Enviado: ${payload.cliente} | ${payload.coluna}`);
+                closeModal();
+                alert("Atualização concluída com sucesso!");
+                setTimeout(fetchGoogleSheets, 2000);
+            } catch (e) { alert("Erro de rede."); }
+            finally { btn.innerText = "Salvar na Planilha"; btn.disabled = false; }
         }
 
         function distribuirTarefas(status) {
             let tasks = [];
             rawData.forEach((row, rIdx) => { 
                 headers.forEach(col => { 
-                    if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) {
+                    if(getStatus(row[col], row, col) === status && row[col+"_DONE"] !== "TRUE") 
                         tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); 
-                    }
                 }); 
             });
-            if(!tasks.length) return alert("Nada pendente com este status.");
-            
+            if(!tasks.length) return alert("Sem tarefas para distribuir.");
             tasks.sort(() => Math.random() - 0.5);
             currentTasks = { Jordan: [], Silene: [], Patricia: [] };
             const names = ['Jordan', 'Silene', 'Patricia'];
             tasks.forEach((t, i) => currentTasks[names[i % 3]].push(t));
-            
             updateTaskUI();
-            addLog("Sorteador", `Distribuição de tarefas: ${status}`);
         }
 
         function updateTaskUI() {
             ['Jordan', 'Silene', 'Patricia'].forEach(name => {
-                const list = currentTasks[name].filter(t => !rawData[t.r][t.c + "_DONE"]);
+                const list = currentTasks[name];
                 document.getElementById(`count-${name.toLowerCase()}`).innerText = list.length;
                 document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `
-                    <div class="white-card p-3 text-[10px] border-l-4 border-emerald-400 cursor-pointer" onclick="openEditCell(${t.r}, '${t.c}')">
-                        <b class="uppercase">${t.cliente}</b><br>
-                        <span class="text-slate-400 font-bold">${t.c}</span>
+                    <div class="white-card p-3 text-[10px] border-l-4 border-emerald-400 cursor-pointer hover:bg-emerald-50" onclick="openEdit(${t.r}, '${t.c}')">
+                        <b class="uppercase">${t.cliente}</b><br><span class="text-slate-400 font-bold">${t.c}</span>
                     </div>`).join('');
             });
         }
 
-        function addLog(user, msg) {
-            logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg });
-            if(logs.length > 30) logs.pop();
-            renderLogs();
-        }
-
-        function renderLogs() {
-            if(document.getElementById('view-auditoria').classList.contains('hidden')) return;
-            document.getElementById('logContainer').innerHTML = logs.map(l => `
-                <div class="p-3 bg-white border rounded-lg text-[10px]">
-                    <b>${l.time}</b> | <span class="text-emerald-600 font-bold uppercase">${l.user}</span>: ${l.msg}
-                </div>`).join('');
+        function addLog(msg) {
+            logs.unshift({ time: new Date().toLocaleTimeString(), msg });
+            document.getElementById('logContainer').innerHTML = logs.map(l => `<div class="p-2 bg-slate-50 border rounded text-[10px]"><b>${l.time}</b> - ${l.msg}</div>`).join('');
         }
 
         function exportarExcel() {
-            const data = rawData.map(row => {
-                const nr = { ...row };
-                headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); });
-                return nr;
-            });
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Painel");
-            XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Backup");
+            XLSX.writeFile(wb, `TopLine_Backup_${new Date().toLocaleDateString().replace(/\//g,'-')}.xlsx`);
         }
 
-        function renderSenhas() {
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `
-                <tr>
-                    <td class="col-fixed">${p.CLIENTE || '-'}</td>
-                    <td>${p.CNPJ || '-'}</td>
-                    <td>${p.CCM || '-'}</td>
-                    <td><span class="password-cell">${p["SENHA WEB"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SENHA GOV"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SENHA 156"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SENHA CRCE"] || '-'}</span></td>
-                    <td><span class="password-cell">${p["SIGEP"] || '-'}</span></td>
-                </tr>`).join('');
-        }
-
-        function switchTab(tab) {
-            ['dash', 'tasks', 'auditoria', 'senhas'].forEach(t => { 
-                document.getElementById('view-' + t).classList.add('hidden'); 
-                document.getElementById('tab-' + t).classList.remove('tab-active');
-                document.getElementById('tab-' + t).classList.add('text-slate-400');
-            });
-            document.getElementById('view-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.add('tab-active');
-            if(tab === 'senhas') renderSenhas();
-            if(tab === 'auditoria') renderLogs();
-        }
-
-        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
-        
         function toggleStatusFilter(s) { 
             activeStatus = activeStatus === s ? null : s; 
             document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active'));
@@ -400,6 +334,22 @@
             if(activeDoc) document.getElementById('btn-doc-'+d).classList.add('bg-emerald-500', 'text-white');
             renderTable(); 
         }
+
+        function switchTab(t) {
+            ['dash', 'tasks', 'senhas', 'auditoria'].forEach(v => {
+                document.getElementById('view-'+v).classList.add('hidden');
+                document.getElementById('tab-'+v).classList.remove('tab-active');
+                document.getElementById('tab-'+v).classList.add('text-slate-400');
+            });
+            document.getElementById('view-'+t).classList.remove('hidden');
+            document.getElementById('tab-'+t).classList.add('tab-active');
+            document.getElementById('tab-'+t).classList.remove('text-slate-400');
+            if(t === 'senhas') {
+                document.getElementById('senhasBody').innerHTML = passwordData.map(p => `
+                    <tr>${Object.values(p).map((val, idx) => `<td class="${idx===0?'col-fixed':''}">${val || '-'}</td>`).join('')}</tr>`).join('');
+            }
+        }
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
     </script>
 </body>
 </html>
