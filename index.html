@@ -3,41 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.7</title>
+    <title>TopLineHub | Gestão Integrada v1.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f0fdf4; color: #1e293b; margin: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f0fdf4; color: #1e293b; margin: 0; overflow-x: hidden; }
         .brand-name { font-weight: 800; letter-spacing: -0.05em; display: flex; align-items: center; }
         .topline-text { color: #334155; }
-        .hub-text { color: #10b981; }
-        #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        
+        .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
         .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
-        
-        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
-        
-        th { background: #f8fafc; padding: 12px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; }
+        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .scroll-container { max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
+        th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
-        .col-fixed { position: sticky; left: 0; background: white !important; z-index: 10; border-right: 1px solid #e2e8f0; font-weight: 600; }
-        .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; font-weight: 800; text-transform: uppercase; border: 1px solid #e2e8f0; background: white; transition: all 0.2s; }
+        .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
+        .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
+        .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
     </style>
 </head>
 <body>
 
     <div id="splash-screen">
         <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+        <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
     </div>
 
@@ -47,102 +45,171 @@
                 <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                 <nav class="flex gap-6 mt-3">
                     <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
+                    <button onclick="switchTab('sheet')" id="tab-sheet" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Planilha</button>
                     <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
                     <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
                     <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                 </nav>
             </div>
             <div class="flex items-center gap-3">
-                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none focus:ring-2 ring-emerald-100">
-                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 bg-emerald-50 border-emerald-100 hover:bg-emerald-100">Sincronizar</button>
-                <button onclick="resetFilters()" class="btn-mini text-slate-500">Limpar</button>
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
+                <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
+                <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
             </div>
         </header>
 
         <div id="view-dash">
-            <div class="grid grid-cols-12 gap-6 mb-6">
-                <div class="col-span-4 white-card p-6 flex flex-col items-center justify-center relative">
-                    <div style="width: 200px; height: 200px;">
-                        <canvas id="statusChart"></canvas>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="white-card p-6 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-wider">Resumo Crítico Operacional</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                                <span class="text-xs font-bold text-slate-600 w-24">Vencidos:</span>
+                                <span id="dash-count-vencido" class="text-xs font-black text-slate-800">0</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="w-3 h-3 rounded-full bg-purple-400"></span>
+                                <span class="text-xs font-bold text-slate-600 w-24">Andamento:</span>
+                                <span id="dash-count-andamento" class="text-xs font-black text-slate-800">0</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="w-3 h-3 rounded-full bg-orange-400"></span>
+                                <span class="text-xs font-bold text-slate-600 w-24">Análise:</span>
+                                <span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span>
+                            </div>
+                            <div class="pt-2 border-t mt-2 flex gap-4">
+                                <span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos itens: <span id="dash-count-total">0</span></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-4">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase">Pendências</span>
-                        <span id="total-pendencias" class="text-4xl font-black text-slate-700">0</span>
+                    
+                    <div class="relative w-32 h-32">
+                        <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                            <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="4"></circle>
+                            <circle id="circle-vencido" cx="18" cy="18" r="16" fill="none" stroke="#f87171" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                            <circle id="circle-andamento" cx="18" cy="18" r="16" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                            <circle id="circle-analise" cx="18" cy="18" r="16" fill="none" stroke="#fb923c" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center flex-col leading-none">
+                            <span id="dash-percent" class="text-xl font-extrabold text-slate-800">0%</span>
+                            <span class="text-[7px] font-bold text-slate-400 uppercase mt-1">Status</span>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="col-span-8 grid grid-cols-3 gap-6">
-                    <div class="white-card p-6 border-l-8 border-red-500 flex flex-col justify-center">
-                        <span class="text-[10px] font-black text-red-500 uppercase">Crítico</span>
-                        <h2 id="stat-vencido" class="text-5xl font-black text-slate-700 mt-1">0</h2>
-                        <p class="text-[10px] text-slate-400 mt-1 font-bold">VENCIDOS</p>
-                    </div>
-                    <div class="white-card p-6 border-l-8 border-purple-500 flex flex-col justify-center">
-                        <span class="text-[10px] font-black text-purple-500 uppercase">Produção</span>
-                        <h2 id="stat-andamento" class="text-5xl font-black text-slate-700 mt-1">0</h2>
-                        <p class="text-[10px] text-slate-400 mt-1 font-bold">EM ANDAMENTO</p>
-                    </div>
-                    <div class="white-card p-6 border-l-8 border-orange-500 flex flex-col justify-center">
-                        <span class="text-[10px] font-black text-orange-500 uppercase">Triagem</span>
-                        <h2 id="stat-analise" class="text-5xl font-black text-slate-700 mt-1">0</h2>
-                        <p class="text-[10px] text-slate-400 mt-1 font-bold">EM ANÁLISE</p>
+
+                <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
+                    <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">
+                        Monitoramento em tempo real de certidões e documentos. O gráfico ao lado consolida os volumes de processos críticos que exigem ação imediata da equipe.
+                    </p>
+                    <div class="mt-4 flex gap-2">
+                        <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Sync Online</span>
+                        <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Aguardando dados...</span>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-6 gap-4 mb-4">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:shadow-md transition-all">
-                    <span class="block text-[8px] font-black text-red-500 uppercase">Filtro</span>
+            <div class="grid grid-cols-6 gap-4 mb-6">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:shadow-md transition-all">
-                    <span class="block text-[8px] font-black text-amber-500 uppercase">Filtro</span>
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:shadow-md transition-all">
-                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Filtro</span>
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:shadow-md transition-all">
-                    <span class="block text-[8px] font-black text-sky-500 uppercase">Filtro</span>
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:shadow-md transition-all">
-                    <span class="block text-[8px] font-black text-purple-500 uppercase">Filtro</span>
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:shadow-md transition-all">
-                    <span class="block text-[8px] font-black text-orange-500 uppercase">Filtro</span>
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left">
+                    <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
             </div>
-
-            <div class="white-card p-4 flex flex-wrap gap-2 items-center mb-6">
-                <span class="text-[9px] font-black text-slate-400 uppercase mr-2 border-r pr-4">Filtrar por Documento</span>
-                <div id="docButtons" class="flex flex-wrap gap-2"></div>
-            </div>
-
+            <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
+            <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Conectando ao Google Sheets...</div>
             <div class="white-card overflow-hidden">
-                <div class="max-h-[500px] overflow-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead id="tableHeader"></thead>
-                        <tbody id="tableBody"></tbody>
+                <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+            </div>
+        </div>
+
+        <div id="view-tasks" class="hidden">
+            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
+                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+            </div>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
+                    <div id="list-jordan" class="space-y-2"></div>
+                </div>
+                <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
+                    <div id="list-silene" class="space-y-2"></div>
+                </div>
+                <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
+                    <div id="list-patricia" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-auditoria" class="hidden">
+            <div class="white-card p-6 min-h-[500px]">
+                <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl">
+                    <div class="flex-1">
+                        <label class="text-[9px] font-bold uppercase text-slate-400">Colaborador</label>
+                        <select id="auditUserFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
+                            <option value="">Todos</option>
+                            <option value="Jordan">Jordan</option>
+                            <option value="Silene">Silene</option>
+                            <option value="Patricia">Patricia</option>
+                            <option value="Sistema">Sistema</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="logContainer" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <div id="view-senhas" class="hidden">
+            <div class="white-card p-6">
+                <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                <div class="scroll-container">
+                    <table class="w-full text-left">
+                        <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
+                        <tbody id="senhasBody"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <div id="view-tasks" class="hidden"><div class="grid grid-cols-3 gap-6" id="tasks-container"></div></div>
-        <div id="view-auditoria" class="hidden"><div id="logContainer" class="white-card p-6 space-y-2 text-xs"></div></div>
-        <div id="view-senhas" class="hidden"><div class="white-card p-6 overflow-auto"><table class="w-full text-left"><tbody id="senhasBody"></tbody></table></div></div>
+        <div id="view-sheet" class="hidden">
+            <div id="masterSheetTable" class="white-card scroll-container p-6 text-xs text-slate-400 font-bold uppercase">
+                Os dados brutos são espelhados do Google Sheets em tempo real.
+            </div>
+        </div>
     </div>
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4"></h4>
+            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar</h4>
             <div id="modalContent" class="space-y-4"></div>
             <div class="flex gap-3 mt-8">
-                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar Alteração</button>
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
                 <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
             </div>
         </div>
@@ -152,57 +219,106 @@
         const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
         const URL_DADOS_PRINCIPAIS = BASE_URL + "&gid=0";
         const URL_SENHAS = BASE_URL + "&gid=49695199";
-        
-        // URL DO SEU GOOGLE APPS SCRIPT (Verifique se é esta mesma)
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbyDnH1bPGZmuRsoyWBGm6XD0azRDC9fDuwuyEZREkTpFi4kXHLAEjxh1UZgOjqOhUXU/exec";
 
-        let rawData = [], headers = [], passwordData = [], activeDoc = null, activeStatus = null, chartInstance = null;
+        let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
+        let activeDoc = null, activeStatus = null;
+        let currentEditTarget = {};
+        
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
-            initChart();
-            renderDocButtons();
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if(splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 500);
+                }
+            }, 1200);
+            
+            const container = document.getElementById('docButtons');
+            docList.forEach(doc => {
+                const btn = document.createElement('button');
+                btn.className = "btn-mini doc-filter-btn";
+                btn.id = "btn-doc-" + doc; btn.innerText = doc;
+                btn.onclick = () => toggleDocFilter(doc);
+                container.appendChild(btn);
+            });
             fetchGoogleSheets();
-            setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 1200);
         };
 
         async function fetchGoogleSheets() {
+            const syncBtn = document.getElementById('syncBtn');
+            const loading = document.getElementById('loadingIndicator');
+            syncBtn.innerText = "Sincronizando...";
+            syncBtn.disabled = true;
+            loading.classList.remove('hidden');
+
             try {
-                const res = await fetch(URL_DADOS_PRINCIPAIS);
-                const csv = await res.text();
-                Papa.parse(csv, {
-                    header: true, skipEmptyLines: true,
+                const resDados = await fetch(URL_DADOS_PRINCIPAIS);
+                const csvDados = await resDados.text();
+                Papa.parse(csvDados, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
                     complete: (results) => {
                         rawData = results.data.map(row => {
-                            let nr = {};
+                            const nr = {};
                             Object.keys(row).forEach(k => {
                                 let key = k.trim().toUpperCase();
-                                if(key === 'CRCE_1' || key === 'CERTF.DIGITAL') key = 'CERTIF.DIGITAL';
+                                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') {
+                                    key = 'CERTIF.DIGITAL';
+                                }
                                 let val = row[k];
                                 if(typeof val === 'string' && val.includes('/')) {
                                     const p = val.split('/');
-                                    val = new Date(p[2], p[1]-1, p[0]);
+                                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
                                 }
                                 nr[key] = val;
                             });
                             return nr;
                         });
-                        headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
+                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
                     }
                 });
-                const resS = await fetch(URL_SENHAS);
-                const csvS = await resS.text();
-                Papa.parse(csvS, { header: true, complete: r => passwordData = r.data });
-            } catch (e) { console.error("Erro na carga:", e); }
+
+                const resSenhas = await fetch(URL_SENHAS);
+                const csvSenhas = await resSenhas.text();
+                Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (results) => { passwordData = results.data; addLog("Sistema", "Sincronização completa."); } });
+            } catch (e) {
+                alert("Erro ao conectar com o Google Sheets.");
+            } finally {
+                syncBtn.innerText = "Sincronizar Sheets"; syncBtn.disabled = false; loading.classList.add('hidden');
+            }
         }
 
+        async function saveEdit() {
+            const { r, c, user } = currentEditTarget;
+            const inputDate = document.getElementById('editVal').value;
+            const isDone = document.getElementById('taskDone').checked;
+            const obs = document.getElementById('editObs').value;
+            if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
+            rawData[r][c+"_DONE"] = isDone;
+            rawData[r][c+"_OBS"] = obs;
+            try {
+                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
+                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                addLog(user, `Alteração enviada: ${rawData[r].CLIENTE} - ${c}`);
+            } catch (e) { addLog("Sistema", "Falha ao enviar dados."); }
+            closeModal(); renderTable(); updateTaskUI();
+        }
+
+        function addLog(user, msg) { logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg }); if(logs.length > 100) logs.pop(); }
+        
         function getStatus(val, row, col) {
-            const str = String(val || "").toUpperCase().trim();
-            if (str === "EM ANDAMENTO" || (row && row[col + "_DONE"])) return 'andamento';
-            if (str === "ANALISE" || str === "ANÁLISE") return 'analise';
+            const strVal = String(val || "").toUpperCase().trim();
+            if (strVal === "EM ANDAMENTO") return 'andamento';
+            if (strVal === "ANALISE") return 'analise';
+            if (row && col && row[col + "_DONE"]) return 'andamento';
             if (!(val instanceof Date)) return null;
-            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            const today = new Date(); today.setHours(0,0,0,0);
+            const diff = Math.ceil((val - today) / (1000 * 60 * 60 * 24));
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -210,172 +326,151 @@
             return 'ok';
         }
 
-        function updateDashboard() {
-            let stats = { vencido: 0, andamento: 0, analise: 0 };
+        // --- NOVA FUNÇÃO DE DASHBOARD ANIMADO ---
+        function updateAnalytics() {
+            let counts = { vencido: 0, andamento: 0, analise: 0 };
+            
             rawData.forEach(row => {
-                headers.forEach(h => {
-                    if(h === 'CLIENTE') return;
-                    const s = getStatus(row[h], row, h);
-                    if(s === 'vencido') stats.vencido++;
-                    if(s === 'andamento') stats.andamento++;
-                    if(s === 'analise') stats.analise++;
+                headers.forEach(col => {
+                    if (col === 'CLIENTE') return;
+                    const status = getStatus(row[col], row, col);
+                    if (status === 'vencido') counts.vencido++;
+                    if (status === 'andamento') counts.andamento++;
+                    if (status === 'analise') counts.analise++;
                 });
             });
-            const total = stats.vencido + stats.andamento + stats.analise;
-            document.getElementById('stat-vencido').innerText = stats.vencido;
-            document.getElementById('stat-andamento').innerText = stats.andamento;
-            document.getElementById('stat-analise').innerText = stats.analise;
-            document.getElementById('total-pendencias').innerText = total;
-            chartInstance.data.datasets[0].data = [stats.vencido, stats.andamento, stats.analise];
-            chartInstance.update();
+
+            const total = counts.vencido + counts.andamento + counts.analise;
+            const totalDisplay = total || 0;
+            
+            document.getElementById('dash-count-vencido').innerText = counts.vencido;
+            document.getElementById('dash-count-andamento').innerText = counts.andamento;
+            document.getElementById('dash-count-analise').innerText = counts.analise;
+            document.getElementById('dash-count-total').innerText = totalDisplay;
+
+            // Lógica do Gráfico Circular
+            const safeTotal = total || 1;
+            const pVenc = (counts.vencido / safeTotal) * 100;
+            const pAnd = (counts.andamento / safeTotal) * 100;
+            const pAna = (counts.analise / safeTotal) * 100;
+
+            const circVenc = document.getElementById('circle-vencido');
+            const circAnd = document.getElementById('circle-andamento');
+            const circAna = document.getElementById('circle-analise');
+
+            // Set stroke-dasharray (valor do segmento) e stroke-dashoffset (posição de início)
+            circVenc.setAttribute('stroke-dasharray', `${pVenc} 100`);
+            
+            circAnd.setAttribute('stroke-dashoffset', `-${pVenc}`);
+            circAnd.setAttribute('stroke-dasharray', `${pAnd} 100`);
+            
+            circAna.setAttribute('stroke-dashoffset', `-${pVenc + pAnd}`);
+            circAna.setAttribute('stroke-dasharray', `${pAna} 100`);
+
+            // Percentual de "Saúde" do Painel (Inverso de vencidos sobre o total analisado)
+            const percentSaude = total > 0 ? Math.round(((total - counts.vencido) / total) * 100) : 100;
+            document.getElementById('dash-percent').innerText = percentSaude + "%";
+            
+            document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
-        function initChart() {
-            const ctx = document.getElementById('statusChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Vencidos', 'Andamento', 'Análise'],
-                    datasets: [{
-                        data: [0, 0, 0],
-                        backgroundColor: ['#ef4444', '#8b5cf6', '#f97316'],
-                        hoverOffset: 15, borderRadius: 8, spacing: 3
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false } } }
-            });
-        }
-
-        function toggleStatusFilter(status) {
-            activeStatus = (activeStatus === status) ? null : status;
-            document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active'));
-            if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active');
-            renderTable();
-        }
-
+        function toggleStatusFilter(status) { activeStatus = (activeStatus === status) ? null : status; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); renderTable(); }
+        
+        function toggleDocFilter(doc) { activeDoc = (activeDoc === doc) ? null : doc; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); renderTable(); }
+        
         function renderTable() {
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            const body = document.getElementById('tableBody');
             const head = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+            const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
             head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             
             const filtered = rawData.filter(row => {
-                const matchSearch = row.CLIENTE?.toString().toLowerCase().includes(q);
-                if(!matchSearch) return false;
+                if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) {
-                    const s = getStatus(row[activeDoc], row, activeDoc);
-                    if(activeStatus) return s === activeStatus;
-                    return row[activeDoc] !== null && row[activeDoc] !== "";
+                    if(activeStatus) return getStatus(row[activeDoc], row, activeDoc) === activeStatus;
+                    return row[activeDoc] !== null && row[activeDoc] !== undefined && row[activeDoc] !== "";
                 }
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
 
-            body.innerHTML = filtered.map(row => `
-                <tr>
-                    ${headers.map(h => {
-                        const s = getStatus(row[h], row, h);
-                        const display = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                        const cssClass = (s === '30' || s === '60' || s === '90') ? 'vence-'+s : (s || '');
-                        return `<td class="${h==='CLIENTE'?'col-fixed':''} ${cssClass}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${display}</td>`;
-                    }).join('')}
-                </tr>
-            `).join('');
-            updateDashboard();
+            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
+                const s = getStatus(row[h], row, h);
+                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+            }).join('')}</tr>`).join('');
+
+            updateAnalytics(); // Sincroniza o dashboard superior
         }
 
-        function renderDocButtons() {
-            const container = document.getElementById('docButtons');
-            docList.forEach(doc => {
-                const btn = document.createElement('button');
-                btn.className = "btn-mini doc-filter-btn";
-                btn.innerText = doc;
-                btn.onclick = () => {
-                    activeDoc = (activeDoc === doc) ? null : doc;
-                    document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
-                    if(activeDoc) btn.classList.add('bg-emerald-500', 'text-white');
-                    renderTable();
-                };
-                container.appendChild(btn);
-            });
-        }
-
-        function openEditCell(r, c) {
+        function openEditCell(r, c, user = "Sistema") {
             if(c === 'CLIENTE') return;
-            const row = rawData[r];
-            document.getElementById('modalTitle').innerText = row.CLIENTE;
+            currentEditTarget = { r, c, user };
+            const v = rawData[r][c];
+            let info = "";
+            if (v instanceof Date) {
+                const d = Math.ceil((v - new Date().setHours(0,0,0,0)) / 86400000);
+                info = `<div class="text-[9px] font-bold ${d < 0 ? 'text-red-500':'text-emerald-500'} mb-2 uppercase">${d < 0 ? 'Vencido há '+Math.abs(d) : 'Vence em '+d} dias</div>`;
+            }
+            document.getElementById('modalTitle').innerText = `${rawData[r].CLIENTE}`;
             document.getElementById('modalContent').innerHTML = `
-                <div class="bg-slate-50 p-4 rounded-2xl mb-4 text-center">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Documento</span>
-                    <div class="text-sm font-black text-emerald-600">${c}</div>
+                <div class="mb-4"><label class="text-[8px] font-black text-slate-400 uppercase">Documento: ${c}</label>${info}</div>
+                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border mb-4">
+                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
+                    <label class="text-[10px] font-bold uppercase text-slate-600">Concluído</label>
                 </div>
-                <div class="flex items-center gap-3 p-3 border rounded-2xl mb-4">
-                    <input type="checkbox" id="taskDone" class="w-5 h-5 accent-emerald-500" ${row[c+"_DONE"] ? 'checked' : ''}>
-                    <label class="text-xs font-bold text-slate-600 uppercase">Marcar como Concluído</label>
-                </div>
-                <input type="date" id="editVal" class="w-full border p-3 rounded-2xl text-xs mb-3" value="${row[c] instanceof Date ? row[c].toISOString().split('T')[0] : ''}">
-                <textarea id="editObs" placeholder="Observações..." class="w-full border p-3 rounded-2xl text-xs">${row[c+"_OBS"] || ''}</textarea>
-            `;
-            document.getElementById('modalSaveBtn').onclick = () => saveChanges(r, c);
+                <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-3">
+                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Observações...">${rawData[r][c+"_OBS"] || ''}</textarea>`;
+            document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
 
-        async function saveChanges(r, c) {
-            const row = rawData[r];
-            const isDone = document.getElementById('taskDone').checked;
-            const dateInput = document.getElementById('editVal').value;
-            const obsInput = document.getElementById('editObs').value;
-
-            // Atualiza Localmente
-            rawData[r][c + "_DONE"] = isDone;
-            if(dateInput) rawData[r][c] = new Date(dateInput + "T12:00:00");
-            rawData[r][c + "_OBS"] = obsInput;
-
-            // Prepara dados para o Script (Garante os nomes de campos que o Script espera)
-            const payload = {
-                cliente: row.CLIENTE,
-                coluna: c,
-                valor: dateInput ? dateInput.split('-').reverse().join('/') : row[c],
-                concluido: isDone,
-                obs: obsInput
-            };
-
-            console.log("Enviando para a planilha:", payload);
-
-            // Envio para o Google Apps Script
-            try {
-                fetch(URL_SCRIPT_GOOGLE, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    cache: 'no-cache',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } catch (e) { console.error("Falha no envio:", e); }
-
-            closeModal();
-            renderTable();
+        function exportarExcel() {
+            const data = rawData.map(row => { const nr = { ...row }; headers.forEach(h => { if (nr[h] instanceof Date) nr[h] = nr[h].toLocaleDateString('pt-BR'); }); return nr; });
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
         }
 
-        function resetFilters() {
-            activeDoc = null; activeStatus = null;
-            document.querySelectorAll('.status-btn-active').forEach(b => b.classList.remove('status-btn-active'));
-            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white'));
-            document.getElementById('searchInput').value = "";
-            renderTable();
+        function distribuirTarefas(status) {
+            let tasks = [];
+            rawData.forEach((row, rIdx) => { headers.forEach(col => { if(getStatus(row[col], row, col) === status && !row[col + "_DONE"]) tasks.push({ r: rIdx, c: col, cliente: row.CLIENTE }); }); });
+            if(!tasks.length) return alert("Nada para sortear.");
+            tasks.sort(() => Math.random() - 0.5);
+            currentTasks = { Jordan: [], Silene: [], Patricia: [] };
+            const names = ['Jordan', 'Silene', 'Patricia'];
+            tasks.forEach((t, i) => currentTasks[names[i % 3]].push(t));
+            updateTaskUI();
+        }
+
+        function updateTaskUI() {
+            ['Jordan', 'Silene', 'Patricia'].forEach(name => {
+                const list = currentTasks[name].filter(t => !rawData[t.r][t.c + "_DONE"]);
+                document.getElementById(`count-${name.toLowerCase()}`).innerText = list.length;
+                document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `<div class="white-card p-3 text-[10px] border-l-4 border-emerald-400" onclick="openEditCell(${t.r}, '${t.c}', '${name}')"><b class="uppercase">${t.cliente}</b><br>${t.c}</div>`).join('');
+            });
+        }
+
+        function renderSenhas() {
+            const q = document.getElementById('searchSenhas').value.toLowerCase();
+            const cols = ["CLIENTE", "CNPJ", "CCM", "SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"];
+            document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toString().toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${cols.slice(3).map(c => `<td>${p[c] || '-'}</td>`).join('')}</tr>`).join('');
+        }
+
+        function renderLogs() {
+            const filter = document.getElementById('auditUserFilter').value;
+            document.getElementById('logContainer').innerHTML = logs.filter(l => !filter || l.user === filter).map(l => `<div class="p-3 bg-white border rounded-lg text-[10px]"><b>${l.time}</b> | <span class="text-emerald-600 font-bold">${l.user}</span>: ${l.msg}</div>`).join('');
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'auditoria', 'senhas'].forEach(t => {
-                document.getElementById('view-' + t).classList.add('hidden');
-                document.getElementById('tab-' + t).classList.remove('tab-active');
-            });
+            ['dash', 'sheet', 'tasks', 'auditoria', 'senhas'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); document.getElementById('tab-' + t).classList.remove('tab-active'); });
             document.getElementById('view-' + tab).classList.remove('hidden');
             document.getElementById('tab-' + tab).classList.add('tab-active');
+            if(tab === 'senhas') renderSenhas();
+            if(tab === 'auditoria') renderLogs();
         }
 
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
     </script>
 </body>
 </html>
