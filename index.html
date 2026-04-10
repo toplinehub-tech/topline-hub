@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.5</title>
+    <title>TopLineHub | Gestão Integrada v1.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -17,7 +17,7 @@
         .hub-text { color: #10b981; }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         
-        /* Status Colors - Mantendo o padrão solicitado */
+        /* Status Colors */
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -26,7 +26,7 @@
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
         
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .status-btn-active { ring: 2px solid #10b981; transform: translateY(-2px); }
+        .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         
         th { background: #f8fafc; padding: 12px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; }
@@ -63,65 +63,64 @@
         <div id="view-dash">
             <div class="grid grid-cols-12 gap-6 mb-6">
                 <div class="col-span-4 white-card p-6 flex flex-col items-center justify-center relative">
-                    <div style="width: 220px; height: 220px;">
+                    <div style="width: 200px; height: 200px;">
                         <canvas id="statusChart"></canvas>
                     </div>
                     <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-4">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase">Total Geral</span>
-                        <span id="total-count" class="text-3xl font-black text-slate-700">0</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Pendências</span>
+                        <span id="total-pendencias" class="text-4xl font-black text-slate-700">0</span>
                     </div>
                 </div>
                 
-                <div class="col-span-8 flex flex-col gap-4">
-                    <div class="grid grid-cols-3 gap-4 h-full">
-                        <div class="white-card p-6 border-l-8 border-red-500 flex flex-col justify-center">
-                            <span class="text-[10px] font-black text-red-500 uppercase">Crítico</span>
-                            <h2 id="stat-vencido" class="text-5xl font-black text-slate-700 mt-1">0</h2>
-                            <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Processos Vencidos</p>
-                        </div>
-                        <div class="white-card p-6 border-l-8 border-purple-500 flex flex-col justify-center">
-                            <span class="text-[10px] font-black text-purple-500 uppercase">Produção</span>
-                            <h2 id="stat-andamento" class="text-5xl font-black text-slate-700 mt-1">0</h2>
-                            <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Em Andamento</p>
-                        </div>
-                        <div class="white-card p-6 border-l-8 border-orange-500 flex flex-col justify-center">
-                            <span class="text-[10px] font-black text-orange-500 uppercase">Triagem</span>
-                            <h2 id="stat-analise" class="text-5xl font-black text-slate-700 mt-1">0</h2>
-                            <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Em Análise</p>
-                        </div>
+                <div class="col-span-8 grid grid-cols-3 gap-6">
+                    <div class="white-card p-6 border-l-8 border-red-500 flex flex-col justify-center">
+                        <span class="text-[10px] font-black text-red-500 uppercase tracking-wider">Crítico</span>
+                        <h2 id="stat-vencido" class="text-5xl font-black text-slate-700 mt-1">0</h2>
+                        <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Processos Vencidos</p>
                     </div>
-                    <div class="white-card p-4 flex flex-wrap gap-2 items-center">
-                        <span class="text-[9px] font-black text-slate-400 uppercase mr-2">Filtrar Documento:</span>
-                        <div id="docButtons" class="flex flex-wrap gap-2"></div>
+                    <div class="white-card p-6 border-l-8 border-purple-500 flex flex-col justify-center">
+                        <span class="text-[10px] font-black text-purple-500 uppercase tracking-wider">Em Produção</span>
+                        <h2 id="stat-andamento" class="text-5xl font-black text-slate-700 mt-1">0</h2>
+                        <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Marcados em Andamento</p>
+                    </div>
+                    <div class="white-card p-6 border-l-8 border-orange-500 flex flex-col justify-center">
+                        <span class="text-[10px] font-black text-orange-500 uppercase tracking-wider">Em Triagem</span>
+                        <h2 id="stat-analise" class="text-5xl font-black text-slate-700 mt-1">0</h2>
+                        <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Marcados em Análise</p>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-6 gap-4 mb-6">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all hover:bg-red-50">
-                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
+            <div class="grid grid-cols-6 gap-4 mb-4">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:shadow-md transition-all">
+                    <span class="block text-[8px] font-black text-red-500 uppercase">Filtro</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all hover:bg-amber-50">
-                    <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:shadow-md transition-all">
+                    <span class="block text-[8px] font-black text-amber-500 uppercase">Filtro</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all hover:bg-emerald-50">
-                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:shadow-md transition-all">
+                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Filtro</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all hover:bg-sky-50">
-                    <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:shadow-md transition-all">
+                    <span class="block text-[8px] font-black text-sky-500 uppercase">Filtro</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all hover:bg-purple-50">
-                    <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:shadow-md transition-all">
+                    <span class="block text-[8px] font-black text-purple-500 uppercase">Filtro</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all hover:bg-orange-50">
-                    <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:shadow-md transition-all">
+                    <span class="block text-[8px] font-black text-orange-500 uppercase">Filtro</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
+            </div>
+
+            <div class="white-card p-4 flex flex-wrap gap-2 items-center mb-6">
+                <span class="text-[9px] font-black text-slate-400 uppercase mr-2 border-r pr-4">Filtrar por Documento</span>
+                <div id="docButtons" class="flex flex-wrap gap-2"></div>
             </div>
 
             <div class="white-card overflow-hidden">
@@ -134,9 +133,7 @@
             </div>
         </div>
 
-        <div id="view-tasks" class="hidden">
-            <div class="grid grid-cols-3 gap-6" id="tasks-container"></div>
-        </div>
+        <div id="view-tasks" class="hidden"><div class="grid grid-cols-3 gap-6" id="tasks-container"></div></div>
         <div id="view-auditoria" class="hidden"><div id="logContainer" class="white-card p-6 space-y-2"></div></div>
         <div id="view-senhas" class="hidden"><div class="white-card p-6 overflow-auto"><table class="w-full text-left"><tbody id="senhasBody"></tbody></table></div></div>
     </div>
@@ -196,7 +193,7 @@
                 const resS = await fetch(URL_SENHAS);
                 const csvS = await resS.text();
                 Papa.parse(csvS, { header: true, complete: r => passwordData = r.data });
-            } catch (e) { alert("Erro ao sincronizar dados."); }
+            } catch (e) { console.error(e); }
         }
 
         function getStatus(val, row, col) {
@@ -213,7 +210,8 @@
         }
 
         function updateDashboard() {
-            let stats = { vencido: 0, andamento: 0, analise: 0, total: 0 };
+            let stats = { vencido: 0, andamento: 0, analise: 0 };
+            
             rawData.forEach(row => {
                 headers.forEach(h => {
                     if(h === 'CLIENTE') return;
@@ -221,13 +219,16 @@
                     if(s === 'vencido') stats.vencido++;
                     if(s === 'andamento') stats.andamento++;
                     if(s === 'analise') stats.analise++;
-                    if(s) stats.total++;
                 });
             });
+
+            const totalPendencias = stats.vencido + stats.andamento + stats.analise;
+            
             document.getElementById('stat-vencido').innerText = stats.vencido;
             document.getElementById('stat-andamento').innerText = stats.andamento;
             document.getElementById('stat-analise').innerText = stats.analise;
-            document.getElementById('total-count').innerText = stats.total;
+            document.getElementById('total-pendencias').innerText = totalPendencias;
+
             chartInstance.data.datasets[0].data = [stats.vencido, stats.andamento, stats.analise];
             chartInstance.update();
         }
@@ -242,11 +243,16 @@
                         data: [0, 0, 0],
                         backgroundColor: ['#ef4444', '#8b5cf6', '#f97316'],
                         hoverOffset: 15,
-                        borderRadius: 5,
-                        spacing: 2
+                        borderRadius: 8,
+                        spacing: 3
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { display: false } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '80%', 
+                    plugins: { legend: { display: false } } 
+                }
             });
         }
 
