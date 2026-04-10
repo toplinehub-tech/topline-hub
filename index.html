@@ -22,13 +22,26 @@
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
-        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.2s ease; }
         .scroll-container { max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
-        .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
+        
+        /* NOVOS ESTILOS PARA SELEÇÃO FORTE */
+        .card-active { 
+            ring: 3px solid #10b981; 
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+            background-color: #f8fafc !important;
+            transform: translateY(-2px);
+        }
+        .doc-active {
+            background-color: #10b981 !important;
+            color: white !important;
+            border-color: #059669 !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -173,7 +186,6 @@
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
         
-        // PADRONIZADO PARA CERTIF.DIGITAL
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
@@ -215,7 +227,6 @@
                             const nr = {};
                             Object.keys(row).forEach(k => {
                                 let key = k.trim().toUpperCase();
-                                // NORMALIZAÇÃO DA COLUNA CERTIF.DIGITAL
                                 if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL' || key === 'CERTF.DIGITAL') {
                                     key = 'CERTIF.DIGITAL';
                                 }
@@ -276,9 +287,31 @@
             return 'ok';
         }
 
-        function toggleStatusFilter(status) { activeStatus = (activeStatus === status) ? null : status; document.querySelectorAll('.grid button').forEach(b => b.classList.remove('status-btn-active')); if(activeStatus) document.getElementById('btn-' + status).classList.add('status-btn-active'); renderTable(); }
+        function toggleStatusFilter(status) { 
+            activeStatus = (activeStatus === status) ? null : status; 
+            
+            // Atualiza visual dos cards de status
+            document.querySelectorAll('#view-dash .grid button').forEach(b => {
+                b.classList.remove('card-active');
+            });
+            if(activeStatus) {
+                document.getElementById('btn-' + status).classList.add('card-active');
+            }
+            renderTable(); 
+        }
         
-        function toggleDocFilter(doc) { activeDoc = (activeDoc === doc) ? null : doc; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('bg-emerald-500', 'text-white')); if(activeDoc) document.getElementById('btn-doc-' + doc).classList.add('bg-emerald-500', 'text-white'); renderTable(); }
+        function toggleDocFilter(doc) { 
+            activeDoc = (activeDoc === doc) ? null : doc; 
+            
+            // Atualiza visual dos botões de documento
+            document.querySelectorAll('.doc-filter-btn').forEach(b => {
+                b.classList.remove('doc-active');
+            });
+            if(activeDoc) {
+                document.getElementById('btn-doc-' + doc).classList.add('doc-active');
+            }
+            renderTable(); 
+        }
         
         function renderTable() {
             const head = document.getElementById('tableHeader');
@@ -374,7 +407,17 @@
         }
 
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
-        function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
+        
+        function resetAllFilters() { 
+            activeDoc = null; 
+            activeStatus = null; 
+            document.getElementById('searchInput').value = ""; 
+            // Remove as classes de destaque de todos os cards
+            document.querySelectorAll('#view-dash .grid button, .doc-filter-btn').forEach(b => {
+                b.classList.remove('card-active', 'doc-active');
+            });
+            renderTable(); 
+        }
     </script>
 </body>
 </html>
