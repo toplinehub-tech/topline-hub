@@ -14,8 +14,21 @@
         .brand-name { font-weight: 800; letter-spacing: -0.05em; display: flex; align-items: center; }
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        
+        /* Splash e Login Screens */
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         
+        #login-screen { 
+            position: fixed; inset: 0; z-index: 9998; 
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); 
+            display: none; align-items: center; justify-content: center; padding: 20px; 
+        }
+        
+        .login-card { 
+            background: white; padding: 2rem; border-radius: 24px; width: 100%; max-width: 320px; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+        }
+
         /* Status Colors */
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
@@ -34,7 +47,6 @@
         
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        /* Destaque dos Cards Selecionados */
         .status-btn-active { border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2) !important; transform: translateY(-2px); }
         #btn-vencido.status-btn-active { background-color: #fee2e2; }
         #btn-30.status-btn-active { background-color: #fef3c7; }
@@ -43,7 +55,6 @@
         #btn-andamento.status-btn-active { background-color: #f3e8ff; }
         #btn-analise.status-btn-active { background-color: #ffedd5; }
 
-        /* Estilo Senhas */
         .password-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; border-radius: 4px; padding: 2px 6px; border: 1px solid #e2e8f0; }
     </style>
 </head>
@@ -55,118 +66,138 @@
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
     </div>
 
-    <div class="p-6 max-w-[1600px] mx-auto">
-        <header class="white-card p-5 flex justify-between items-center mb-6">
-            <div>
-                <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                <nav class="flex gap-6 mt-3">
-                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                    <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
-                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
-                </nav>
-            </div>
-            <div class="flex items-center gap-3">
-                <div id="searchContainer">
-                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="brand-name text-2xl justify-center mb-8"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Usuário</label>
+                    <input type="text" id="userInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500">
                 </div>
-                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
-                <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
-                <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
-            </div>
-        </header>
-
-        <div id="view-dash">
-            <div class="grid grid-cols-6 gap-4 mb-6">
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all">
-                    <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
-                    <span class="text-xs font-bold text-slate-700">30 Dias</span>
-                </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all">
-                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
-                    <span class="text-xs font-bold text-slate-700">60 Dias</span>
-                </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all">
-                    <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
-                    <span class="text-xs font-bold text-slate-700">90 Dias</span>
-                </button>
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all">
-                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
-                    <span class="text-xs font-bold text-slate-700">Vencidos</span>
-                </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all">
-                    <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
-                    <span class="text-xs font-bold text-slate-700">Andamento</span>
-                </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all">
-                    <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
-                    <span class="text-xs font-bold text-slate-700">Análise</span>
-                </button>
-            </div>
-            <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
-            <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Conectando ao Google Sheets...</div>
-            <div class="white-card overflow-hidden">
-                <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+                <div>
+                    <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Senha</label>
+                    <input type="password" id="passInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-emerald-500 text-white py-4 rounded-xl font-bold uppercase text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-600 transition-all mt-4">Entrar no Sistema</button>
+                <p id="loginError" class="text-red-500 text-[10px] font-bold text-center hidden uppercase">Acesso negado</p>
             </div>
         </div>
+    </div>
 
-        <div id="view-tasks" class="hidden">
-            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
-                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
-            </div>
-            <div class="grid grid-cols-3 gap-6">
-                <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
-                    <div id="list-jordan" class="space-y-2"></div>
+    <div id="main-content" style="visibility: hidden;">
+        <div class="p-6 max-w-[1600px] mx-auto">
+            <header class="white-card p-5 flex justify-between items-center mb-6">
+                <div>
+                    <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                    <nav class="flex gap-6 mt-3">
+                        <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
+                        <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
+                        <button onclick="switchTab('auditoria')" id="tab-auditoria" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Auditoria</button>
+                        <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                    </nav>
                 </div>
-                <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
-                    <div id="list-silene" class="space-y-2"></div>
+                <div class="flex items-center gap-3">
+                    <div id="searchContainer">
+                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+                    </div>
+                    <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
+                    <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
+                    <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
                 </div>
-                <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
-                    <div id="list-patricia" class="space-y-2"></div>
-                </div>
-            </div>
-        </div>
+            </header>
 
-        <div id="view-auditoria" class="hidden">
-            <div class="white-card p-6 min-h-[500px]">
-                <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl items-end">
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold uppercase text-slate-400">Pesquisar Cliente</label>
-                        <input type="text" id="auditSearchClient" oninput="renderLogs()" placeholder="Nome do cliente..." class="w-full p-2 border rounded-lg text-xs outline-none">
-                    </div>
-                    <div class="w-48">
-                        <label class="text-[9px] font-bold uppercase text-slate-400">Colaborador</label>
-                        <select id="auditUserFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
-                            <option value="">Todos</option>
-                            <option value="Jordan">Jordan</option>
-                            <option value="Silene">Silene</option>
-                            <option value="Patricia">Patricia</option>
-                            <option value="Sistema">Sistema</option>
-                        </select>
-                    </div>
-                    <div class="w-48">
-                        <label class="text-[9px] font-bold uppercase text-slate-400">Filtrar Data</label>
-                        <input type="date" id="auditDateFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
-                    </div>
-                    <button onclick="document.getElementById('auditSearchClient').value=''; document.getElementById('auditUserFilter').value=''; document.getElementById('auditDateFilter').value=''; renderLogs();" class="btn-mini text-slate-400">Limpar</button>
+            <div id="view-dash">
+                <div class="grid grid-cols-6 gap-4 mb-6">
+                    <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all">
+                        <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
+                        <span class="text-xs font-bold text-slate-700">30 Dias</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all">
+                        <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
+                        <span class="text-xs font-bold text-slate-700">60 Dias</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all">
+                        <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
+                        <span class="text-xs font-bold text-slate-700">90 Dias</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all">
+                        <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
+                        <span class="text-xs font-bold text-slate-700">Vencidos</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all">
+                        <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
+                        <span class="text-xs font-bold text-slate-700">Andamento</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all">
+                        <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
+                        <span class="text-xs font-bold text-slate-700">Análise</span>
+                    </button>
                 </div>
-                <div id="logContainer" class="space-y-2"></div>
+                <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
+                <div id="loadingIndicator" class="hidden text-center py-4 text-emerald-600 font-bold text-[10px] uppercase animate-pulse">Conectando ao Google Sheets...</div>
+                <div class="white-card overflow-hidden">
+                    <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+                </div>
             </div>
-        </div>
 
-        <div id="view-senhas" class="hidden">
-            <div class="white-card p-6">
-                <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
-                <div class="scroll-container">
-                    <table class="w-full text-left">
-                        <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
-                        <tbody id="senhasBody"></tbody>
-                    </table>
+            <div id="view-tasks" class="hidden">
+                <div class="white-card p-4 mb-8 flex gap-3 justify-center">
+                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+                </div>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
+                        <div id="list-jordan" class="space-y-2"></div>
+                    </div>
+                    <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
+                        <div id="list-silene" class="space-y-2"></div>
+                    </div>
+                    <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
+                        <div id="list-patricia" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-auditoria" class="hidden">
+                <div class="white-card p-6 min-h-[500px]">
+                    <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl items-end">
+                        <div class="flex-1">
+                            <label class="text-[9px] font-bold uppercase text-slate-400">Pesquisar Cliente</label>
+                            <input type="text" id="auditSearchClient" oninput="renderLogs()" placeholder="Nome do cliente..." class="w-full p-2 border rounded-lg text-xs outline-none">
+                        </div>
+                        <div class="w-48">
+                            <label class="text-[9px] font-bold uppercase text-slate-400">Colaborador</label>
+                            <select id="auditUserFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
+                                <option value="">Todos</option>
+                                <option value="Jordan">Jordan</option>
+                                <option value="Silene">Silene</option>
+                                <option value="Patricia">Patricia</option>
+                                <option value="Sistema">Sistema</option>
+                            </select>
+                        </div>
+                        <div class="w-48">
+                            <label class="text-[9px] font-bold uppercase text-slate-400">Filtrar Data</label>
+                            <input type="date" id="auditDateFilter" onchange="renderLogs()" class="w-full p-2 border rounded-lg text-xs outline-none">
+                        </div>
+                        <button onclick="document.getElementById('auditSearchClient').value=''; document.getElementById('auditUserFilter').value=''; document.getElementById('auditDateFilter').value=''; renderLogs();" class="btn-mini text-slate-400">Limpar</button>
+                    </div>
+                    <div id="logContainer" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div id="view-senhas" class="hidden">
+                <div class="white-card p-6">
+                    <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                    <div class="scroll-container">
+                        <table class="w-full text-left">
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
+                            <tbody id="senhasBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -192,16 +223,15 @@
         let rawData = [], headers = [], logs = [], passwordData = [], currentTasks = { Jordan: [], Silene: [], Patricia: [] };
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
-        
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
             setTimeout(() => {
-                const splash = document.getElementById('splash-screen');
-                if(splash) {
-                    splash.style.opacity = '0';
-                    setTimeout(() => splash.style.display = 'none', 500);
-                }
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('splash-screen').style.display = 'none';
+                    document.getElementById('login-screen').style.display = 'flex';
+                }, 500);
             }, 1200);
             
             const container = document.getElementById('docButtons');
@@ -212,8 +242,24 @@
                 btn.onclick = () => toggleDocFilter(doc);
                 container.appendChild(btn);
             });
-            fetchGoogleSheets();
         };
+
+        // FUNÇÃO DE LOGIN
+        function handleLogin() {
+            const u = document.getElementById('userInput').value;
+            const p = document.getElementById('passInput').value;
+            const err = document.getElementById('loginError');
+
+            // Defina aqui seu usuário e senha
+            if(u === "admin" && p === "topline2026") {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-content').style.visibility = 'visible';
+                fetchGoogleSheets(); // Só puxa os dados após o login
+            } else {
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 2000);
+            }
+        }
 
         async function fetchGoogleSheets() {
             const syncBtn = document.getElementById('syncBtn');
@@ -413,7 +459,6 @@
                 document.getElementById('tab-' + t).classList.remove('tab-active'); 
             });
             
-            // Controle de visibilidade da busca de cliente
             const searchContainer = document.getElementById('searchContainer');
             if(tab === 'dash') searchContainer.style.display = 'block';
             else searchContainer.style.display = 'none';
