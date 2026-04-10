@@ -151,16 +151,16 @@
                 </div>
                 <div>
                     <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Data de Vencimento</label>
-                    <input type="date" id="editVal" class="w-full border p-3 rounded-xl text-xs outline-none focus:ring-2 ring-emerald-500">
+                    <input type="date" id="editVal" class="w-full border p-3 rounded-xl text-xs outline-none">
                 </div>
                 <div>
                     <label class="text-[9px] font-black uppercase text-slate-400 ml-1">Observações</label>
-                    <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs outline-none focus:ring-2 ring-emerald-500" placeholder="Digite aqui..."></textarea>
+                    <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs outline-none" placeholder="Nota de auditoria..."></textarea>
                 </div>
             </div>
             <div class="flex gap-3 mt-8">
-                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-emerald-600 transition-all">Salvar</button>
-                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-200 transition-all">Sair</button>
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
+                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
             </div>
         </div>
     </div>
@@ -176,14 +176,16 @@
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
+            // Remove a tela splash e inicia o sistema direto
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('splash-screen').style.display = 'none';
-                    fetchGoogleSheets();
+                    fetchGoogleSheets(); // Inicia a carga de dados imediatamente
                 }, 500);
-            }, 1000);
+            }, 1500);
 
+            // Monta filtros de documentos
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
                 const btn = document.createElement('button');
@@ -227,7 +229,7 @@
                 const csvSenhas = await resSenhas.text();
                 Papa.parse(csvSenhas, { header: true, complete: (res) => { passwordData = res.data; } });
 
-            } catch (e) { alert("Erro ao carregar os dados."); }
+            } catch (e) { console.error("Erro na carga:", e); }
             finally { 
                 document.getElementById('syncBtn').innerText = "Sincronizar"; 
                 document.getElementById('loadingIndicator').classList.add('hidden'); 
@@ -293,7 +295,7 @@
             rawData[r][c+"_DONE"] = document.getElementById('taskDone').checked;
             rawData[r][c+"_OBS"] = document.getElementById('editObs').value;
             
-            addLog("Usuário", `Alterou ${rawData[r].CLIENTE} (${c}) - OBS: ${rawData[r][c+"_OBS"]}`);
+            addLog("Manual", `Editou ${rawData[r].CLIENTE} - ${c}`);
             closeModal();
             renderTable();
             updateTaskUI();
@@ -308,7 +310,7 @@
                     }
                 }); 
             });
-            if(!tasks.length) return alert("Nenhum item encontrado com este status.");
+            if(!tasks.length) return alert("Nada pendente com este status.");
             
             tasks.sort(() => Math.random() - 0.5);
             currentTasks = { Jordan: [], Silene: [], Patricia: [] };
@@ -316,7 +318,7 @@
             tasks.forEach((t, i) => currentTasks[names[i % 3]].push(t));
             
             updateTaskUI();
-            addLog("Sistema", `Realizou sorteio para o status: ${status}`);
+            addLog("Sorteador", `Distribuição de tarefas: ${status}`);
         }
 
         function updateTaskUI() {
@@ -324,8 +326,8 @@
                 const list = currentTasks[name].filter(t => !rawData[t.r][t.c + "_DONE"]);
                 document.getElementById(`count-${name.toLowerCase()}`).innerText = list.length;
                 document.getElementById(`list-${name.toLowerCase()}`).innerHTML = list.map(t => `
-                    <div class="white-card p-3 text-[10px] border-l-4 border-emerald-400 cursor-pointer hover:bg-slate-50" onclick="openEditCell(${t.r}, '${t.c}')">
-                        <b class="uppercase text-slate-700">${t.cliente}</b><br>
+                    <div class="white-card p-3 text-[10px] border-l-4 border-emerald-400 cursor-pointer" onclick="openEditCell(${t.r}, '${t.c}')">
+                        <b class="uppercase">${t.cliente}</b><br>
                         <span class="text-slate-400 font-bold">${t.c}</span>
                     </div>`).join('');
             });
@@ -333,14 +335,15 @@
 
         function addLog(user, msg) {
             logs.unshift({ time: new Date().toLocaleString('pt-BR'), user, msg });
-            if(logs.length > 50) logs.pop();
-            if(!document.getElementById('view-auditoria').classList.contains('hidden')) renderLogs();
+            if(logs.length > 30) logs.pop();
+            renderLogs();
         }
 
         function renderLogs() {
+            if(document.getElementById('view-auditoria').classList.contains('hidden')) return;
             document.getElementById('logContainer').innerHTML = logs.map(l => `
-                <div class="p-3 bg-white border rounded-lg text-[10px] flex justify-between items-center shadow-sm">
-                    <span><b>${l.time}</b> | <span class="text-emerald-600 font-bold uppercase">${l.user}</span>: ${l.msg}</span>
+                <div class="p-3 bg-white border rounded-lg text-[10px]">
+                    <b>${l.time}</b> | <span class="text-emerald-600 font-bold uppercase">${l.user}</span>: ${l.msg}
                 </div>`).join('');
         }
 
@@ -351,8 +354,8 @@
                 return nr;
             });
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Painel Geral");
-            XLSX.writeFile(wb, `Backup_TopLineHub.xlsx`);
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Painel");
+            XLSX.writeFile(wb, `TopLine_Backup.xlsx`);
         }
 
         function renderSenhas() {
