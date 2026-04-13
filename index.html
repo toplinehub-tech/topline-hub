@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.4</title>
+    <title>TopLineHub | Gestão Integrada v1.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -67,7 +67,6 @@
             background-color: #f9fafb;
         }
 
-        /* Estilo para campo de data personalizado */
         .date-custom-input {
             width: 100%;
             padding: 8px 12px;
@@ -347,45 +346,22 @@
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
         }
 
-        // Função para validar e converter data do formato DD/MM/AAAA
-        function parseDateFromString(dateStr) {
-            if (!dateStr) return null;
-            // Tenta parsear DD/MM/AAAA
-            const parts = dateStr.split('/');
-            if (parts.length === 3) {
-                const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1;
-                const year = parseInt(parts[2], 10);
-                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    return new Date(year, month, day);
-                }
-            }
-            // Tenta parsear YYYY-MM-DD
-            const isoParts = dateStr.split('-');
-            if (isoParts.length === 3) {
-                const year = parseInt(isoParts[0], 10);
-                const month = parseInt(isoParts[1], 10) - 1;
-                const day = parseInt(isoParts[2], 10);
-                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    return new Date(year, month, day);
-                }
-            }
-            return null;
-        }
-
         async function saveEdit() {
             const { r, c } = currentEditTarget;
             const selectedStatusRadio = document.querySelector('input[name="statusRadio"]:checked');
             const selectedStatus = selectedStatusRadio ? selectedStatusRadio.value : null;
-            const inputDateStr = document.getElementById('editVal').value;
+            const inputDate = document.getElementById('editVal').value;
             
-            if (selectedStatus === 'concluido' && inputDateStr) {
-                const parsedDate = parseDateFromString(inputDateStr);
-                if (parsedDate && !isNaN(parsedDate.getTime())) {
-                    rawData[r][c] = parsedDate;
-                    rawData[r][c + "_DONE"] = true;
-                    rawData[r][c + "_STATUS"] = null;
+            if (selectedStatus === 'concluido' && inputDate) {
+                const parts = inputDate.split('/');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const year = parseInt(parts[2], 10);
+                    rawData[r][c] = new Date(year, month, day);
                 }
+                rawData[r][c + "_DONE"] = true;
+                rawData[r][c + "_STATUS"] = null;
             } 
             else if (selectedStatus === 'andamento') {
                 rawData[r][c] = "EM ANDAMENTO";
@@ -402,17 +378,11 @@
                 const payload = { 
                     cliente: rawData[r].CLIENTE, 
                     coluna: c, 
-                    novoValor: rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : rawData[r][c],
+                    novaData: inputDate,
                     status: selectedStatus,
                     concluido: rawData[r][c + "_DONE"] || false
                 };
-                
-                // Envia para o Google Sheets
-                await fetch(URL_SCRIPT_GOOGLE, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify(payload) 
-                });
+                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                 
                 let statusText = '';
                 if (selectedStatus === 'concluido') statusText = '✓ Concluído';
@@ -420,14 +390,9 @@
                 else if (selectedStatus === 'analise') statusText = '🔍 Em Análise';
                 
                 showNotification(rawData[r].CLIENTE, `${c} atualizado - ${statusText}`);
-            } catch (e) { 
-                console.error("Erro ao enviar para planilha:", e);
-                showNotification(rawData[r].CLIENTE, `${c} atualizado localmente (erro na sincronização)`);
-            }
+            } catch (e) { }
             closeModal(); 
             renderTable();
-            // Força uma nova sincronização após 2 segundos
-            setTimeout(() => fetchGoogleSheets(false), 2000);
         }
 
         function getStatus(val, row, col) {
@@ -543,9 +508,9 @@
             
             let dateValue = '';
             if (v instanceof Date && !isNaN(v.getTime())) {
-                const year = v.getFullYear();
-                const month = String(v.getMonth() + 1).padStart(2, '0');
                 const day = String(v.getDate()).padStart(2, '0');
+                const month = String(v.getMonth() + 1).padStart(2, '0');
+                const year = v.getFullYear();
                 dateValue = `${day}/${month}/${year}`;
             }
             
@@ -580,7 +545,7 @@
                 <div id="dateFieldContainer" style="display: ${selectedValue === 'concluido' ? 'block' : 'none'};" class="border-t pt-3 mt-2">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data do Documento (DD/MM/AAAA)</label>
                     <input type="text" id="editVal" value="${dateValue}" class="date-custom-input" placeholder="DD/MM/AAAA" autocomplete="off">
-                    <p class="text-[8px] text-slate-400 mt-1">💡 Digite qualquer ano (ex: 01/01/2030) - Use o teclado normalmente</p>
+                    <p class="text-[8px] text-slate-400 mt-1">💡 Digite qualquer ano (ex: 01/01/2030)</p>
                 </div>
             `;
             
