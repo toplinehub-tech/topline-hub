@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v2.1</title>
+    <title>TopLineHub | Gestão Integrada v2.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -15,22 +15,45 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
-        .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
-        .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
-        .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
-        .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
-        .analise { background-color: #fff7ed !important; color: #c2410c !important; }
-        .concluido { background-color: #ecfdf5 !important; color: #059669 !important; text-decoration: line-through; opacity: 0.7; }
+        
+        /* Cores para as células filtradas */
+        .vencido { background-color: #fee2e2 !important; color: #991b1b !important; font-weight: 700 !important; }
+        .vence-30 { background-color: #fef3c7 !important; color: #92400e !important; font-weight: 700 !important; }
+        .vence-60 { background-color: #d1fae5 !important; color: #065f46 !important; font-weight: 700 !important; }
+        .vence-90 { background-color: #dbeafe !important; color: #1e40af !important; font-weight: 700 !important; }
+        .andamento { background-color: #ede9fe !important; color: #5b21b6 !important; font-weight: 700 !important; }
+        .analise { background-color: #fed7aa !important; color: #9a3412 !important; font-weight: 700 !important; }
+        .concluido { background-color: #d1fae5 !important; color: #065f46 !important; text-decoration: line-through; opacity: 0.8; font-weight: 700 !important; }
+        
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
-        td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s ease; }
+        td:hover { transform: scale(1.02); background-color: #f0fdf4 !important; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
+        /* Estilos para cards de filtro com sombra colorida */
+        .filter-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .filter-card:hover {
+            transform: translateY(-2px);
+        }
+        .filter-card-selected {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+        }
+        .filter-card-vencido.filter-card-selected { box-shadow: 0 10px 20px -5px rgba(220, 38, 38, 0.4); border-color: #dc2626 !important; }
+        .filter-card-30.filter-card-selected { box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4); border-color: #f59e0b !important; }
+        .filter-card-60.filter-card-selected { box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4); border-color: #10b981 !important; }
+        .filter-card-90.filter-card-selected { box-shadow: 0 10px 20px -5px rgba(14, 165, 233, 0.4); border-color: #0ea5e9 !important; }
+        .filter-card-andamento.filter-card-selected { box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.4); border-color: #8b5cf6 !important; }
+        .filter-card-analise.filter-card-selected { box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4); border-color: #f97316 !important; }
+
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
 
         #notification-toast {
@@ -62,15 +85,17 @@
         }
         .row-highlight { animation: highlightFlash 1s ease-out; }
 
-        /* Estilo para os botões de status no modal */
-        .status-option {
+        /* Estilos para o modal horizontal */
+        .status-option-horizontal {
             transition: all 0.2s ease;
+            flex: 1;
         }
-        .status-option:hover {
-            transform: scale(1.02);
+        .status-option-horizontal:hover {
+            transform: translateY(-2px);
         }
-        .status-option input:checked + span {
-            font-weight: 800;
+        .status-option-horizontal input:checked + div {
+            border-color: currentColor;
+            background-color: #f9fafb;
         }
     </style>
 </head>
@@ -166,27 +191,27 @@
             </div>
 
             <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="filter-card filter-card-vencido white-card border-l-8 border-red-400 p-4 text-left">
                     <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="filter-card filter-card-30 white-card border-l-8 border-amber-400 p-4 text-left">
                     <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="filter-card filter-card-60 white-card border-l-8 border-emerald-400 p-4 text-left">
                     <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="filter-card filter-card-90 white-card border-l-8 border-sky-400 p-4 text-left">
                     <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="filter-card filter-card-andamento white-card border-l-8 border-purple-400 p-4 text-left">
                     <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="filter-card filter-card-analise white-card border-l-8 border-orange-400 p-4 text-left">
                     <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
@@ -232,14 +257,14 @@
         </div>
     </div>
 
-    <!-- Modal de Edição com Comportamento Dinâmico -->
+    <!-- Modal Horizontal Compacto -->
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar Documento</h4>
-            <div id="modalContent" class="space-y-4"></div>
-            <div class="flex gap-3 mt-8">
-                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
-                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
+        <div class="bg-white rounded-[24px] p-6 max-w-md w-full shadow-2xl">
+            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-4 text-center border-b pb-3">Editar Documento</h4>
+            <div id="modalContent"></div>
+            <div class="flex gap-3 mt-6">
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold uppercase text-[10px] hover:bg-emerald-600 transition">Salvar</button>
+                <button onclick="closeModal()" class="px-6 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-200 transition">Sair</button>
             </div>
         </div>
     </div>
@@ -451,47 +476,30 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
-        // Função para atualizar visibilidade do campo de data baseado no status selecionado
-        function updateDateFieldVisibility() {
-            const selectedStatus = document.querySelector('input[name="statusRadio"]:checked');
-            const dateFieldContainer = document.getElementById('dateFieldContainer');
-            
-            if (selectedStatus && selectedStatus.value === 'concluido') {
-                dateFieldContainer.style.display = 'block';
-            } else {
-                dateFieldContainer.style.display = 'none';
-            }
-        }
-
-        // Função para salvar edição com comportamento dinâmico
         async function saveEdit() {
             const { r, c } = currentEditTarget;
             const selectedStatusRadio = document.querySelector('input[name="statusRadio"]:checked');
             const selectedStatus = selectedStatusRadio ? selectedStatusRadio.value : null;
             
-            // Se for concluído, pegar a data
             if (selectedStatus === 'concluido') {
                 const inputDate = document.getElementById('editVal').value;
                 if (inputDate) {
                     rawData[r][c] = new Date(inputDate + "T12:00:00");
                 }
                 rawData[r][c + "_DONE"] = true;
-                rawData[r][c + "_STATUS"] = null; // Limpar status anterior
-            } 
-            // Se for em andamento ou análise
-            else if (selectedStatus === 'andamento' || selectedStatus === 'analise') {
-                // Manter a data original, não alterar
-                rawData[r][c + "_STATUS"] = selectedStatus;
-                rawData[r][c + "_DONE"] = false;
-            }
-            // Se for normal (sem status especial)
-            else if (selectedStatus === 'normal') {
-                const inputDate = document.getElementById('editVal').value;
-                if (inputDate) {
-                    rawData[r][c] = new Date(inputDate + "T12:00:00");
-                }
                 rawData[r][c + "_STATUS"] = null;
+            } 
+            else if (selectedStatus === 'andamento') {
+                // Manter a data original, apenas marcar como em andamento
+                rawData[r][c + "_STATUS"] = 'andamento';
                 rawData[r][c + "_DONE"] = false;
+                // Manter a data original inalterada
+            }
+            else if (selectedStatus === 'analise') {
+                // Manter a data original, apenas marcar como em análise
+                rawData[r][c + "_STATUS"] = 'analise';
+                rawData[r][c + "_DONE"] = false;
+                // Manter a data original inalterada
             }
             
             try {
@@ -507,7 +515,6 @@
                 if (selectedStatus === 'concluido') statusText = '✓ Concluído';
                 else if (selectedStatus === 'andamento') statusText = '⚙️ Em Andamento';
                 else if (selectedStatus === 'analise') statusText = '🔍 Em Análise';
-                else statusText = '📅 Normal';
                 
                 showNotification(rawData[r].CLIENTE, `${c} atualizado - ${statusText}`, true);
             } catch (e) { }
@@ -566,8 +573,16 @@
 
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
-            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
-            if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
+            
+            // Atualizar visual dos cards com sombra colorida
+            document.querySelectorAll('.filter-card').forEach(btn => {
+                btn.classList.remove('filter-card-selected');
+            });
+            if(activeStatus) {
+                const activeBtn = document.getElementById('btn-' + s);
+                if(activeBtn) activeBtn.classList.add('filter-card-selected');
+            }
+            
             renderTable(); 
         }
 
@@ -597,6 +612,10 @@
                     let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                     if (s === 'concluido') val = '✓ ' + val;
                     let classNames = h === 'CLIENTE' ? 'col-fixed' : '';
+                    if (s === 'vencido') classNames += ' vencido';
+                    if (s === '30') classNames += ' vence-30';
+                    if (s === '60') classNames += ' vence-60';
+                    if (s === '90') classNames += ' vence-90';
                     if (s === 'analise') classNames += ' analise';
                     if (s === 'andamento') classNames += ' andamento';
                     if (s === 'concluido') classNames += ' concluido';
@@ -606,7 +625,7 @@
             updateAnalytics();
         }
 
-        // Função para abrir modal com comportamento dinâmico
+        // Função para abrir modal com layout horizontal
         function openEditCell(r, c) {
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c };
@@ -614,7 +633,7 @@
             const currentStatus = rawData[r][c + "_STATUS"] || '';
             const isDone = rawData[r][c + "_DONE"] || false;
             
-            let selectedValue = 'normal';
+            let selectedValue = '';
             if (isDone) selectedValue = 'concluido';
             else if (currentStatus === 'analise') selectedValue = 'analise';
             else if (currentStatus === 'andamento') selectedValue = 'andamento';
@@ -622,32 +641,49 @@
             document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE} - ${c}`;
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-4">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-3">Status da Atividade</label>
-                    <div class="space-y-3">
-                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'concluido' ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200'}">
-                            <input type="radio" name="statusRadio" value="concluido" ${selectedValue === 'concluido' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-emerald-500">
-                            <span class="text-sm font-bold text-emerald-700">✓ Concluído</span>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Status da Atividade</label>
+                    <div class="flex gap-2">
+                        <label class="status-option-horizontal flex-1 cursor-pointer">
+                            <input type="radio" name="statusRadio" value="andamento" ${selectedValue === 'andamento' ? 'checked' : ''} class="hidden peer">
+                            <div class="text-center p-2 rounded-lg border-2 border-purple-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 transition-all">
+                                <span class="text-lg">⚙️</span>
+                                <p class="text-[8px] font-bold text-purple-700 mt-1">Andamento</p>
+                            </div>
                         </label>
-                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'andamento' ? 'border-purple-400 bg-purple-50' : 'border-slate-200'}">
-                            <input type="radio" name="statusRadio" value="andamento" ${selectedValue === 'andamento' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-purple-500">
-                            <span class="text-sm font-bold text-purple-700">⚙️ Em Andamento</span>
+                        <label class="status-option-horizontal flex-1 cursor-pointer">
+                            <input type="radio" name="statusRadio" value="analise" ${selectedValue === 'analise' ? 'checked' : ''} class="hidden peer">
+                            <div class="text-center p-2 rounded-lg border-2 border-orange-200 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all">
+                                <span class="text-lg">🔍</span>
+                                <p class="text-[8px] font-bold text-orange-700 mt-1">Análise</p>
+                            </div>
                         </label>
-                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'analise' ? 'border-orange-400 bg-orange-50' : 'border-slate-200'}">
-                            <input type="radio" name="statusRadio" value="analise" ${selectedValue === 'analise' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-orange-500">
-                            <span class="text-sm font-bold text-orange-700">🔍 Em Análise</span>
-                        </label>
-                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'normal' ? 'border-slate-400 bg-slate-50' : 'border-slate-200'}">
-                            <input type="radio" name="statusRadio" value="normal" ${selectedValue === 'normal' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-slate-500">
-                            <span class="text-sm font-bold text-slate-600">📅 Normal (Vencimento)</span>
+                        <label class="status-option-horizontal flex-1 cursor-pointer">
+                            <input type="radio" name="statusRadio" value="concluido" ${selectedValue === 'concluido' ? 'checked' : ''} class="hidden peer">
+                            <div class="text-center p-2 rounded-lg border-2 border-emerald-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition-all">
+                                <span class="text-lg">✓</span>
+                                <p class="text-[8px] font-bold text-emerald-700 mt-1">Concluído</p>
+                            </div>
                         </label>
                     </div>
                 </div>
                 <div id="dateFieldContainer" style="display: ${selectedValue === 'concluido' ? 'block' : 'none'};" class="border-t pt-3 mt-2">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Data de Conclusão</label>
-                    <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs">
-                    <p class="text-[9px] text-slate-400 mt-2">⚠️ Apenas para registros concluídos</p>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data de Conclusão</label>
+                    <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-2 rounded-lg text-xs">
+                    <p class="text-[8px] text-slate-400 mt-1">⚠️ Apenas para registros concluídos</p>
                 </div>
             `;
+            
+            // Adicionar evento para mostrar/esconder campo de data
+            const radios = document.querySelectorAll('input[name="statusRadio"]');
+            radios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const dateContainer = document.getElementById('dateFieldContainer');
+                    if (dateContainer) {
+                        dateContainer.style.display = this.value === 'concluido' ? 'block' : 'none';
+                    }
+                });
+            });
+            
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -682,7 +718,7 @@
             activeDoc = null; 
             activeStatus = null; 
             document.getElementById('searchInput').value = ""; 
-            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
+            document.querySelectorAll('.filter-card').forEach(btn => btn.classList.remove('filter-card-selected'));
             document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
             renderTable(); 
         }
