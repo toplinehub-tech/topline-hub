@@ -21,7 +21,6 @@
         .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
-        .concluido { background-color: #d1fae5 !important; color: #065f46 !important; text-decoration: line-through; opacity: 0.8; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
@@ -31,14 +30,7 @@
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
         /* Novos estilos de Seleção */
-        .card-selected { transform: translateY(-4px) scale(1.02); box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2); border: 2px solid #10b981 !important; }
-        .filter-card-vencido.card-selected { box-shadow: 0 10px 20px -5px rgba(220, 38, 38, 0.4); border-color: #dc2626 !important; }
-        .filter-card-30.card-selected { box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4); border-color: #f59e0b !important; }
-        .filter-card-60.card-selected { box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4); border-color: #10b981 !important; }
-        .filter-card-90.card-selected { box-shadow: 0 10px 20px -5px rgba(14, 165, 233, 0.4); border-color: #0ea5e9 !important; }
-        .filter-card-andamento.card-selected { box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.4); border-color: #8b5cf6 !important; }
-        .filter-card-analise.card-selected { box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4); border-color: #f97316 !important; }
-        
+        .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
 
         #notification-toast {
@@ -55,19 +47,6 @@
             transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #notification-toast.show { right: 24px; }
-
-        /* Estilos para o modal horizontal */
-        .status-option-horizontal {
-            transition: all 0.2s ease;
-            flex: 1;
-        }
-        .status-option-horizontal:hover {
-            transform: translateY(-2px);
-        }
-        .status-option-horizontal input:checked + div {
-            border-color: currentColor;
-            background-color: #f9fafb;
-        }
     </style>
 </head>
 <body>
@@ -159,27 +138,27 @@
             </div>
 
             <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="filter-card-vencido white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="filter-card-30 white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="filter-card-60 white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="filter-card-90 white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="filter-card-andamento white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="filter-card-analise white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
@@ -226,12 +205,12 @@
     </div>
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[24px] p-6 max-w-md w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-4 text-center border-b pb-3">Editar Documento</h4>
-            <div id="modalContent"></div>
-            <div class="flex gap-3 mt-6">
-                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold uppercase text-[10px] hover:bg-emerald-600 transition">Salvar</button>
-                <button onclick="closeModal()" class="px-6 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold uppercase text-[10px] hover:bg-slate-200 transition">Sair</button>
+        <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
+            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar</h4>
+            <div id="modalContent" class="space-y-4"></div>
+            <div class="flex gap-3 mt-8">
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
+                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
             </div>
         </div>
     </div>
@@ -278,7 +257,7 @@
                         }
                         rawData = newData;
                         lastKnownDataHash = csvDados;
-                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && !h.endsWith('_STATUS'));
+                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
                     }
                 });
@@ -317,79 +296,36 @@
             }
         }
 
-        function showNotification(cliente, details = null) {
+        function showNotification(cliente) {
             const toast = document.getElementById('notification-toast');
-            const notifMessage = document.getElementById('notif-message');
-            const notifCliente = document.getElementById('notif-cliente');
-            
-            if (details) {
-                notifMessage.innerHTML = details;
-            } else {
-                notifMessage.innerHTML = "Uma tarefa foi atualizada na planilha.";
-            }
-            notifCliente.innerHTML = cliente;
+            document.getElementById('notif-cliente').innerText = cliente;
             toast.classList.add('show');
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
         }
 
         async function saveEdit() {
             const { r, c } = currentEditTarget;
-            const selectedStatusRadio = document.querySelector('input[name="statusRadio"]:checked');
-            const selectedStatus = selectedStatusRadio ? selectedStatusRadio.value : null;
             const inputDate = document.getElementById('editVal').value;
+            const isDone = document.getElementById('taskDone').checked;
+            const obs = document.getElementById('editObs').value;
             
-            if (selectedStatus === 'concluido' && inputDate) {
-                // Concluído: atualiza a data
-                rawData[r][c] = new Date(inputDate + "T12:00:00");
-                rawData[r][c + "_DONE"] = true;
-                rawData[r][c + "_STATUS"] = null;
-            } 
-            else if (selectedStatus === 'andamento') {
-                // Andamento: altera o valor da célula para "EM ANDAMENTO"
-                rawData[r][c] = "EM ANDAMENTO";
-                rawData[r][c + "_STATUS"] = 'andamento';
-                rawData[r][c + "_DONE"] = false;
-            }
-            else if (selectedStatus === 'analise') {
-                // Análise: altera o valor da célula para "ANALISE"
-                rawData[r][c] = "ANALISE";
-                rawData[r][c + "_STATUS"] = 'analise';
-                rawData[r][c + "_DONE"] = false;
-            }
+            if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
+            rawData[r][c+"_DONE"] = isDone;
+            rawData[r][c+"_OBS"] = obs;
 
             try {
-                const payload = { 
-                    cliente: rawData[r].CLIENTE, 
-                    coluna: c, 
-                    novoValor: rawData[r][c],
-                    status: selectedStatus,
-                    concluido: rawData[r][c + "_DONE"] || false
-                };
+                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                
-                let statusText = '';
-                if (selectedStatus === 'concluido') statusText = '✓ Concluído';
-                else if (selectedStatus === 'andamento') statusText = '⚙️ Em Andamento';
-                else if (selectedStatus === 'analise') statusText = '🔍 Em Análise';
-                
-                showNotification(rawData[r].CLIENTE, `${c} atualizado - ${statusText}`);
             } catch (e) { }
-            closeModal(); 
-            renderTable();
+            closeModal(); renderTable();
         }
 
         function getStatus(val, row, col) {
-            // Verificar primeiro se há um status manual definido
-            const manualStatus = row[col + "_STATUS"];
-            if (manualStatus === 'analise') return 'analise';
-            if (manualStatus === 'andamento') return 'andamento';
-            if (row[col + "_DONE"]) return 'concluido';
-            
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
+            if (row && col && row[col + "_DONE"]) return 'andamento';
             if (!(val instanceof Date)) return null;
-            
             const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
@@ -423,12 +359,13 @@
             document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${(c.analise/safe)*100} 100`);
             
             document.getElementById('dash-percent').innerText = total > 0 ? Math.round(((total-c.vencido)/total)*100)+"%" : "100%";
-            document.getElementById('last-update-tag').innerHTML = "Update: " + new Date().toLocaleTimeString('pt-BR');
+            document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
             
+            // Atualizar visual dos cards superiores
             document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
             if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
             
@@ -438,6 +375,7 @@
         function toggleDocFilter(d) { 
             activeDoc = (activeDoc === d) ? null : d; 
             
+            // Atualizar visual dos botões de documento
             document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
             if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
             
@@ -456,23 +394,11 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map((row, idx) => {
-                const originalIndex = rawData.indexOf(row);
-                return `<tr data-row-index="${originalIndex}">${headers.map(h => {
-                    const s = getStatus(row[h], row, h);
-                    let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                    if (s === 'concluido') val = '✓ ' + val;
-                    let classNames = h === 'CLIENTE' ? 'col-fixed' : '';
-                    if (s === 'vencido') classNames += ' vencido';
-                    if (s === '30') classNames += ' vence-30';
-                    if (s === '60') classNames += ' vence-60';
-                    if (s === '90') classNames += ' vence-90';
-                    if (s === 'analise') classNames += ' analise';
-                    if (s === 'andamento') classNames += ' andamento';
-                    if (s === 'concluido') classNames += ' concluido';
-                    return `<td class="${classNames}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
-                }).join('')}</tr>`;
-            }).join('');
+            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
+                const s = getStatus(row[h], row, h);
+                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+            }).join('')}</tr>`).join('');
             updateAnalytics();
         }
 
@@ -480,67 +406,15 @@
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c };
             const v = rawData[r][c];
-            const currentStatus = rawData[r][c + "_STATUS"] || '';
-            const isDone = rawData[r][c + "_DONE"] || false;
-            
-            let selectedValue = '';
-            if (isDone) selectedValue = 'concluido';
-            else if (currentStatus === 'analise') selectedValue = 'analise';
-            else if (currentStatus === 'andamento') selectedValue = 'andamento';
-            
-            let dateValue = '';
-            if (v instanceof Date && !isNaN(v.getTime())) {
-                const year = v.getFullYear();
-                const month = String(v.getMonth() + 1).padStart(2, '0');
-                const day = String(v.getDate()).padStart(2, '0');
-                dateValue = `${year}-${month}-${day}`;
-            }
-            
-            document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE} - ${c}`;
+            document.getElementById('modalTitle').innerText = rawData[r].CLIENTE;
             document.getElementById('modalContent').innerHTML = `
-                <div class="mb-4">
-                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Status da Atividade</label>
-                    <div class="flex gap-2">
-                        <label class="status-option-horizontal flex-1 cursor-pointer">
-                            <input type="radio" name="statusRadio" value="andamento" ${selectedValue === 'andamento' ? 'checked' : ''} class="hidden peer">
-                            <div class="text-center p-2 rounded-lg border-2 border-purple-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 transition-all">
-                                <span class="text-lg">⚙️</span>
-                                <p class="text-[8px] font-bold text-purple-700 mt-1">Andamento</p>
-                            </div>
-                        </label>
-                        <label class="status-option-horizontal flex-1 cursor-pointer">
-                            <input type="radio" name="statusRadio" value="analise" ${selectedValue === 'analise' ? 'checked' : ''} class="hidden peer">
-                            <div class="text-center p-2 rounded-lg border-2 border-orange-200 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all">
-                                <span class="text-lg">🔍</span>
-                                <p class="text-[8px] font-bold text-orange-700 mt-1">Análise</p>
-                            </div>
-                        </label>
-                        <label class="status-option-horizontal flex-1 cursor-pointer">
-                            <input type="radio" name="statusRadio" value="concluido" ${selectedValue === 'concluido' ? 'checked' : ''} class="hidden peer">
-                            <div class="text-center p-2 rounded-lg border-2 border-emerald-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition-all">
-                                <span class="text-lg">✓</span>
-                                <p class="text-[8px] font-bold text-emerald-700 mt-1">Concluído</p>
-                            </div>
-                        </label>
-                    </div>
+                <div class="mb-4 font-bold text-[10px] text-slate-400 uppercase">${c}</div>
+                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border mb-4">
+                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
+                    <label class="text-[10px] font-bold uppercase text-slate-600">Concluído</label>
                 </div>
-                <div id="dateFieldContainer" style="display: ${selectedValue === 'concluido' ? 'block' : 'none'};" class="border-t pt-3 mt-2">
-                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data do Documento</label>
-                    <input type="date" id="editVal" value="${dateValue}" class="w-full border p-2 rounded-lg text-xs">
-                    <p class="text-[8px] text-slate-400 mt-1">⚠️ Apenas para registros concluídos</p>
-                </div>
-            `;
-            
-            const radios = document.querySelectorAll('input[name="statusRadio"]');
-            radios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    const dateContainer = document.getElementById('dateFieldContainer');
-                    if (dateContainer) {
-                        dateContainer.style.display = this.value === 'concluido' ? 'block' : 'none';
-                    }
-                });
-            });
-            
+                <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-3">
+                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Obs...">${rawData[r][c+"_OBS"] || ''}</textarea>`;
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -549,7 +423,7 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</td>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
         function switchTab(tab) {
