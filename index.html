@@ -31,7 +31,6 @@
         .status-btn-active { ring: 2px solid #10b981; background-color: #f8fafc; }
         .password-highlight { font-family: monospace; color: #059669; font-weight: 700; background: #ecfdf5; padding: 2px 6px; border-radius: 4px; border: 1px solid #d1fae5; }
 
-        /* Estilo do Popup de Notificação */
         #notification-toast {
             position: fixed;
             bottom: 24px;
@@ -223,7 +222,7 @@
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
-        let lastKnownDataHash = ""; // Para detectar mudanças de terceiros
+        let lastKnownDataHash = "";
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -238,8 +237,6 @@
                 container.appendChild(btn);
             });
             fetchGoogleSheets(true);
-            
-            // Loop de atualização automática (A cada 30 segundos)
             setInterval(() => fetchGoogleSheets(false), 30000);
         };
 
@@ -247,20 +244,15 @@
             try {
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
                 const csvDados = await resDados.text();
-                
-                // Verifica se algo mudou comparando o conteúdo bruto
                 if (!isFirstLoad && csvDados === lastKnownDataHash) return;
                 
                 Papa.parse(csvDados, {
                     header: true, dynamicTyping: true, skipEmptyLines: true,
                     complete: (results) => {
                         const newData = results.data.map(processRow);
-                        
-                        // Detectar qual cliente foi alterado (se não for o primeiro load)
                         if (!isFirstLoad && rawData.length > 0) {
                             detectChanges(rawData, newData);
                         }
-
                         rawData = newData;
                         lastKnownDataHash = csvDados;
                         if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
@@ -291,14 +283,13 @@
             return nr;
         }
 
-        // Detecta mudanças feitas por outros usuários
         function detectChanges(oldData, newData) {
             for (let i = 0; i < newData.length; i++) {
                 const oldRow = JSON.stringify(oldData[i]);
                 const newRow = JSON.stringify(newData[i]);
                 if (oldRow !== newRow && oldData[i]?.CLIENTE) {
                     showNotification(newData[i].CLIENTE);
-                    break; // Mostra apenas uma por vez para não poluir
+                    break;
                 }
             }
         }
@@ -426,6 +417,61 @@
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
         function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; renderTable(); }
         function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
+
+        // NOVA FUNÇÃO DE SORTEIO E DISTRIBUIÇÃO
+        function distribuirTarefas(statusAlvo) {
+            const users = ['jordan', 'silene', 'patricia'];
+            const listas = { jordan: [], silene: [], patricia: [] };
+            
+            users.forEach(u => {
+                document.getElementById(`list-${u}`).innerHTML = "";
+                document.getElementById(`count-${u}`).innerText = "0";
+            });
+
+            let tarefasEncontradas = [];
+            rawData.forEach(row => {
+                headers.forEach(col => {
+                    if (col === 'CLIENTE') return;
+                    if (getStatus(row[col], row, col) === statusAlvo) {
+                        tarefasEncontradas.push({
+                            cliente: row.CLIENTE,
+                            doc: col,
+                            data: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col]
+                        });
+                    }
+                });
+            });
+
+            if (tarefasEncontradas.length === 0) {
+                alert("Nenhuma tarefa encontrada com este status.");
+                return;
+            }
+
+            tarefasEncontradas.sort(() => Math.random() - 0.5);
+
+            tarefasEncontradas.forEach((tarefa, index) => {
+                const responsavel = users[index % users.length];
+                listas[responsavel].push(tarefa);
+            });
+
+            users.forEach(user => {
+                const container = document.getElementById(`list-${user}`);
+                document.getElementById(`count-${user}`).innerText = listas[user].length;
+                
+                listas[user].forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] hover:border-emerald-300 transition-colors cursor-default mb-2";
+                    div.innerHTML = `
+                        <div class="font-black text-slate-800 uppercase">${t.cliente}</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-emerald-600 font-bold">${t.doc}</span>
+                            <span class="text-slate-400 font-mono">${t.data}</span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+        }
     </script>
 </body>
 </html>
