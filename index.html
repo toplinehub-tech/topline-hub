@@ -266,37 +266,76 @@ async function fetchGoogleSheets(isFirst) {
 
 function saveEdit() {
     if(!currentEditTarget) return;
+
     const { rowIndex, colName } = currentEditTarget;
     const selected = document.querySelector('input[name="statusRadio"]:checked');
-    if(!selected) { showNotification("Selecione um status", "Aviso"); return; }
-    
+
+    if(!selected) { 
+        showNotification("Selecione um status", "Aviso"); 
+        return; 
+    }
+
     const status = selected.value;
     const dateVal = document.getElementById('editVal')?.value || '';
+
     let sendValue = '';
     let displayValue = '';
-    
+
     if(status === 'concluido') {
-        if(dateVal && dateVal.trim() !== '') {
-            // Formato: texto puro com prefixo "DATA: " para evitar conversão
-            sendValue = "DATA: " + dateVal.trim();
-            displayValue = dateVal.trim();
-        } else {
-            sendValue = "DATA: ";
-            displayValue = '';
+
+        if(!dateVal || !dateVal.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            showNotification("Data inválida. Use DD/MM/AAAA", "Erro");
+            return;
         }
+
+        sendValue = dateVal.trim(); // ✅ CORREÇÃO
+        displayValue = dateVal.trim();
+
         rawData[rowIndex][colName] = displayValue;
         rawData[rowIndex][colName+"_DONE"] = true;
+
     } else if(status === 'andamento') {
+
         sendValue = "STATUS: EM ANDAMENTO";
         displayValue = "EM ANDAMENTO";
-        rawData[rowIndex][colName] = "EM ANDAMENTO";
+
+        rawData[rowIndex][colName] = displayValue;
         rawData[rowIndex][colName+"_DONE"] = false;
+
     } else if(status === 'analise') {
+
         sendValue = "STATUS: ANALISE";
         displayValue = "ANALISE";
-        rawData[rowIndex][colName] = "ANALISE";
+
+        rawData[rowIndex][colName] = displayValue;
         rawData[rowIndex][colName+"_DONE"] = false;
     }
+
+    fetch(URL_SCRIPT_GOOGLE, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        body: JSON.stringify({ 
+            cliente: rawData[rowIndex].CLIENTE, 
+            coluna: colName, 
+            novaData: sendValue,
+            valorExibicao: displayValue,
+            concluido: status === 'concluido' 
+        }) 
+    });
+
+    showNotification(
+        `${colName} atualizado para ${
+            status === 'concluido' ? 'Concluído' : 
+            (status === 'andamento' ? 'Andamento' : 'Análise')
+        }`, 
+        rawData[rowIndex].CLIENTE
+    );
+
+    closeModal();
+    renderTable();
+
+    setTimeout(() => fetchGoogleSheets(false), 1000);
+}
     
     // Envia com prefixo para forçar texto no Google Sheets
     fetch(URL_SCRIPT_GOOGLE, { 
