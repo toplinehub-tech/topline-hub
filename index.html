@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.3</title>
+    <title>TopLineHub | Gestão Integrada v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -65,6 +65,7 @@
         .status-option-horizontal input:checked + div {
             border-color: currentColor;
             background-color: #f9fafb;
+            transform: scale(1.02);
         }
 
         .date-custom-input {
@@ -82,6 +83,26 @@
             border-color: #10b981;
             box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
+        
+        .password-highlight {
+            background: #fef3c7;
+            color: #92400e;
+            font-weight: 800;
+            padding: 4px 8px;
+            border-radius: 8px;
+            display: inline-block;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+            border-left: 3px solid #f59e0b;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .sync-spinning svg {
+            animation: spin 1s linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -98,8 +119,8 @@
                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </div>
             <div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização em tempo real</h4>
-                <p id="notif-message" class="text-xs font-bold text-slate-700 leading-tight mt-1">Uma tarefa foi atualizada.</p>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização</h4>
+                <p id="notif-message" class="text-xs font-bold text-slate-700 leading-tight mt-1">Operação realizada com sucesso.</p>
                 <p id="notif-cliente" class="text-[11px] text-emerald-600 font-black mt-1 uppercase"></p>
             </div>
         </div>
@@ -117,7 +138,10 @@
             </div>
             <div class="flex items-center gap-3">
                 <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
-                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
+                <button onclick="fetchGoogleSheets(true, true)" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Sincronizar Sheets
+                </button>
                 <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
                 <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
             </div>
@@ -258,8 +282,7 @@
 
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
-        let currentEditTarget = {};
-        let lastKnownDataHash = ""; 
+        let currentEditTarget = null;
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -273,36 +296,39 @@
                 btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
                 container.appendChild(btn);
             });
-            fetchGoogleSheets(true);
-            setInterval(() => fetchGoogleSheets(false), 30000);
+            fetchGoogleSheets(true, false);
+            setInterval(() => fetchGoogleSheets(false, false), 30000);
         };
 
-        async function fetchGoogleSheets(isFirstLoad) {
+        async function fetchGoogleSheets(isFirstLoad, showToast = false) {
             try {
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
                 const csvDados = await resDados.text();
-                if (!isFirstLoad && csvDados === lastKnownDataHash) return;
                 
                 Papa.parse(csvDados, {
                     header: true, dynamicTyping: true, skipEmptyLines: true,
                     complete: (results) => {
                         const newData = results.data.map(processRow);
-                        if (!isFirstLoad && rawData.length > 0) {
-                            detectChanges(rawData, newData);
-                        }
                         rawData = newData;
-                        lastKnownDataHash = csvDados;
-                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && !h.endsWith('_STATUS'));
+                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && !h.endsWith('_STATUS') && h !== '');
                         renderTable();
+                        document.getElementById('last-update-tag').innerHTML = "Atualizado: " + new Date().toLocaleTimeString('pt-BR');
+                        if(showToast) showNotification("Sincronização", "Dados carregados do Google Sheets com sucesso!", true);
                     }
                 });
 
-                if(isFirstLoad) {
-                    const resSenhas = await fetch(URL_SENHAS);
+                if(isFirstLoad || passwordData.length === 0) {
+                    const resSenhas = await fetch(URL_SENHAS + "&cache=" + new Date().getTime());
                     const csvSenhas = await resSenhas.text();
-                    Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = r.data; } });
+                    Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { 
+                        passwordData = r.data;
+                        if(document.getElementById('view-senhas') && !document.getElementById('view-senhas').classList.contains('hidden')) renderSenhas();
+                    } });
                 }
-            } catch (e) { console.error("Erro na sincronização."); }
+            } catch (e) { 
+                console.error("Erro na sincronização.", e);
+                if(showToast) showNotification("Erro", "Falha ao sincronizar com o Google Sheets.", true);
+            }
         }
 
         function processRow(row) {
@@ -320,86 +346,123 @@
             return nr;
         }
 
-        function detectChanges(oldData, newData) {
-            for (let i = 0; i < newData.length; i++) {
-                const oldRow = JSON.stringify(oldData[i]);
-                const newRow = JSON.stringify(newData[i]);
-                if (oldRow !== newRow && oldData[i]?.CLIENTE) {
-                    showNotification(newData[i].CLIENTE);
-                    break; 
-                }
-            }
-        }
-
-        function showNotification(cliente, details = null) {
+        function showNotification(cliente, details, isManual = false) {
             const toast = document.getElementById('notification-toast');
             const notifMessage = document.getElementById('notif-message');
             const notifCliente = document.getElementById('notif-cliente');
-            
-            if (details) {
-                notifMessage.innerHTML = details;
-            } else {
-                notifMessage.innerHTML = "Uma tarefa foi atualizada na planilha.";
-            }
+            notifMessage.innerHTML = details || "Operação realizada com sucesso.";
             notifCliente.innerHTML = cliente;
             toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 5000);
+            setTimeout(() => { toast.classList.remove('show'); }, 4000);
+        }
+
+        function parseDateFromString(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const year = parseInt(parts[2], 10);
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    return new Date(year, month, day);
+                }
+            }
+            const isoParts = dateStr.split('-');
+            if (isoParts.length === 3) {
+                const year = parseInt(isoParts[0], 10);
+                const month = parseInt(isoParts[1], 10) - 1;
+                const day = parseInt(isoParts[2], 10);
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    return new Date(year, month, day);
+                }
+            }
+            return null;
         }
 
         async function saveEdit() {
-            const { r, c } = currentEditTarget;
-            const selectedStatusRadio = document.querySelector('input[name="statusRadio"]:checked');
-            const selectedStatus = selectedStatusRadio ? selectedStatusRadio.value : null;
-            const inputDate = document.getElementById('editVal').value;
+            if (!currentEditTarget) return;
             
-            if (selectedStatus === 'concluido' && inputDate) {
-                const parts = inputDate.split('/');
-                if (parts.length === 3) {
-                    const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1;
-                    const year = parseInt(parts[2], 10);
-                    rawData[r][c] = new Date(year, month, day);
+            const { rowIndex, colName } = currentEditTarget;
+            const selectedRadio = document.querySelector('input[name="statusRadio"]:checked');
+            if (!selectedRadio) {
+                showNotification("Aviso", "Selecione um status antes de salvar.", true);
+                return;
+            }
+            
+            const selectedStatus = selectedRadio.value;
+            const inputDateStr = document.getElementById('editVal') ? document.getElementById('editVal').value : '';
+            
+            // Atualizar os dados locais
+            if (selectedStatus === 'concluido' && inputDateStr) {
+                const parsedDate = parseDateFromString(inputDateStr);
+                if (parsedDate && !isNaN(parsedDate.getTime())) {
+                    rawData[rowIndex][colName] = parsedDate;
+                    rawData[rowIndex][colName + "_DONE"] = true;
+                    rawData[rowIndex][colName + "_STATUS"] = null;
+                } else if (inputDateStr) {
+                    showNotification("Erro", "Data inválida. Use formato DD/MM/AAAA", true);
+                    return;
                 }
-                rawData[r][c + "_DONE"] = true;
-                rawData[r][c + "_STATUS"] = null;
             } 
             else if (selectedStatus === 'andamento') {
-                rawData[r][c] = "EM ANDAMENTO";
-                rawData[r][c + "_STATUS"] = 'andamento';
-                rawData[r][c + "_DONE"] = false;
+                rawData[rowIndex][colName] = "EM ANDAMENTO";
+                rawData[rowIndex][colName + "_STATUS"] = 'andamento';
+                rawData[rowIndex][colName + "_DONE"] = false;
             }
             else if (selectedStatus === 'analise') {
-                rawData[r][c] = "ANALISE";
-                rawData[r][c + "_STATUS"] = 'analise';
-                rawData[r][c + "_DONE"] = false;
+                rawData[rowIndex][colName] = "ANALISE";
+                rawData[rowIndex][colName + "_STATUS"] = 'analise';
+                rawData[rowIndex][colName + "_DONE"] = false;
             }
-
+            
+            // Enviar para o Google Sheets via POST
+            const payload = {
+                action: 'update',
+                cliente: rawData[rowIndex].CLIENTE,
+                coluna: colName,
+                novoValor: rawData[rowIndex][colName] instanceof Date ? 
+                    rawData[rowIndex][colName].toLocaleDateString('pt-BR') : 
+                    rawData[rowIndex][colName],
+                status: selectedStatus,
+                concluido: rawData[rowIndex][colName + "_DONE"] || false,
+                timestamp: new Date().toISOString()
+            };
+            
             try {
-                const payload = { 
-                    cliente: rawData[r].CLIENTE, 
-                    coluna: c, 
-                    novaData: inputDate,
-                    status: selectedStatus,
-                    concluido: rawData[r][c + "_DONE"] || false
-                };
-                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                // Usando fetch com mode no-cors para evitar problemas de CORS
+                await fetch(URL_SCRIPT_GOOGLE, { 
+                    method: 'POST', 
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) 
+                });
                 
                 let statusText = '';
                 if (selectedStatus === 'concluido') statusText = '✓ Concluído';
                 else if (selectedStatus === 'andamento') statusText = '⚙️ Em Andamento';
                 else if (selectedStatus === 'analise') statusText = '🔍 Em Análise';
                 
-                showNotification(rawData[r].CLIENTE, `${c} atualizado - ${statusText}`);
-            } catch (e) { }
-            closeModal(); 
-            renderTable();
+                showNotification(rawData[rowIndex].CLIENTE, `${colName} atualizado - ${statusText}`, true);
+                
+                // Fechar modal e re-renderizar
+                closeModal();
+                renderTable();
+                
+                // Sincronizar novamente após 2 segundos para garantir consistência
+                setTimeout(() => fetchGoogleSheets(false, false), 2000);
+            } catch (error) {
+                console.error("Erro ao enviar para o Google Sheets:", error);
+                showNotification(rawData[rowIndex].CLIENTE, `${colName} salvo localmente. Erro na sincronização.`, true);
+                closeModal();
+                renderTable();
+            }
         }
 
         function getStatus(val, row, col) {
             const manualStatus = row[col + "_STATUS"];
             if (manualStatus === 'analise') return 'analise';
             if (manualStatus === 'andamento') return 'andamento';
-            if (row[col + "_DONE"]) return 'concluido';
+            if (row[col + "_DONE"] === true) return 'concluido';
             
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
@@ -441,24 +504,19 @@
             document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${(c.analise/safe)*100} 100`);
             
             document.getElementById('dash-percent').innerText = total > 0 ? Math.round(((total-c.vencido)/total)*100)+"%" : "100%";
-            document.getElementById('last-update-tag').innerHTML = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
-            
             document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
             if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
-            
             renderTable(); 
         }
 
         function toggleDocFilter(d) { 
             activeDoc = (activeDoc === d) ? null : d; 
-            
             document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
             if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
-            
             renderTable(); 
         }
 
@@ -494,17 +552,21 @@
             updateAnalytics();
         }
 
-        function openEditCell(r, c) {
-            if(c === 'CLIENTE') return;
-            currentEditTarget = { r, c };
-            const v = rawData[r][c];
-            const currentStatus = rawData[r][c + "_STATUS"] || '';
-            const isDone = rawData[r][c + "_DONE"] || false;
+        function openEditCell(rowIndex, colName) {
+            if(colName === 'CLIENTE') return;
+            currentEditTarget = { rowIndex, colName };
+            const row = rawData[rowIndex];
+            const v = row[colName];
+            const currentStatus = row[colName + "_STATUS"] || '';
+            const isDone = row[colName + "_DONE"] === true;
             
             let selectedValue = '';
             if (isDone) selectedValue = 'concluido';
             else if (currentStatus === 'analise') selectedValue = 'analise';
             else if (currentStatus === 'andamento') selectedValue = 'andamento';
+            else if (typeof v === 'string' && v.toUpperCase() === 'EM ANDAMENTO') selectedValue = 'andamento';
+            else if (typeof v === 'string' && v.toUpperCase() === 'ANALISE') selectedValue = 'analise';
+            else selectedValue = 'concluido';
             
             let dateValue = '';
             if (v instanceof Date && !isNaN(v.getTime())) {
@@ -514,7 +576,7 @@
                 dateValue = `${day}/${month}/${year}`;
             }
             
-            document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE} - ${c}`;
+            document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${row.CLIENTE} - ${colName}`;
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-4">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Status da Atividade</label>
@@ -545,7 +607,7 @@
                 <div id="dateFieldContainer" style="display: ${selectedValue === 'concluido' ? 'block' : 'none'};" class="border-t pt-3 mt-2">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data do Documento (DD/MM/AAAA)</label>
                     <input type="text" id="editVal" value="${dateValue}" class="date-custom-input" placeholder="DD/MM/AAAA" autocomplete="off">
-                    <p class="text-[8px] text-slate-400 mt-1">💡 Digite qualquer ano (ex: 01/01/2030)</p>
+                    <p class="text-[8px] text-slate-400 mt-1">💡 Digite a data no formato DD/MM/AAAA</p>
                 </div>
             `;
             
@@ -559,15 +621,23 @@
                 });
             });
             
-            document.getElementById('modalSaveBtn').onclick = saveEdit;
+            const saveBtn = document.getElementById('modalSaveBtn');
+            const newSaveBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+            newSaveBtn.onclick = saveEdit;
+            
             document.getElementById('editModal').classList.remove('hidden');
         }
 
         function renderSenhas() {
+            if (!passwordData.length) return;
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
-                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
+                <tr><td class="col-fixed font-bold">${p.CLIENTE || '-'}</td>
+                <td>${p.CNPJ || '-'}</td>
+                <td>${p.CCM || '-'}</td>
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td>${p[c] && p[c].trim() ? `<span class="password-highlight">${p[c]}</span>` : '<span class="text-slate-300">-</span>'}</td>`).join('')}
+            `).join('');
         }
 
         function switchTab(tab) {
@@ -577,7 +647,10 @@
             if(tab === 'senhas') renderSenhas();
         }
 
-        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function closeModal() { 
+            document.getElementById('editModal').classList.add('hidden');
+            currentEditTarget = null;
+        }
         
         function resetAllFilters() { 
             activeDoc = null; 
@@ -588,7 +661,12 @@
             renderTable(); 
         }
 
-        function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
+        function exportarExcel() { 
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); 
+            XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`); 
+            showNotification("Exportação", "Backup exportado com sucesso!", true);
+        }
 
         function distribuirTarefas(statusAlvo) {
             const responsaveis = ['jordan', 'silene', 'patricia'];
@@ -615,12 +693,11 @@
             });
 
             if (tarefasParaSorteio.length === 0) {
-                alert("Nenhuma tarefa crítica encontrada para este filtro.");
+                showNotification("Aviso", `Nenhuma tarefa encontrada para o status ${statusAlvo}`, true);
                 return;
             }
 
             tarefasParaSorteio.sort(() => Math.random() - 0.5);
-
             tarefasParaSorteio.forEach((tarefa, index) => {
                 const destino = responsaveis[index % responsaveis.length];
                 listas[destino].push(tarefa);
@@ -629,10 +706,9 @@
             responsaveis.forEach(r => {
                 const container = document.getElementById(`list-${r}`);
                 document.getElementById(`count-${r}`).innerText = listas[r].length;
-                
                 listas[r].forEach(t => {
                     const card = document.createElement('div');
-                    card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
+                    card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 mb-2";
                     card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
                     card.innerHTML = `
                         <div class="font-black text-slate-800 uppercase flex justify-between">
@@ -641,12 +717,13 @@
                         </div>
                         <div class="flex justify-between items-center mt-1">
                             <span class="text-emerald-600 font-bold">${t.documento}</span>
-                            <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
+                            <span class="text-slate-400 font-mono">${t.prazo}</span>
                         </div>
                     `;
                     container.appendChild(card);
                 });
             });
+            showNotification("Tarefas Distribuídas", `${tarefasParaSorteio.length} tarefas foram sorteadas entre os responsáveis.`, true);
         }
     </script>
 </body>
