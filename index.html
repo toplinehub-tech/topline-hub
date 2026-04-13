@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v2.2</title>
+    <title>TopLineHub | Gestão Integrada v2.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -16,7 +16,6 @@
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         
-        /* Cores para as células filtradas */
         .vencido { background-color: #fee2e2 !important; color: #991b1b !important; font-weight: 700 !important; }
         .vence-30 { background-color: #fef3c7 !important; color: #92400e !important; font-weight: 700 !important; }
         .vence-60 { background-color: #d1fae5 !important; color: #065f46 !important; font-weight: 700 !important; }
@@ -34,7 +33,6 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        /* Estilos para cards de filtro com sombra colorida */
         .filter-card {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
@@ -85,7 +83,6 @@
         }
         .row-highlight { animation: highlightFlash 1s ease-out; }
 
-        /* Estilos para o modal horizontal */
         .status-option-horizontal {
             transition: all 0.2s ease;
             flex: 1;
@@ -257,7 +254,6 @@
         </div>
     </div>
 
-    <!-- Modal Horizontal Compacto -->
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[24px] p-6 max-w-md w-full shadow-2xl">
             <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-4 text-center border-b pb-3">Editar Documento</h4>
@@ -295,7 +291,7 @@
                 container.appendChild(btn);
             });
             fetchGoogleSheets(true);
-            syncInterval = setInterval(() => fetchGoogleSheets(false, false), 15000);
+            syncInterval = setInterval(() => fetchGoogleSheets(false, false), 30000);
         };
 
         function showSyncAnimation() {
@@ -332,15 +328,23 @@
             }
             
             try {
-                const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
+                const urlDados = URL_DADOS_PRINCIPAIS + "?cache=" + new Date().getTime();
+                console.log("Buscando dados de:", urlDados);
+                
+                const resDados = await fetch(urlDados);
+                if (!resDados.ok) throw new Error(`HTTP error! status: ${resDados.status}`);
+                
                 const csvDados = await resDados.text();
                 const newHash = await hashString(csvDados);
                 const hasChanged = newHash !== lastKnownDataHash;
                 
                 if (hasChanged || isFirstLoad) {
                     Papa.parse(csvDados, {
-                        header: true, dynamicTyping: true, skipEmptyLines: true,
+                        header: true, 
+                        dynamicTyping: true, 
+                        skipEmptyLines: true,
                         complete: (results) => {
+                            console.log("Dados carregados:", results.data.length, "registros");
                             const newData = results.data.map(processRow);
                             
                             if (!isFirstLoad && rawData.length > 0 && !showManualSync) {
@@ -361,7 +365,9 @@
                             
                             rawData = newData;
                             lastKnownDataHash = newHash;
-                            if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_STATUS'));
+                            if(rawData.length > 0) {
+                                headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_STATUS'));
+                            }
                             renderTable();
                             
                             if (showManualSync) {
@@ -374,6 +380,10 @@
                             } else {
                                 document.getElementById('last-update-tag').innerHTML = "Update: " + new Date().toLocaleTimeString('pt-BR');
                             }
+                        },
+                        error: (error) => {
+                            console.error("Erro no Papa Parse:", error);
+                            showNotification("Erro", "Falha ao processar os dados da planilha.", true);
                         }
                     });
                 } else if (showManualSync) {
@@ -381,20 +391,21 @@
                 }
 
                 if(isFirstLoad || passwordData.length === 0) {
-                    const resSenhas = await fetch(URL_SENHAS + "&cache=" + new Date().getTime());
-                    const csvSenhas = await resSenhas.text();
-                    Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { 
-                        passwordData = r.data;
-                        if (document.getElementById('view-senhas') && !document.getElementById('view-senhas').classList.contains('hidden')) {
-                            renderSenhas();
-                        }
-                    } });
+                    const urlSenhas = URL_SENHAS + "?cache=" + new Date().getTime();
+                    const resSenhas = await fetch(urlSenhas);
+                    if (resSenhas.ok) {
+                        const csvSenhas = await resSenhas.text();
+                        Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { 
+                            passwordData = r.data;
+                            if (document.getElementById('view-senhas') && !document.getElementById('view-senhas').classList.contains('hidden')) {
+                                renderSenhas();
+                            }
+                        } });
+                    }
                 }
             } catch (e) { 
                 console.error("Erro na sincronização.", e);
-                if (showManualSync) {
-                    showNotification("Erro", "Falha ao sincronizar. Verifique sua conexão.", true);
-                }
+                showNotification("Erro", "Falha ao sincronizar. Verifique sua conexão com a internet.", true);
             } finally {
                 if (stopAnimation) {
                     stopAnimation();
@@ -453,8 +464,14 @@
                 if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL') key = 'CERTIF.DIGITAL';
                 let val = row[k];
                 if(typeof val === 'string' && val.includes('/')) {
-                    const p = val.split('/');
-                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
+                    const parts = val.split('/');
+                    if(parts.length === 3) {
+                        // Formato DD/MM/YYYY
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const year = parseInt(parts[2], 10);
+                        val = new Date(year, month, day);
+                    }
                 }
                 nr[key] = val;
             });
@@ -484,22 +501,19 @@
             if (selectedStatus === 'concluido') {
                 const inputDate = document.getElementById('editVal').value;
                 if (inputDate) {
-                    rawData[r][c] = new Date(inputDate + "T12:00:00");
+                    const [year, month, day] = inputDate.split('-');
+                    rawData[r][c] = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
                 }
                 rawData[r][c + "_DONE"] = true;
                 rawData[r][c + "_STATUS"] = null;
             } 
             else if (selectedStatus === 'andamento') {
-                // Manter a data original, apenas marcar como em andamento
                 rawData[r][c + "_STATUS"] = 'andamento';
                 rawData[r][c + "_DONE"] = false;
-                // Manter a data original inalterada
             }
             else if (selectedStatus === 'analise') {
-                // Manter a data original, apenas marcar como em análise
                 rawData[r][c + "_STATUS"] = 'analise';
                 rawData[r][c + "_DONE"] = false;
-                // Manter a data original inalterada
             }
             
             try {
@@ -517,15 +531,16 @@
                 else if (selectedStatus === 'analise') statusText = '🔍 Em Análise';
                 
                 showNotification(rawData[r].CLIENTE, `${c} atualizado - ${statusText}`, true);
-            } catch (e) { }
+            } catch (e) { 
+                console.error("Erro ao salvar:", e);
+            }
             closeModal(); 
             renderTable();
             
-            setTimeout(() => fetchGoogleSheets(false, false), 1000);
+            setTimeout(() => fetchGoogleSheets(false, false), 2000);
         }
 
         function getStatus(val, row, col) {
-            // Verificar primeiro se há um status manual definido
             const manualStatus = row[col + "_STATUS"];
             if (manualStatus === 'analise') return 'analise';
             if (manualStatus === 'andamento') return 'andamento';
@@ -534,9 +549,11 @@
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
-            if (!(val instanceof Date)) return null;
+            if (!(val instanceof Date) || isNaN(val.getTime())) return null;
             
-            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const diff = Math.ceil((val - today) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -574,7 +591,6 @@
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
             
-            // Atualizar visual dos cards com sombra colorida
             document.querySelectorAll('.filter-card').forEach(btn => {
                 btn.classList.remove('filter-card-selected');
             });
@@ -609,7 +625,7 @@
                 const originalIndex = rawData.indexOf(row);
                 return `<tr data-row-index="${originalIndex}">${headers.map(h => {
                     const s = getStatus(row[h], row, h);
-                    let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                    let val = row[h] instanceof Date && !isNaN(row[h].getTime()) ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                     if (s === 'concluido') val = '✓ ' + val;
                     let classNames = h === 'CLIENTE' ? 'col-fixed' : '';
                     if (s === 'vencido') classNames += ' vencido';
@@ -625,7 +641,6 @@
             updateAnalytics();
         }
 
-        // Função para abrir modal com layout horizontal
         function openEditCell(r, c) {
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c };
@@ -637,6 +652,15 @@
             if (isDone) selectedValue = 'concluido';
             else if (currentStatus === 'analise') selectedValue = 'analise';
             else if (currentStatus === 'andamento') selectedValue = 'andamento';
+            
+            // Formatar a data para o campo input (YYYY-MM-DD)
+            let dateValue = '';
+            if (v instanceof Date && !isNaN(v.getTime())) {
+                const year = v.getFullYear();
+                const month = String(v.getMonth() + 1).padStart(2, '0');
+                const day = String(v.getDate()).padStart(2, '0');
+                dateValue = `${year}-${month}-${day}`;
+            }
             
             document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE} - ${c}`;
             document.getElementById('modalContent').innerHTML = `
@@ -667,9 +691,9 @@
                     </div>
                 </div>
                 <div id="dateFieldContainer" style="display: ${selectedValue === 'concluido' ? 'block' : 'none'};" class="border-t pt-3 mt-2">
-                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data de Conclusão</label>
-                    <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-2 rounded-lg text-xs">
-                    <p class="text-[8px] text-slate-400 mt-1">⚠️ Apenas para registros concluídos</p>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data do Documento</label>
+                    <input type="date" id="editVal" value="${dateValue}" class="w-full border p-2 rounded-lg text-xs" style="min-width: 200px;">
+                    <p class="text-[8px] text-slate-400 mt-1">⚠️ Use o formato DD/MM/AAAA - Anos acima de 2025 são permitidos</p>
                 </div>
             `;
             
@@ -693,26 +717,34 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
         function switchTab(tab) {
             ['dash', 'tasks', 'senhas'].forEach(t => { 
-                document.getElementById('view-'+t).classList.add('hidden'); 
-                document.getElementById('tab-'+t).classList.remove('tab-active');
+                const viewEl = document.getElementById('view-'+t);
+                const tabEl = document.getElementById('tab-'+t);
+                if(viewEl) viewEl.classList.add('hidden'); 
+                if(tabEl) tabEl.classList.remove('tab-active');
             });
-            document.getElementById('view-'+tab).classList.remove('hidden');
-            document.getElementById('tab-'+tab).classList.add('tab-active');
+            const activeView = document.getElementById('view-'+tab);
+            const activeTab = document.getElementById('tab-'+tab);
+            if(activeView) activeView.classList.remove('hidden');
+            if(activeTab) activeTab.classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
             if(tab === 'tasks') {
                 ['jordan', 'silene', 'patricia'].forEach(r => {
-                    document.getElementById(`list-${r}`).innerHTML = "";
-                    document.getElementById(`count-${r}`).innerText = "0";
+                    const listEl = document.getElementById(`list-${r}`);
+                    const countEl = document.getElementById(`count-${r}`);
+                    if(listEl) listEl.innerHTML = "";
+                    if(countEl) countEl.innerText = "0";
                 });
             }
         }
 
-        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function closeModal() { 
+            document.getElementById('editModal').classList.add('hidden'); 
+        }
         
         function resetAllFilters() { 
             activeDoc = null; 
@@ -734,8 +766,10 @@
             const listas = { jordan: [], silene: [], patricia: [] };
             
             responsaveis.forEach(r => {
-                document.getElementById(`list-${r}`).innerHTML = "";
-                document.getElementById(`count-${r}`).innerText = "0";
+                const listEl = document.getElementById(`list-${r}`);
+                const countEl = document.getElementById(`count-${r}`);
+                if(listEl) listEl.innerHTML = "";
+                if(countEl) countEl.innerText = "0";
             });
 
             let tarefasParaSorteio = [];
@@ -746,7 +780,7 @@
                         tarefasParaSorteio.push({
                             cliente: row.CLIENTE,
                             documento: col,
-                            prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
+                            prazo: row[col] instanceof Date && !isNaN(row[col].getTime()) ? row[col].toLocaleDateString('pt-BR') : row[col],
                             originalRowIndex: rowIndex 
                         });
                     }
@@ -767,7 +801,8 @@
 
             responsaveis.forEach(r => {
                 const container = document.getElementById(`list-${r}`);
-                document.getElementById(`count-${r}`).innerText = listas[r].length;
+                const countEl = document.getElementById(`count-${r}`);
+                if(countEl) countEl.innerText = listas[r].length;
                 
                 listas[r].forEach(t => {
                     const card = document.createElement('div');
@@ -783,7 +818,7 @@
                             <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
                         </div>
                     `;
-                    container.appendChild(card);
+                    if(container) container.appendChild(card);
                 });
             });
             
