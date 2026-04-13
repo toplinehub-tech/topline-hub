@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.3</title>
+    <title>TopLineHub | Gestão Integrada v1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -29,9 +29,29 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        /* Novos estilos de Seleção */
-        .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
-        .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
+        /* Novos estilos de Seleção - Fundos Escuros e Destacados */
+        .card-selected { 
+            background-color: #1e293b !important; 
+            border-color: #10b981 !important; 
+            transform: scale(1.05);
+            box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        .card-selected span, .card-selected .text-slate-700 { color: white !important; }
+        .card-selected .text-red-500, 
+        .card-selected .text-amber-500, 
+        .card-selected .text-emerald-500, 
+        .card-selected .text-sky-500, 
+        .card-selected .text-purple-500, 
+        .card-selected .text-orange-500 { color: #a7f3d0 !important; }
+        
+        .doc-btn-active { 
+            background-color: #1e293b !important; 
+            color: white !important; 
+            border-color: #10b981 !important; 
+            transform: scale(1.05);
+            box-shadow: 0 8px 15px -8px rgba(0, 0, 0, 0.3);
+        }
 
         #notification-toast {
             position: fixed;
@@ -47,6 +67,28 @@
             transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #notification-toast.show { right: 24px; }
+        
+        /* Botões de status do modal */
+        .status-btn { 
+            flex: 1; 
+            padding: 12px; 
+            border-radius: 16px; 
+            font-weight: 800; 
+            font-size: 11px; 
+            text-transform: uppercase;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .status-btn.active { 
+            background-color: #10b981; 
+            color: white; 
+            border-color: #10b981;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+        }
+        .status-btn.analise-active { background-color: #f97316; color: white; border-color: #f97316; }
+        .status-btn.andamento-active { background-color: #8b5cf6; color: white; border-color: #8b5cf6; }
     </style>
 </head>
 <body>
@@ -129,7 +171,7 @@
                 </div>
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Patricia.</p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Ingrid.</p>
                     <div class="mt-4 flex gap-2">
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
@@ -138,27 +180,27 @@
             </div>
 
             <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all duration-200">
                     <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all duration-200">
                     <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all duration-200">
                     <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all duration-200">
                     <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all duration-200">
                     <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all duration-200">
                     <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
@@ -185,8 +227,8 @@
                     <div id="list-silene" class="space-y-2"></div>
                 </div>
                 <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
-                    <div id="list-patricia" class="space-y-2"></div>
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Ingrid <span id="count-ingrid">0</span></h3>
+                    <div id="list-ingrid" class="space-y-2"></div>
                 </div>
             </div>
         </div>
@@ -206,7 +248,7 @@
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar</h4>
+            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar Documento</h4>
             <div id="modalContent" class="space-y-4"></div>
             <div class="flex gap-3 mt-8">
                 <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
@@ -306,15 +348,28 @@
         async function saveEdit() {
             const { r, c } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
-            const isDone = document.getElementById('taskDone').checked;
-            const obs = document.getElementById('editObs').value;
             
+            // Verificar qual status foi selecionado (análise ou andamento)
+            const isAnalise = document.getElementById('statusAnalise')?.classList.contains('analise-active');
+            const isAndamento = document.getElementById('statusAndamento')?.classList.contains('andamento-active');
+            
+            let newStatusValue = null;
+            if (isAnalise) newStatusValue = "ANALISE";
+            else if (isAndamento) newStatusValue = "EM ANDAMENTO";
+            
+            // Atualizar a célula com a data
             if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
-            rawData[r][c+"_DONE"] = isDone;
-            rawData[r][c+"_OBS"] = obs;
+            
+            // Se um status foi selecionado, substituir o valor da célula pelo status
+            if (newStatusValue) {
+                rawData[r][c] = newStatusValue;
+            }
+            
+            // Manter flags de conclusão
+            rawData[r][c+"_DONE"] = false;
 
             try {
-                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
+                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, status: newStatusValue };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
             } catch (e) { }
             closeModal(); renderTable();
@@ -365,9 +420,12 @@
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
             
-            // Atualizar visual dos cards superiores
+            // Atualizar visual dos cards superiores com fundo escuro e destaque
             document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
-            if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
+            if(activeStatus) {
+                const selectedBtn = document.getElementById('btn-' + s);
+                if(selectedBtn) selectedBtn.classList.add('card-selected');
+            }
             
             renderTable(); 
         }
@@ -375,9 +433,12 @@
         function toggleDocFilter(d) { 
             activeDoc = (activeDoc === d) ? null : d; 
             
-            // Atualizar visual dos botões de documento
+            // Atualizar visual dos botões de documento com fundo escuro
             document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
-            if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
+            if(activeDoc) {
+                const selectedDocBtn = document.getElementById('btn-doc-' + d);
+                if(selectedDocBtn) selectedDocBtn.classList.add('doc-btn-active');
+            }
             
             renderTable(); 
         }
@@ -406,15 +467,48 @@
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c };
             const v = rawData[r][c];
-            document.getElementById('modalTitle').innerText = rawData[r].CLIENTE;
+            const currentStatus = getStatus(v, rawData[r], c);
+            document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} <span class="text-emerald-600">• ${c}</span>`;
             document.getElementById('modalContent').innerHTML = `
-                <div class="mb-4 font-bold text-[10px] text-slate-400 uppercase">${c}</div>
-                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border mb-4">
-                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
-                    <label class="text-[10px] font-bold uppercase text-slate-600">Concluído</label>
+                <div class="mb-2 text-[10px] text-slate-400 font-bold uppercase text-center">${c}</div>
+                
+                <div class="flex gap-3 mb-5">
+                    <div id="statusAnalise" class="status-btn ${currentStatus === 'analise' ? 'analise-active active' : ''}" onclick="selectStatus('analise')">
+                        📋 Em Análise
+                    </div>
+                    <div id="statusAndamento" class="status-btn ${currentStatus === 'andamento' ? 'andamento-active active' : ''}" onclick="selectStatus('andamento')">
+                        ⚙️ Em Andamento
+                    </div>
                 </div>
-                <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-3">
-                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Obs...">${rawData[r][c+"_OBS"] || ''}</textarea>`;
+                
+                <div class="relative my-3">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+                    <div class="relative flex justify-center text-[8px] uppercase font-bold text-slate-400"><span class="bg-white px-3">ou informe nova data</span></div>
+                </div>
+                
+                <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-2">
+                <p class="text-[9px] text-slate-400 text-center mt-2">*Selecione um status ou insira uma data</p>
+            `;
+            
+            // Garantir que os eventos de clique dos status funcionem
+            window.selectStatus = function(type) {
+                const analiseBtn = document.getElementById('statusAnalise');
+                const andamentoBtn = document.getElementById('statusAndamento');
+                
+                // Resetar todos os estilos
+                analiseBtn.classList.remove('analise-active', 'active');
+                andamentoBtn.classList.remove('andamento-active', 'active');
+                
+                if(type === 'analise') {
+                    analiseBtn.classList.add('analise-active', 'active');
+                } else if(type === 'andamento') {
+                    andamentoBtn.classList.add('andamento-active', 'active');
+                }
+                
+                // Limpar o campo de data quando um status é selecionado
+                document.getElementById('editVal').value = '';
+            };
+            
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -447,8 +541,8 @@
         function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
 
         function distribuirTarefas(statusAlvo) {
-            const responsaveis = ['jordan', 'silene', 'patricia'];
-            const listas = { jordan: [], silene: [], patricia: [] };
+            const responsaveis = ['jordan', 'silene', 'ingrid'];
+            const listas = { jordan: [], silene: [], ingrid: [] };
             
             responsaveis.forEach(r => {
                 document.getElementById(`list-${r}`).innerHTML = "";
