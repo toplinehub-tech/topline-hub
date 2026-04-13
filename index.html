@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v2.0</title>
+    <title>TopLineHub | Gestão Integrada v2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -21,6 +21,7 @@
         .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
+        .concluido { background-color: #ecfdf5 !important; color: #059669 !important; text-decoration: line-through; opacity: 0.7; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
@@ -61,24 +62,16 @@
         }
         .row-highlight { animation: highlightFlash 1s ease-out; }
 
-        /* Estilo para atividades */
-        .atividade-card {
-            transition: all 0.3s ease;
+        /* Estilo para os botões de status no modal */
+        .status-option {
+            transition: all 0.2s ease;
         }
-        .atividade-card:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        .status-option:hover {
+            transform: scale(1.02);
         }
-        .status-badge {
-            font-size: 8px;
-            padding: 2px 8px;
-            border-radius: 12px;
+        .status-option input:checked + span {
             font-weight: 800;
-            text-transform: uppercase;
         }
-        .badge-analise { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-        .badge-andamento { background: #f5f3ff; color: #5b21b6; border: 1px solid #ddd6fe; }
-        .badge-concluido { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
     </style>
 </head>
 <body>
@@ -109,7 +102,6 @@
                 <nav class="flex gap-6 mt-3">
                     <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
                     <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                    <button onclick="switchTab('atividades')" id="tab-atividades" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atividades</button>
                     <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                 </nav>
             </div>
@@ -227,21 +219,6 @@
             </div>
         </div>
 
-        <!-- Nova Aba de Atividades -->
-        <div id="view-atividades" class="hidden">
-            <div class="white-card p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-black text-slate-800">📋 Atividades em Análise e Andamento</h2>
-                    <div class="flex gap-2">
-                        <button onclick="filterAtividades('all')" id="filter-all" class="btn-mini bg-emerald-50 text-emerald-700 border-emerald-200">Todos</button>
-                        <button onclick="filterAtividades('analise')" id="filter-analise" class="btn-mini bg-orange-50 text-orange-700 border-orange-200">Em Análise</button>
-                        <button onclick="filterAtividades('andamento')" id="filter-andamento" class="btn-mini bg-purple-50 text-purple-700 border-purple-200">Em Andamento</button>
-                    </div>
-                </div>
-                <div id="atividadesList" class="space-y-3 max-h-[600px] overflow-y-auto"></div>
-            </div>
-        </div>
-
         <div id="view-senhas" class="hidden">
             <div class="white-card p-6">
                 <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
@@ -255,7 +232,7 @@
         </div>
     </div>
 
-    <!-- Modal de Edição Atualizado -->
+    <!-- Modal de Edição com Comportamento Dinâmico -->
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
             <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar Documento</h4>
@@ -279,7 +256,6 @@
         let lastKnownDataHash = "";
         let syncInterval;
         let isSyncing = false;
-        let currentAtividadeFilter = 'all';
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -360,7 +336,7 @@
                             
                             rawData = newData;
                             lastKnownDataHash = newHash;
-                            if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && !h.endsWith('_STATUS'));
+                            if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_STATUS'));
                             renderTable();
                             
                             if (showManualSync) {
@@ -475,19 +451,46 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
-        // Função atualizada para salvar edição com status
+        // Função para atualizar visibilidade do campo de data baseado no status selecionado
+        function updateDateFieldVisibility() {
+            const selectedStatus = document.querySelector('input[name="statusRadio"]:checked');
+            const dateFieldContainer = document.getElementById('dateFieldContainer');
+            
+            if (selectedStatus && selectedStatus.value === 'concluido') {
+                dateFieldContainer.style.display = 'block';
+            } else {
+                dateFieldContainer.style.display = 'none';
+            }
+        }
+
+        // Função para salvar edição com comportamento dinâmico
         async function saveEdit() {
             const { r, c } = currentEditTarget;
-            const inputDate = document.getElementById('editVal').value;
-            const statusRadio = document.querySelector('input[name="statusRadio"]:checked');
-            const selectedStatus = statusRadio ? statusRadio.value : null;
+            const selectedStatusRadio = document.querySelector('input[name="statusRadio"]:checked');
+            const selectedStatus = selectedStatusRadio ? selectedStatusRadio.value : null;
             
-            if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
-            
-            // Atualizar status se selecionado
-            if (selectedStatus) {
+            // Se for concluído, pegar a data
+            if (selectedStatus === 'concluido') {
+                const inputDate = document.getElementById('editVal').value;
+                if (inputDate) {
+                    rawData[r][c] = new Date(inputDate + "T12:00:00");
+                }
+                rawData[r][c + "_DONE"] = true;
+                rawData[r][c + "_STATUS"] = null; // Limpar status anterior
+            } 
+            // Se for em andamento ou análise
+            else if (selectedStatus === 'andamento' || selectedStatus === 'analise') {
+                // Manter a data original, não alterar
                 rawData[r][c + "_STATUS"] = selectedStatus;
-                // Se for andamento ou análise, marcar como não concluído
+                rawData[r][c + "_DONE"] = false;
+            }
+            // Se for normal (sem status especial)
+            else if (selectedStatus === 'normal') {
+                const inputDate = document.getElementById('editVal').value;
+                if (inputDate) {
+                    rawData[r][c] = new Date(inputDate + "T12:00:00");
+                }
+                rawData[r][c + "_STATUS"] = null;
                 rawData[r][c + "_DONE"] = false;
             }
             
@@ -495,16 +498,21 @@
                 const payload = { 
                     cliente: rawData[r].CLIENTE, 
                     coluna: c, 
-                    novaData: inputDate, 
                     status: selectedStatus,
-                    concluido: rawData[r][c + "_DONE"] 
+                    concluido: rawData[r][c + "_DONE"] || false
                 };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                showNotification(rawData[r].CLIENTE, `${c} atualizado - Status: ${selectedStatus || 'mantido'}`, true);
+                
+                let statusText = '';
+                if (selectedStatus === 'concluido') statusText = '✓ Concluído';
+                else if (selectedStatus === 'andamento') statusText = '⚙️ Em Andamento';
+                else if (selectedStatus === 'analise') statusText = '🔍 Em Análise';
+                else statusText = '📅 Normal';
+                
+                showNotification(rawData[r].CLIENTE, `${c} atualizado - ${statusText}`, true);
             } catch (e) { }
             closeModal(); 
             renderTable();
-            renderAtividades();
             
             setTimeout(() => fetchGoogleSheets(false, false), 1000);
         }
@@ -527,81 +535,6 @@
             if (diff <= 60) return '60';
             if (diff <= 90) return '90';
             return 'ok';
-        }
-
-        // Função para renderizar atividades
-        function renderAtividades() {
-            const container = document.getElementById('atividadesList');
-            const atividades = [];
-            
-            rawData.forEach((row, rowIndex) => {
-                headers.forEach(col => {
-                    const status = getStatus(row[col], row, col);
-                    if (status === 'analise' || status === 'andamento') {
-                        const dataVal = row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : (row[col] || 'Sem data');
-                        atividades.push({
-                            rowIndex,
-                            cliente: row.CLIENTE,
-                            documento: col,
-                            data: dataVal,
-                            status: status,
-                            obs: row[col + "_OBS"] || ''
-                        });
-                    }
-                });
-            });
-            
-            // Aplicar filtro
-            const filtered = currentAtividadeFilter === 'all' ? atividades : atividades.filter(a => a.status === currentAtividadeFilter);
-            
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12">
-                        <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <p class="text-slate-400 text-sm">Nenhuma atividade em análise ou andamento</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = filtered.map(atv => `
-                <div class="atividade-card white-card p-4 cursor-pointer hover:shadow-md transition-all" onclick="openEditCell(${atv.rowIndex}, '${atv.documento}')">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
-                                <span class="font-black text-slate-800 text-sm">${atv.cliente}</span>
-                                <span class="status-badge ${atv.status === 'analise' ? 'badge-analise' : 'badge-andamento'}">
-                                    ${atv.status === 'analise' ? '🔍 Em Análise' : '⚙️ Em Andamento'}
-                                </span>
-                            </div>
-                            <div class="flex gap-4 text-xs">
-                                <span class="text-emerald-600 font-bold">📄 ${atv.documento}</span>
-                                <span class="text-slate-400">📅 ${atv.data}</span>
-                            </div>
-                            ${atv.obs ? `<p class="text-slate-500 text-[10px] mt-2">📝 ${atv.obs.substring(0, 100)}${atv.obs.length > 100 ? '...' : ''}</p>` : ''}
-                        </div>
-                        <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function filterAtividades(filter) {
-            currentAtividadeFilter = filter;
-            document.querySelectorAll('#view-atividades .btn-mini').forEach(btn => {
-                btn.classList.remove('bg-emerald-100', 'border-emerald-300');
-                btn.classList.add('bg-white');
-            });
-            const activeBtn = document.getElementById(`filter-${filter}`);
-            if (activeBtn) {
-                activeBtn.classList.remove('bg-white');
-                activeBtn.classList.add('bg-emerald-100', 'border-emerald-300');
-            }
-            renderAtividades();
         }
 
         function updateAnalytics() {
@@ -650,7 +583,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</td>`;
+            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -663,44 +596,56 @@
                     const s = getStatus(row[h], row, h);
                     let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                     if (s === 'concluido') val = '✓ ' + val;
-                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s === 'analise' ? 'analise' : (s === 'andamento' ? 'andamento' : (s || '')))}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
-                }).join('')}</table>`;
+                    let classNames = h === 'CLIENTE' ? 'col-fixed' : '';
+                    if (s === 'analise') classNames += ' analise';
+                    if (s === 'andamento') classNames += ' andamento';
+                    if (s === 'concluido') classNames += ' concluido';
+                    return `<td class="${classNames}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
+                }).join('')}</tr>`;
             }).join('');
             updateAnalytics();
-            if (document.getElementById('view-atividades') && !document.getElementById('view-atividades').classList.contains('hidden')) {
-                renderAtividades();
-            }
         }
 
-        // Nova função para abrir modal com caixas de seleção
+        // Função para abrir modal com comportamento dinâmico
         function openEditCell(r, c) {
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c };
             const v = rawData[r][c];
             const currentStatus = rawData[r][c + "_STATUS"] || '';
+            const isDone = rawData[r][c + "_DONE"] || false;
+            
+            let selectedValue = 'normal';
+            if (isDone) selectedValue = 'concluido';
+            else if (currentStatus === 'analise') selectedValue = 'analise';
+            else if (currentStatus === 'andamento') selectedValue = 'andamento';
             
             document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE} - ${c}`;
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-4">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Status da Atividade</label>
-                    <div class="flex gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="statusRadio" value="analise" ${currentStatus === 'analise' ? 'checked' : ''} class="w-4 h-4 text-orange-500">
-                            <span class="text-xs font-bold text-orange-600">🔍 Em Análise</span>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-3">Status da Atividade</label>
+                    <div class="space-y-3">
+                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'concluido' ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200'}">
+                            <input type="radio" name="statusRadio" value="concluido" ${selectedValue === 'concluido' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-emerald-500">
+                            <span class="text-sm font-bold text-emerald-700">✓ Concluído</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="statusRadio" value="andamento" ${currentStatus === 'andamento' ? 'checked' : ''} class="w-4 h-4 text-purple-500">
-                            <span class="text-xs font-bold text-purple-600">⚙️ Em Andamento</span>
+                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'andamento' ? 'border-purple-400 bg-purple-50' : 'border-slate-200'}">
+                            <input type="radio" name="statusRadio" value="andamento" ${selectedValue === 'andamento' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-purple-500">
+                            <span class="text-sm font-bold text-purple-700">⚙️ Em Andamento</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="statusRadio" value="" ${!currentStatus ? 'checked' : ''} class="w-4 h-4 text-slate-400">
-                            <span class="text-xs font-bold text-slate-400">📅 Normal</span>
+                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'analise' ? 'border-orange-400 bg-orange-50' : 'border-slate-200'}">
+                            <input type="radio" name="statusRadio" value="analise" ${selectedValue === 'analise' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-orange-500">
+                            <span class="text-sm font-bold text-orange-700">🔍 Em Análise</span>
+                        </label>
+                        <label class="status-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-all ${selectedValue === 'normal' ? 'border-slate-400 bg-slate-50' : 'border-slate-200'}">
+                            <input type="radio" name="statusRadio" value="normal" ${selectedValue === 'normal' ? 'checked' : ''} onchange="updateDateFieldVisibility()" class="w-4 h-4 text-slate-500">
+                            <span class="text-sm font-bold text-slate-600">📅 Normal (Vencimento)</span>
                         </label>
                     </div>
                 </div>
-                <div class="border-t pt-3 mt-2">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Data do Documento</label>
+                <div id="dateFieldContainer" style="display: ${selectedValue === 'concluido' ? 'block' : 'none'};" class="border-t pt-3 mt-2">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Data de Conclusão</label>
                     <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs">
+                    <p class="text-[9px] text-slate-400 mt-2">⚠️ Apenas para registros concluídos</p>
                 </div>
             `;
             document.getElementById('modalSaveBtn').onclick = saveEdit;
@@ -716,14 +661,13 @@
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'atividades', 'senhas'].forEach(t => { 
+            ['dash', 'tasks', 'senhas'].forEach(t => { 
                 document.getElementById('view-'+t).classList.add('hidden'); 
                 document.getElementById('tab-'+t).classList.remove('tab-active');
             });
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
-            if(tab === 'atividades') renderAtividades();
             if(tab === 'tasks') {
                 ['jordan', 'silene', 'patricia'].forEach(r => {
                     document.getElementById(`list-${r}`).innerHTML = "";
