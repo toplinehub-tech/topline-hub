@@ -462,45 +462,43 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
+        // FUNÇÃO SAVE EDIT - MANTIDA EXATAMENTE IGUAL À ORIGINAL
         async function saveEdit() {
-            if (!currentEditTarget) return;
-            const { rowIndex, colName } = currentEditTarget;
-            const selectedStatus = document.querySelector('input[name="statusRadio"]:checked')?.value;
-            if (!selectedStatus) {
-                showNotification("Aviso", "Selecione um status antes de salvar.", true);
-                return;
-            }
+            const { r, c } = currentEditTarget;
+            const selectedStatusRadio = document.querySelector('input[name="statusRadio"]:checked');
+            const selectedStatus = selectedStatusRadio ? selectedStatusRadio.value : null;
+            const inputDate = document.getElementById('editVal') ? document.getElementById('editVal').value : '';
+            const obs = document.getElementById('editObs') ? document.getElementById('editObs').value : '';
             
-            const inputDateStr = document.getElementById('editVal')?.value || '';
-            
-            if (selectedStatus === 'concluido' && inputDateStr) {
-                const parts = inputDateStr.split('/');
-                if (parts.length === 3) {
-                    const day = parseInt(parts[0]), month = parseInt(parts[1]) - 1, year = parseInt(parts[2]);
-                    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                        rawData[rowIndex][colName] = new Date(year, month, day);
+            // Atualizar dados locais baseado no status selecionado
+            if (selectedStatus === 'concluido') {
+                if(inputDate) {
+                    const parts = inputDate.split('/');
+                    if(parts.length === 3) {
+                        rawData[r][c] = new Date(parts[2], parts[1]-1, parts[0]);
                     } else {
-                        rawData[rowIndex][colName] = inputDateStr;
+                        rawData[r][c] = inputDate;
                     }
-                } else {
-                    rawData[rowIndex][colName] = inputDateStr;
                 }
-                rawData[rowIndex][colName + "_DONE"] = true;
+                rawData[r][c+"_DONE"] = true;
+                rawData[r][c+"_OBS"] = obs;
             } 
             else if (selectedStatus === 'andamento') {
-                rawData[rowIndex][colName] = "EM ANDAMENTO";
-                rawData[rowIndex][colName + "_DONE"] = false;
-            } 
-            else if (selectedStatus === 'analise') {
-                rawData[rowIndex][colName] = "ANALISE";
-                rawData[rowIndex][colName + "_DONE"] = false;
+                rawData[r][c] = "EM ANDAMENTO";
+                rawData[r][c+"_DONE"] = false;
+                rawData[r][c+"_OBS"] = obs;
             }
-            
+            else if (selectedStatus === 'analise') {
+                rawData[r][c] = "ANALISE";
+                rawData[r][c+"_DONE"] = false;
+                rawData[r][c+"_OBS"] = obs;
+            }
+
             try {
-                const payload = { cliente: rawData[rowIndex].CLIENTE, coluna: colName, novoValor: rawData[rowIndex][colName], status: selectedStatus, concluido: rawData[rowIndex][colName + "_DONE"] || false };
+                // EXATAMENTE O MESMO ENVIO DA VERSÃO ORIGINAL
+                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: rawData[r][c+"_DONE"] };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                let statusText = selectedStatus === 'concluido' ? '✓ Concluído' : (selectedStatus === 'andamento' ? '⚙️ Em Andamento' : '🔍 Em Análise');
-                showNotification(rawData[rowIndex].CLIENTE, `${colName} atualizado - ${statusText}`, true);
+                showNotification(rawData[r].CLIENTE, `${c} atualizado localmente`, true);
             } catch (e) { }
             closeModal(); 
             renderTable();
@@ -592,12 +590,12 @@
             updateAnalytics();
         }
 
-        function openEditCell(rowIndex, colName) {
-            if(colName === 'CLIENTE') return;
-            currentEditTarget = { rowIndex, colName };
-            const row = rawData[rowIndex];
-            const v = row[colName];
-            const isDone = row[colName + "_DONE"] === true;
+        function openEditCell(r, c) {
+            if(c === 'CLIENTE') return;
+            currentEditTarget = { r, c };
+            const row = rawData[r];
+            const v = row[c];
+            const isDone = row[c+"_DONE"] === true;
             
             let selectedValue = '';
             if (isDone) selectedValue = 'concluido';
@@ -613,7 +611,7 @@
                 dateValue = `${day}/${month}/${year}`;
             }
             
-            document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${row.CLIENTE} - ${colName}`;
+            document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${row.CLIENTE} - ${c}`;
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-4">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Status da Atividade</label>
@@ -640,8 +638,10 @@
                     <input type="text" id="editVal" value="${dateValue}" class="w-full p-3 border rounded-xl text-xs font-mono" placeholder="DD/MM/AAAA">
                     <p class="text-[8px] text-slate-400 mt-1">💡 Digite a data no formato DD/MM/AAAA</p>
                 </div>
+                <textarea id="editObs" rows="2" class="w-full border p-3 rounded-xl text-xs mt-3" placeholder="Observações...">${(row[c+"_OBS"] || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
             `;
             
+            // Adicionar eventos aos botões de status
             document.querySelectorAll('.status-option-btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     const radio = this.querySelector('input[type="radio"]');
@@ -661,10 +661,7 @@
                 });
             });
             
-            const saveBtn = document.getElementById('modalSaveBtn');
-            const newSaveBtn = saveBtn.cloneNode(true);
-            saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
-            newSaveBtn.onclick = saveEdit;
+            document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
 
