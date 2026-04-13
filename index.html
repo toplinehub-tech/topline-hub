@@ -276,40 +276,33 @@ function saveEdit() {
     let sendValue = '';
     
     if(status === 'concluido') {
-        // Para concluído, envia a data como texto puro (DD/MM/AAAA)
+        // Para concluído, envia a data como texto puro com apóstrofe na frente
         if(dateVal && dateVal.trim() !== '') {
-            sendValue = dateVal.trim(); // Envia exatamente como digitado
+            // Adiciona apóstrofe no início para forçar formato texto no Google Sheets
+            sendValue = "'" + dateVal.trim();
         } else {
-            sendValue = '';
+            sendValue = "''"; // Apóstrofe vazio
         }
         rawData[rowIndex][colName] = sendValue;
         rawData[rowIndex][colName+"_DONE"] = true;
     } else if(status === 'andamento') {
-        sendValue = "EM ANDAMENTO";
+        sendValue = "'EM ANDAMENTO";
         rawData[rowIndex][colName] = "EM ANDAMENTO";
         rawData[rowIndex][colName+"_DONE"] = false;
     } else if(status === 'analise') {
-        sendValue = "ANALISE";
+        sendValue = "'ANALISE";
         rawData[rowIndex][colName] = "ANALISE";
         rawData[rowIndex][colName+"_DONE"] = false;
     }
     
-    // Adicionar um prefixo para forçar o Sheets a tratar como texto
-    // O caractere invisível '​' (zero-width space) força o formato texto
-    let finalValue = sendValue;
-    if(status === 'concluido' && sendValue && sendValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        // Adicionar apóstrofo no início para forçar texto no Google Sheets
-        finalValue = "'" + sendValue;
-    }
-    
-    // Envia APENAS TEXTO para o Google Sheets
+    // Envia para o Google Sheets com apóstrofe no início
     fetch(URL_SCRIPT_GOOGLE, { 
         method: 'POST', 
         mode: 'no-cors', 
         body: JSON.stringify({ 
             cliente: rawData[rowIndex].CLIENTE, 
             coluna: colName, 
-            novaData: finalValue,  // Texto puro com apóstrofo para forçar string
+            novaData: sendValue,  // Agora sempre começa com apóstrofe
             concluido: status === 'concluido' 
         }) 
     });
@@ -321,13 +314,17 @@ function saveEdit() {
 }
 
 function getStatus(val, row, col) {
-    const str = String(val || "").toUpperCase();
+    // Remove apóstrofe do início se existir para verificação
+    let cleanVal = String(val || "");
+    if(cleanVal.startsWith("'")) cleanVal = cleanVal.substring(1);
+    const str = cleanVal.toUpperCase();
+    
     if(str === "EM ANDAMENTO") return 'andamento';
     if(str === "ANALISE") return 'analise';
     if(row && row[col+"_DONE"] === true) return 'concluido';
     // Verificar se é uma data no formato DD/MM/AAAA
-    if(typeof val === 'string' && val.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        const parts = val.split('/');
+    if(str.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        const parts = str.split('/');
         const testDate = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
         if(!isNaN(testDate)) {
             const today = new Date();
@@ -383,7 +380,7 @@ function renderTable() {
         return `<tr>${headers.map(h => {
             const s = getStatus(row[h], row, h);
             let val = row[h] || '-';
-            // Se o valor começa com apóstrofo, remove para exibição
+            // Remove apóstrofe do início para exibição
             if(typeof val === 'string' && val.startsWith("'")) val = val.substring(1);
             if(s === 'concluido') val = '✓ ' + val;
             let cls = h === 'CLIENTE' ? 'col-fixed' : '';
@@ -405,7 +402,7 @@ function openEditCell(rowIndex, colName) {
     currentEditTarget = { rowIndex, colName };
     const row = rawData[rowIndex];
     let v = row[colName];
-    // Se o valor começa com apóstrofo, remove para exibição
+    // Remove apóstrofe do início para exibição
     if(typeof v === 'string' && v.startsWith("'")) v = v.substring(1);
     const isDone = row[colName+"_DONE"] === true;
     
