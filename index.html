@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.4</title>
+    <title>TopLineHub | Gestão Integrada v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -29,7 +29,6 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        /* Novos estilos de Seleção */
         .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
 
@@ -48,28 +47,38 @@
         }
         #notification-toast.show { right: 24px; }
 
-        /* Animação do botão de sincronização */
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-        .sync-spinning svg {
-            animation: spin 1s linear infinite;
-        }
-        .sync-spinning {
-            pointer-events: none;
-            opacity: 0.7;
-        }
+        .sync-spinning svg { animation: spin 1s linear infinite; }
+        .sync-spinning { pointer-events: none; opacity: 0.7; }
         
-        /* Destaque para linhas atualizadas */
         @keyframes highlightFlash {
             0% { background-color: rgba(16, 185, 129, 0); }
             50% { background-color: rgba(16, 185, 129, 0.3); }
             100% { background-color: rgba(16, 185, 129, 0); }
         }
-        .row-highlight {
-            animation: highlightFlash 1s ease-out;
+        .row-highlight { animation: highlightFlash 1s ease-out; }
+
+        /* Estilo para atividades */
+        .atividade-card {
+            transition: all 0.3s ease;
         }
+        .atividade-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            font-size: 8px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .badge-analise { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+        .badge-andamento { background: #f5f3ff; color: #5b21b6; border: 1px solid #ddd6fe; }
+        .badge-concluido { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
     </style>
 </head>
 <body>
@@ -86,7 +95,7 @@
                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </div>
             <div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização em tempo real</h4>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização</h4>
                 <p id="notif-message" class="text-xs font-bold text-slate-700 leading-tight mt-1">Uma tarefa foi atualizada.</p>
                 <p id="notif-cliente" class="text-[11px] text-emerald-600 font-black mt-1 uppercase"></p>
             </div>
@@ -100,6 +109,7 @@
                 <nav class="flex gap-6 mt-3">
                     <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
                     <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
+                    <button onclick="switchTab('atividades')" id="tab-atividades" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atividades</button>
                     <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                 </nav>
             </div>
@@ -155,7 +165,7 @@
                 </div>
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Patricia.</p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos.</p>
                     <div class="mt-4 flex gap-2">
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
@@ -217,6 +227,21 @@
             </div>
         </div>
 
+        <!-- Nova Aba de Atividades -->
+        <div id="view-atividades" class="hidden">
+            <div class="white-card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-black text-slate-800">📋 Atividades em Análise e Andamento</h2>
+                    <div class="flex gap-2">
+                        <button onclick="filterAtividades('all')" id="filter-all" class="btn-mini bg-emerald-50 text-emerald-700 border-emerald-200">Todos</button>
+                        <button onclick="filterAtividades('analise')" id="filter-analise" class="btn-mini bg-orange-50 text-orange-700 border-orange-200">Em Análise</button>
+                        <button onclick="filterAtividades('andamento')" id="filter-andamento" class="btn-mini bg-purple-50 text-purple-700 border-purple-200">Em Andamento</button>
+                    </div>
+                </div>
+                <div id="atividadesList" class="space-y-3 max-h-[600px] overflow-y-auto"></div>
+            </div>
+        </div>
+
         <div id="view-senhas" class="hidden">
             <div class="white-card p-6">
                 <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
@@ -230,9 +255,10 @@
         </div>
     </div>
 
+    <!-- Modal de Edição Atualizado -->
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar</h4>
+            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar Documento</h4>
             <div id="modalContent" class="space-y-4"></div>
             <div class="flex gap-3 mt-8">
                 <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
@@ -253,6 +279,7 @@
         let lastKnownDataHash = "";
         let syncInterval;
         let isSyncing = false;
+        let currentAtividadeFilter = 'all';
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -267,11 +294,9 @@
                 container.appendChild(btn);
             });
             fetchGoogleSheets(true);
-            // Sincronização a cada 15 segundos (mais rápida)
             syncInterval = setInterval(() => fetchGoogleSheets(false, false), 15000);
         };
 
-        // Função para mostrar animação no botão de sincronização
         function showSyncAnimation() {
             const syncBtn = document.getElementById('syncBtn');
             syncBtn.classList.add('sync-spinning');
@@ -284,7 +309,6 @@
             };
         }
 
-        // Função para destacar linhas alteradas
         function highlightChangedRows(changedRows) {
             const rows = document.querySelectorAll('#tableBody tr');
             changedRows.forEach(rowIndex => {
@@ -307,12 +331,9 @@
             }
             
             try {
-                // Buscar dados principais
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
                 const csvDados = await resDados.text();
                 const newHash = await hashString(csvDados);
-                
-                // Verificar se houve mudança real nos dados
                 const hasChanged = newHash !== lastKnownDataHash;
                 
                 if (hasChanged || isFirstLoad) {
@@ -322,7 +343,6 @@
                             const newData = results.data.map(processRow);
                             
                             if (!isFirstLoad && rawData.length > 0 && !showManualSync) {
-                                // Detectar mudanças silenciosamente para notificação automática
                                 const changes = detectDetailedChanges(rawData, newData);
                                 if (changes.hasChanges) {
                                     showNotification(changes.changedClient, changes.changeDetails);
@@ -331,9 +351,7 @@
                                     }
                                 }
                             } else if (!isFirstLoad && rawData.length > 0 && showManualSync) {
-                                // Sincronização manual - mostrar mensagem de sucesso
                                 showNotification("Sincronização manual", "Dados atualizados com sucesso!", true);
-                                // Destacar todas as linhas que mudaram
                                 const changes = detectDetailedChanges(rawData, newData);
                                 if (changes.changedRowIndices && changes.changedRowIndices.length > 0) {
                                     setTimeout(() => highlightChangedRows(changes.changedRowIndices), 100);
@@ -342,7 +360,7 @@
                             
                             rawData = newData;
                             lastKnownDataHash = newHash;
-                            if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
+                            if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && !h.endsWith('_STATUS'));
                             renderTable();
                             
                             if (showManualSync) {
@@ -361,7 +379,6 @@
                     showNotification("Sincronização", "Nenhuma alteração detectada na planilha.", true);
                 }
 
-                // Buscar dados de senhas apenas no primeiro carregamento ou se não existirem
                 if(isFirstLoad || passwordData.length === 0) {
                     const resSenhas = await fetch(URL_SENHAS + "&cache=" + new Date().getTime());
                     const csvSenhas = await resSenhas.text();
@@ -384,7 +401,6 @@
             }
         }
 
-        // Função auxiliar para criar hash simples
         async function hashString(str) {
             const encoder = new TextEncoder();
             const data = encoder.encode(str);
@@ -393,7 +409,6 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // Detecção detalhada de mudanças
         function detectDetailedChanges(oldData, newData) {
             let hasChanges = false;
             let changedClient = null;
@@ -409,7 +424,6 @@
                     changedClient = newData[i].CLIENTE;
                     changedRowIndices.push(i);
                     
-                    // Encontrar qual coluna mudou
                     for (let col of headers) {
                         if (JSON.stringify(oldData[i][col]) !== JSON.stringify(newData[i][col])) {
                             const oldVal = oldData[i][col] instanceof Date ? oldData[i][col].toLocaleDateString('pt-BR') : (oldData[i][col] || '-');
@@ -422,7 +436,6 @@
                 }
             }
             
-            // Verificar se alguma linha foi adicionada ou removida
             if (oldData.length !== newData.length) {
                 hasChanges = true;
                 changedClient = "Estrutura da planilha";
@@ -462,40 +475,133 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
+        // Função atualizada para salvar edição com status
         async function saveEdit() {
             const { r, c } = currentEditTarget;
             const inputDate = document.getElementById('editVal').value;
-            const isDone = document.getElementById('taskDone').checked;
-            const obs = document.getElementById('editObs').value;
+            const statusRadio = document.querySelector('input[name="statusRadio"]:checked');
+            const selectedStatus = statusRadio ? statusRadio.value : null;
             
             if(inputDate) rawData[r][c] = new Date(inputDate + "T12:00:00");
-            rawData[r][c+"_DONE"] = isDone;
-            rawData[r][c+"_OBS"] = obs;
-
+            
+            // Atualizar status se selecionado
+            if (selectedStatus) {
+                rawData[r][c + "_STATUS"] = selectedStatus;
+                // Se for andamento ou análise, marcar como não concluído
+                rawData[r][c + "_DONE"] = false;
+            }
+            
             try {
-                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: inputDate, concluido: isDone };
+                const payload = { 
+                    cliente: rawData[r].CLIENTE, 
+                    coluna: c, 
+                    novaData: inputDate, 
+                    status: selectedStatus,
+                    concluido: rawData[r][c + "_DONE"] 
+                };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                showNotification(rawData[r].CLIENTE, `${c} atualizado localmente`, true);
+                showNotification(rawData[r].CLIENTE, `${c} atualizado - Status: ${selectedStatus || 'mantido'}`, true);
             } catch (e) { }
             closeModal(); 
             renderTable();
+            renderAtividades();
             
-            // Forçar sincronização após edição local
             setTimeout(() => fetchGoogleSheets(false, false), 1000);
         }
 
         function getStatus(val, row, col) {
+            // Verificar primeiro se há um status manual definido
+            const manualStatus = row[col + "_STATUS"];
+            if (manualStatus === 'analise') return 'analise';
+            if (manualStatus === 'andamento') return 'andamento';
+            if (row[col + "_DONE"]) return 'concluido';
+            
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
-            if (row && col && row[col + "_DONE"]) return 'andamento';
             if (!(val instanceof Date)) return null;
+            
             const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
             if (diff <= 90) return '90';
             return 'ok';
+        }
+
+        // Função para renderizar atividades
+        function renderAtividades() {
+            const container = document.getElementById('atividadesList');
+            const atividades = [];
+            
+            rawData.forEach((row, rowIndex) => {
+                headers.forEach(col => {
+                    const status = getStatus(row[col], row, col);
+                    if (status === 'analise' || status === 'andamento') {
+                        const dataVal = row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : (row[col] || 'Sem data');
+                        atividades.push({
+                            rowIndex,
+                            cliente: row.CLIENTE,
+                            documento: col,
+                            data: dataVal,
+                            status: status,
+                            obs: row[col + "_OBS"] || ''
+                        });
+                    }
+                });
+            });
+            
+            // Aplicar filtro
+            const filtered = currentAtividadeFilter === 'all' ? atividades : atividades.filter(a => a.status === currentAtividadeFilter);
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="text-slate-400 text-sm">Nenhuma atividade em análise ou andamento</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filtered.map(atv => `
+                <div class="atividade-card white-card p-4 cursor-pointer hover:shadow-md transition-all" onclick="openEditCell(${atv.rowIndex}, '${atv.documento}')">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="font-black text-slate-800 text-sm">${atv.cliente}</span>
+                                <span class="status-badge ${atv.status === 'analise' ? 'badge-analise' : 'badge-andamento'}">
+                                    ${atv.status === 'analise' ? '🔍 Em Análise' : '⚙️ Em Andamento'}
+                                </span>
+                            </div>
+                            <div class="flex gap-4 text-xs">
+                                <span class="text-emerald-600 font-bold">📄 ${atv.documento}</span>
+                                <span class="text-slate-400">📅 ${atv.data}</span>
+                            </div>
+                            ${atv.obs ? `<p class="text-slate-500 text-[10px] mt-2">📝 ${atv.obs.substring(0, 100)}${atv.obs.length > 100 ? '...' : ''}</p>` : ''}
+                        </div>
+                        <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterAtividades(filter) {
+            currentAtividadeFilter = filter;
+            document.querySelectorAll('#view-atividades .btn-mini').forEach(btn => {
+                btn.classList.remove('bg-emerald-100', 'border-emerald-300');
+                btn.classList.add('bg-white');
+            });
+            const activeBtn = document.getElementById(`filter-${filter}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-white');
+                activeBtn.classList.add('bg-emerald-100', 'border-emerald-300');
+            }
+            renderAtividades();
         }
 
         function updateAnalytics() {
@@ -527,19 +633,15 @@
 
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
-            
             document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
             if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
-            
             renderTable(); 
         }
 
         function toggleDocFilter(d) { 
             activeDoc = (activeDoc === d) ? null : d; 
-            
             document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
             if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
-            
             renderTable(); 
         }
 
@@ -548,7 +650,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</td>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -559,26 +661,48 @@
                 const originalIndex = rawData.indexOf(row);
                 return `<tr data-row-index="${originalIndex}">${headers.map(h => {
                     const s = getStatus(row[h], row, h);
-                    const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
-                }).join('')}</tr>`;
+                    let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                    if (s === 'concluido') val = '✓ ' + val;
+                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s === 'analise' ? 'analise' : (s === 'andamento' ? 'andamento' : (s || '')))}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
+                }).join('')}</table>`;
             }).join('');
             updateAnalytics();
+            if (document.getElementById('view-atividades') && !document.getElementById('view-atividades').classList.contains('hidden')) {
+                renderAtividades();
+            }
         }
 
+        // Nova função para abrir modal com caixas de seleção
         function openEditCell(r, c) {
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c };
             const v = rawData[r][c];
-            document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE}`;
+            const currentStatus = rawData[r][c + "_STATUS"] || '';
+            
+            document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE} - ${c}`;
             document.getElementById('modalContent').innerHTML = `
-                <div class="mb-4 font-bold text-[10px] text-slate-400 uppercase">${c}</div>
-                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border mb-4">
-                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''}>
-                    <label class="text-[10px] font-bold uppercase text-slate-600">Concluído</label>
+                <div class="mb-4">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Status da Atividade</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="statusRadio" value="analise" ${currentStatus === 'analise' ? 'checked' : ''} class="w-4 h-4 text-orange-500">
+                            <span class="text-xs font-bold text-orange-600">🔍 Em Análise</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="statusRadio" value="andamento" ${currentStatus === 'andamento' ? 'checked' : ''} class="w-4 h-4 text-purple-500">
+                            <span class="text-xs font-bold text-purple-600">⚙️ Em Andamento</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="statusRadio" value="" ${!currentStatus ? 'checked' : ''} class="w-4 h-4 text-slate-400">
+                            <span class="text-xs font-bold text-slate-400">📅 Normal</span>
+                        </label>
+                    </div>
                 </div>
-                <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs mb-3">
-                <textarea id="editObs" rows="3" class="w-full border p-3 rounded-xl text-xs" placeholder="Observações...">${(rawData[r][c+"_OBS"] || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>`;
+                <div class="border-t pt-3 mt-2">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Data do Documento</label>
+                    <input type="date" id="editVal" value="${v instanceof Date ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs">
+                </div>
+            `;
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -592,12 +716,15 @@
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'senhas'].forEach(t => { document.getElementById('view-'+t).classList.add('hidden'); document.getElementById('tab-'+t).classList.remove('tab-active'); });
+            ['dash', 'tasks', 'atividades', 'senhas'].forEach(t => { 
+                document.getElementById('view-'+t).classList.add('hidden'); 
+                document.getElementById('tab-'+t).classList.remove('tab-active');
+            });
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
+            if(tab === 'atividades') renderAtividades();
             if(tab === 'tasks') {
-                // Limpar tarefas ao trocar de aba
                 ['jordan', 'silene', 'patricia'].forEach(r => {
                     document.getElementById(`list-${r}`).innerHTML = "";
                     document.getElementById(`count-${r}`).innerText = "0";
@@ -616,7 +743,11 @@
             renderTable(); 
         }
 
-        function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`); }
+        function exportarExcel() { 
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); 
+            XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`); 
+        }
 
         function distribuirTarefas(statusAlvo) {
             const responsaveis = ['jordan', 'silene', 'patricia'];
