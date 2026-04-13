@@ -239,20 +239,15 @@ async function fetchGoogleSheets(isFirst) {
     try {
         const res = await fetch(URL_DADOS_PRINCIPAIS + "&t=" + Date.now());
         const csv = await res.text();
-        Papa.parse(csv, { header: true, dynamicTyping: true, skipEmptyLines: true, complete: (r) => {
+        Papa.parse(csv, { header: true, dynamicTyping: false, skipEmptyLines: true, complete: (r) => {
             const newData = r.data.map(row => {
                 const obj = {};
                 Object.keys(row).forEach(k => {
                     let key = k.trim().toUpperCase();
                     if(key === 'CRCE_1') key = 'CERTIF.DIGITAL';
                     let val = row[k];
-                    // Manter como texto, não converter para data
-                    if(typeof val === 'string' && val.includes('/')) {
-                        // Mantém como string, não converte para Date
-                        obj[key] = val;
-                    } else {
-                        obj[key] = val;
-                    }
+                    // Manter como texto puro
+                    obj[key] = val === undefined || val === null ? '' : String(val).trim();
                 });
                 return obj;
             });
@@ -282,8 +277,8 @@ function saveEdit() {
     
     if(status === 'concluido') {
         // Para concluído, envia a data como texto puro (DD/MM/AAAA)
-        if(dateVal) {
-            sendValue = dateVal; // Envia exatamente como digitado
+        if(dateVal && dateVal.trim() !== '') {
+            sendValue = dateVal.trim(); // Envia exatamente como digitado
         } else {
             sendValue = '';
         }
@@ -299,6 +294,14 @@ function saveEdit() {
         rawData[rowIndex][colName+"_DONE"] = false;
     }
     
+    // Adicionar um prefixo para forçar o Sheets a tratar como texto
+    // O caractere invisível '​' (zero-width space) força o formato texto
+    let finalValue = sendValue;
+    if(status === 'concluido' && sendValue && sendValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        // Adicionar apóstrofo no início para forçar texto no Google Sheets
+        finalValue = "'" + sendValue;
+    }
+    
     // Envia APENAS TEXTO para o Google Sheets
     fetch(URL_SCRIPT_GOOGLE, { 
         method: 'POST', 
@@ -306,7 +309,7 @@ function saveEdit() {
         body: JSON.stringify({ 
             cliente: rawData[rowIndex].CLIENTE, 
             coluna: colName, 
-            novaData: sendValue,  // Agora é texto puro
+            novaData: finalValue,  // Texto puro com apóstrofo para forçar string
             concluido: status === 'concluido' 
         }) 
     });
@@ -325,7 +328,7 @@ function getStatus(val, row, col) {
     // Verificar se é uma data no formato DD/MM/AAAA
     if(typeof val === 'string' && val.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
         const parts = val.split('/');
-        const testDate = new Date(parts[2], parts[1]-1, parts[0]);
+        const testDate = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
         if(!isNaN(testDate)) {
             const today = new Date();
             today.setHours(0,0,0,0);
@@ -380,6 +383,8 @@ function renderTable() {
         return `<tr>${headers.map(h => {
             const s = getStatus(row[h], row, h);
             let val = row[h] || '-';
+            // Se o valor começa com apóstrofo, remove para exibição
+            if(typeof val === 'string' && val.startsWith("'")) val = val.substring(1);
             if(s === 'concluido') val = '✓ ' + val;
             let cls = h === 'CLIENTE' ? 'col-fixed' : '';
             if(s === 'vencido') cls += ' vencido';
@@ -399,7 +404,9 @@ function openEditCell(rowIndex, colName) {
     if(colName === 'CLIENTE') return;
     currentEditTarget = { rowIndex, colName };
     const row = rawData[rowIndex];
-    const v = row[colName];
+    let v = row[colName];
+    // Se o valor começa com apóstrofo, remove para exibição
+    if(typeof v === 'string' && v.startsWith("'")) v = v.substring(1);
     const isDone = row[colName+"_DONE"] === true;
     
     let selected = 'concluido';
@@ -431,6 +438,7 @@ function openEditCell(rowIndex, colName) {
         <div id="dateFieldContainer" style="display: ${selected === 'concluido' ? 'block' : 'none'};">
             <label class="block text-[9px] font-black text-slate-400 mb-1">Data (DD/MM/AAAA)</label>
             <input type="text" id="editVal" value="${dateVal}" class="w-full p-3 border rounded-xl text-xs font-mono" placeholder="DD/MM/AAAA">
+            <p class="text-[8px] text-slate-400 mt-1">⚠️ Digite a data no formato DD/MM/AAAA (ex: 25/12/2025)</p>
         </div>
     `;
     
@@ -487,7 +495,9 @@ function distribuirTarefas(statusAlvo) {
     rawData.forEach((row, idx) => {
         headers.forEach(col => {
             if(col !== 'CLIENTE' && getStatus(row[col], row, col) === statusAlvo) {
-                tarefas.push({ cliente: row.CLIENTE, doc: col, prazo: row[col] || '-', idx });
+                let prazo = row[col] || '-';
+                if(typeof prazo === 'string' && prazo.startsWith("'")) prazo = prazo.substring(1);
+                tarefas.push({ cliente: row.CLIENTE, doc: col, prazo: prazo, idx });
             }
         });
     });
