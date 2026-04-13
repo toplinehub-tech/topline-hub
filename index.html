@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.3</title>
+    <title>TopLineHub | Gestão Integrada v1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -30,7 +30,6 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        /* Novos estilos de Seleção */
         .card-selected { transform: translateY(-4px) scale(1.02); box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2); border: 2px solid #10b981 !important; }
         .filter-card-vencido.card-selected { box-shadow: 0 10px 20px -5px rgba(220, 38, 38, 0.4); border-color: #dc2626 !important; }
         .filter-card-30.card-selected { box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4); border-color: #f59e0b !important; }
@@ -56,7 +55,6 @@
         }
         #notification-toast.show { right: 24px; }
 
-        /* Estilos para o modal horizontal */
         .status-option-horizontal {
             transition: all 0.2s ease;
             flex: 1;
@@ -67,6 +65,23 @@
         .status-option-horizontal input:checked + div {
             border-color: currentColor;
             background-color: #f9fafb;
+        }
+
+        /* Estilo para campo de data personalizado */
+        .date-custom-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: monospace;
+            background: white;
+            cursor: text;
+        }
+        .date-custom-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
     </style>
 </head>
@@ -150,7 +165,7 @@
                 </div>
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Patricia.</p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos.</p>
                     <div class="mt-4 flex gap-2">
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
@@ -332,26 +347,52 @@
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
         }
 
+        // Função para validar e converter data do formato DD/MM/AAAA
+        function parseDateFromString(dateStr) {
+            if (!dateStr) return null;
+            // Tenta parsear DD/MM/AAAA
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const year = parseInt(parts[2], 10);
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    return new Date(year, month, day);
+                }
+            }
+            // Tenta parsear YYYY-MM-DD
+            const isoParts = dateStr.split('-');
+            if (isoParts.length === 3) {
+                const year = parseInt(isoParts[0], 10);
+                const month = parseInt(isoParts[1], 10) - 1;
+                const day = parseInt(isoParts[2], 10);
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    return new Date(year, month, day);
+                }
+            }
+            return null;
+        }
+
         async function saveEdit() {
             const { r, c } = currentEditTarget;
             const selectedStatusRadio = document.querySelector('input[name="statusRadio"]:checked');
             const selectedStatus = selectedStatusRadio ? selectedStatusRadio.value : null;
-            const inputDate = document.getElementById('editVal').value;
+            const inputDateStr = document.getElementById('editVal').value;
             
-            if (selectedStatus === 'concluido' && inputDate) {
-                // Concluído: atualiza a data
-                rawData[r][c] = new Date(inputDate + "T12:00:00");
-                rawData[r][c + "_DONE"] = true;
-                rawData[r][c + "_STATUS"] = null;
+            if (selectedStatus === 'concluido' && inputDateStr) {
+                const parsedDate = parseDateFromString(inputDateStr);
+                if (parsedDate && !isNaN(parsedDate.getTime())) {
+                    rawData[r][c] = parsedDate;
+                    rawData[r][c + "_DONE"] = true;
+                    rawData[r][c + "_STATUS"] = null;
+                }
             } 
             else if (selectedStatus === 'andamento') {
-                // Andamento: altera o valor da célula para "EM ANDAMENTO"
                 rawData[r][c] = "EM ANDAMENTO";
                 rawData[r][c + "_STATUS"] = 'andamento';
                 rawData[r][c + "_DONE"] = false;
             }
             else if (selectedStatus === 'analise') {
-                // Análise: altera o valor da célula para "ANALISE"
                 rawData[r][c] = "ANALISE";
                 rawData[r][c + "_STATUS"] = 'analise';
                 rawData[r][c + "_DONE"] = false;
@@ -361,11 +402,17 @@
                 const payload = { 
                     cliente: rawData[r].CLIENTE, 
                     coluna: c, 
-                    novoValor: rawData[r][c],
+                    novoValor: rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : rawData[r][c],
                     status: selectedStatus,
                     concluido: rawData[r][c + "_DONE"] || false
                 };
-                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                
+                // Envia para o Google Sheets
+                await fetch(URL_SCRIPT_GOOGLE, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify(payload) 
+                });
                 
                 let statusText = '';
                 if (selectedStatus === 'concluido') statusText = '✓ Concluído';
@@ -373,13 +420,17 @@
                 else if (selectedStatus === 'analise') statusText = '🔍 Em Análise';
                 
                 showNotification(rawData[r].CLIENTE, `${c} atualizado - ${statusText}`);
-            } catch (e) { }
+            } catch (e) { 
+                console.error("Erro ao enviar para planilha:", e);
+                showNotification(rawData[r].CLIENTE, `${c} atualizado localmente (erro na sincronização)`);
+            }
             closeModal(); 
             renderTable();
+            // Força uma nova sincronização após 2 segundos
+            setTimeout(() => fetchGoogleSheets(false), 2000);
         }
 
         function getStatus(val, row, col) {
-            // Verificar primeiro se há um status manual definido
             const manualStatus = row[col + "_STATUS"];
             if (manualStatus === 'analise') return 'analise';
             if (manualStatus === 'andamento') return 'andamento';
@@ -388,9 +439,11 @@
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
-            if (!(val instanceof Date)) return null;
+            if (!(val instanceof Date) || isNaN(val.getTime())) return null;
             
-            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const diff = Math.ceil((val - today) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -460,7 +513,7 @@
                 const originalIndex = rawData.indexOf(row);
                 return `<tr data-row-index="${originalIndex}">${headers.map(h => {
                     const s = getStatus(row[h], row, h);
-                    let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                    let val = row[h] instanceof Date && !isNaN(row[h].getTime()) ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                     if (s === 'concluido') val = '✓ ' + val;
                     let classNames = h === 'CLIENTE' ? 'col-fixed' : '';
                     if (s === 'vencido') classNames += ' vencido';
@@ -493,7 +546,7 @@
                 const year = v.getFullYear();
                 const month = String(v.getMonth() + 1).padStart(2, '0');
                 const day = String(v.getDate()).padStart(2, '0');
-                dateValue = `${year}-${month}-${day}`;
+                dateValue = `${day}/${month}/${year}`;
             }
             
             document.getElementById('modalTitle').innerHTML = `<span class="text-emerald-600">✎</span> ${rawData[r].CLIENTE} - ${c}`;
@@ -525,9 +578,9 @@
                     </div>
                 </div>
                 <div id="dateFieldContainer" style="display: ${selectedValue === 'concluido' ? 'block' : 'none'};" class="border-t pt-3 mt-2">
-                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data do Documento</label>
-                    <input type="date" id="editVal" value="${dateValue}" class="w-full border p-2 rounded-lg text-xs">
-                    <p class="text-[8px] text-slate-400 mt-1">⚠️ Apenas para registros concluídos</p>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2">Data do Documento (DD/MM/AAAA)</label>
+                    <input type="text" id="editVal" value="${dateValue}" class="date-custom-input" placeholder="DD/MM/AAAA" autocomplete="off">
+                    <p class="text-[8px] text-slate-400 mt-1">💡 Digite qualquer ano (ex: 01/01/2030) - Use o teclado normalmente</p>
                 </div>
             `;
             
@@ -549,7 +602,7 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</td>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
         function switchTab(tab) {
