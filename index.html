@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.8</title>
+    <title>TopLineHub | Gestão Integrada v1.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -53,7 +53,7 @@
         }
 
         .modal-status-btn { 
-            padding: 16px 8px; 
+            padding: 12px; 
             border-radius: 12px; 
             font-weight: 800; 
             font-size: 11px; 
@@ -62,13 +62,6 @@
             cursor: pointer;
             text-align: center;
             border: 2px solid transparent;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-        .modal-status-btn .emoji {
-            font-size: 24px;
         }
         .modal-status-btn.active { border-color: currentColor; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
@@ -394,35 +387,11 @@
                 let key = k.trim().toUpperCase();
                 if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL') key = 'CERTIF.DIGITAL';
                 let val = row[k];
-                
-                // Check if it's a text status
-                if (typeof val === 'string') {
-                    const upperVal = val.toUpperCase().trim();
-                    if (upperVal === 'ANALISE' || upperVal === 'EM ANDAMENTO') {
-                        nr[key] = upperVal;
-                        return;
-                    }
-                }
-                
-                // Parse date
-                if (typeof val === 'string' && val.includes('/')) {
+                if(typeof val === 'string' && val.includes('/')) {
                     const p = val.split('/');
-                    if (p.length === 3) {
-                        const day = parseInt(p[0], 10);
-                        const month = parseInt(p[1], 10) - 1;
-                        const year = parseInt(p[2], 10);
-                        const date = new Date(year, month, day);
-                        if (!isNaN(date.getTime())) {
-                            nr[key] = date;
-                        } else {
-                            nr[key] = val;
-                        }
-                    } else {
-                        nr[key] = val;
-                    }
-                } else {
-                    nr[key] = val;
+                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
                 }
+                nr[key] = val;
             });
             return nr;
         }
@@ -448,92 +417,58 @@
         async function saveEdit() {
             const { r, c } = currentEditTarget;
             
+            // Atualiza o dado local baseado no status selecionado
             if (selectedModalStatus === "analise") {
                 rawData[r][c] = "ANALISE";
-                if (rawData[r][c+"_DONE"]) rawData[r][c+"_DONE"] = false;
+                if(rawData[r][c+"_DONE"]) rawData[r][c+"_DONE"] = false;
             } else if (selectedModalStatus === "andamento") {
                 rawData[r][c] = "EM ANDAMENTO";
-                if (rawData[r][c+"_DONE"]) rawData[r][c+"_DONE"] = false;
+                if(rawData[r][c+"_DONE"]) rawData[r][c+"_DONE"] = false;
             } else if (selectedModalStatus === "concluido") {
                 const inputDate = document.getElementById('editVal').value;
                 if(inputDate) {
-                    const [year, month, day] = inputDate.split('-');
-                    const newDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                    if (!isNaN(newDate.getTime())) {
-                        rawData[r][c] = newDate;
-                        rawData[r][c+"_DONE"] = true;
-                    }
+                    rawData[r][c] = new Date(inputDate + "T12:00:00");
+                    rawData[r][c+"_DONE"] = true;
+                } else {
+                    closeModal();
+                    return;
                 }
             }
             
-            if (rawData[r][c+"_OBS"]) rawData[r][c+"_OBS"] = "";
+            // Remove qualquer observação residual
+            if(rawData[r][c+"_OBS"]) rawData[r][c+"_OBS"] = "";
 
-            // Enviar para o Google Sheets via fetch
             try {
-                let valorParaEnviar = rawData[r][c];
-                let tipoValor = "texto";
-                
-                if (selectedModalStatus === "analise") {
-                    valorParaEnviar = "ANALISE";
-                    tipoValor = "texto";
-                } else if (selectedModalStatus === "andamento") {
-                    valorParaEnviar = "EM ANDAMENTO";
-                    tipoValor = "texto";
-                } else if (selectedModalStatus === "concluido" && rawData[r][c] instanceof Date && !isNaN(rawData[r][c].getTime())) {
-                    valorParaEnviar = rawData[r][c].toLocaleDateString('pt-BR');
-                    tipoValor = "data";
+                // Prepara payload para envio ao Google Sheets
+                let valorEnvio = rawData[r][c];
+                if(valorEnvio instanceof Date) {
+                    valorEnvio = valorEnvio.toISOString().split('T')[0];
                 }
-                
                 const payload = { 
                     cliente: rawData[r].CLIENTE, 
                     coluna: c, 
-                    valor: valorParaEnviar,
-                    tipo: tipoValor,
-                    status: selectedModalStatus,
-                    timestamp: new Date().toISOString()
+                    novoValor: valorEnvio,
+                    statusTipo: selectedModalStatus
                 };
-                
-                console.log("Enviando para o sheet:", payload);
-                
-                // Usando fetch com keepalive para garantir o envio
-                fetch(URL_SCRIPT_GOOGLE, { 
-                    method: 'POST', 
-                    mode: 'no-cors',
-                    keepalive: true,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload) 
-                }).catch(e => console.error("Erro no fetch:", e));
-                
-            } catch (e) { 
-                console.error("Erro ao enviar para o sheet:", e); 
-            }
+                // Envia via fetch (no-cors para não bloquear)
+                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            } catch (e) { console.warn("Erro ao enviar para script:", e); }
             
             closeModal(); 
             renderTable();
+            // Atualiza tarefas se a aba estiver visível
             if (!document.getElementById('view-tasks').classList.contains('hidden')) {
                 filterTasks();
             }
         }
 
         function getStatus(val, row, col) {
-            // Verificar se é texto de status
-            if (typeof val === 'string') {
-                const upperVal = val.toUpperCase().trim();
-                if (upperVal === "EM ANDAMENTO") return 'andamento';
-                if (upperVal === "ANALISE") return 'analise';
-            }
-            
-            // Verificar se está marcado como concluído
-            if (row && col && row[col + "_DONE"] === true) return 'andamento';
-            
-            // Verificar se é data válida
-            if (!(val instanceof Date) || isNaN(val.getTime())) return null;
-            
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const diff = Math.ceil((val - today) / 86400000);
+            const strVal = String(val || "").toUpperCase().trim();
+            if (strVal === "EM ANDAMENTO") return 'andamento';
+            if (strVal === "ANALISE") return 'analise';
+            if (row && col && row[col + "_DONE"]) return 'andamento';
+            if (!(val instanceof Date)) return null;
+            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -588,7 +523,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</table>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -599,18 +534,7 @@
                 const originalIndex = rawData.findIndex(r => r.CLIENTE === row.CLIENTE);
                 return `<tr>${headers.map(h => {
                     const s = getStatus(row[h], row, h);
-                    let val = row[h];
-                    
-                    if (val instanceof Date && !isNaN(val.getTime())) {
-                        val = val.toLocaleDateString('pt-BR');
-                    } else if (val === undefined || val === null) {
-                        val = '-';
-                    } else {
-                        val = String(val);
-                    }
-                    
-                    if (val === '[object Date]') val = '-';
-                    
+                    const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                     return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
                 }).join('')}</tr>`;
             }).join('');
@@ -622,39 +546,32 @@
             currentEditTarget = { r, c };
             const v = rawData[r][c];
             
-            // Determine initial status based on current value
-            let initialStatus = "concluido";
-            if (typeof v === 'string') {
-                const upperV = v.toUpperCase().trim();
-                if (upperV === "ANALISE") initialStatus = "analise";
-                else if (upperV === "EM ANDAMENTO") initialStatus = "andamento";
-            }
-            
-            selectedModalStatus = initialStatus;
+            // Define status inicial baseado no valor atual
+            const strVal = String(v || "").toUpperCase().trim();
+            if(strVal === "ANALISE") selectedModalStatus = "analise";
+            else if(strVal === "EM ANDAMENTO") selectedModalStatus = "andamento";
+            else selectedModalStatus = "concluido";
             
             document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`;
             
-            const isAnalise = initialStatus === "analise";
-            const isAndamento = initialStatus === "andamento";
-            const isDate = v instanceof Date && !isNaN(v.getTime());
+            const isAnalise = (selectedModalStatus === "analise");
+            const isAndamento = (selectedModalStatus === "andamento");
+            const isDate = (v instanceof Date);
             
             document.getElementById('modalContent').innerHTML = `
-                <div class="grid grid-cols-3 gap-3 mb-4">
-                    <div onclick="selectModalStatus('analise')" id="status-analise" class="modal-status-btn ${initialStatus === 'analise' ? 'active' : ''}" style="background: #fff7ed; color: #ea580c; border-color: #fdba74;">
-                        <span class="emoji">📋</span>
-                        <span>ANÁLISE</span>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div onclick="selectModalStatus('analise')" id="status-analise" class="modal-status-btn ${isAnalise ? 'active' : ''}" style="background: #fff7ed; color: #ea580c; border-color: #fdba74;">
+                        📋 ANÁLISE
                     </div>
-                    <div onclick="selectModalStatus('andamento')" id="status-andamento" class="modal-status-btn ${initialStatus === 'andamento' ? 'active' : ''}" style="background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd;">
-                        <span class="emoji">⚡</span>
-                        <span>ANDAMENTO</span>
+                    <div onclick="selectModalStatus('andamento')" id="status-andamento" class="modal-status-btn ${isAndamento ? 'active' : ''}" style="background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd;">
+                        ⚡ ANDAMENTO
                     </div>
-                    <div onclick="selectModalStatus('concluido')" id="status-concluido" class="modal-status-btn ${initialStatus === 'concluido' ? 'active' : ''}" style="background: #ecfdf5; color: #059669; border-color: #6ee7b7;">
-                        <span class="emoji">✅</span>
-                        <span>CONCLUÍDO</span>
+                    <div onclick="selectModalStatus('concluido')" id="status-concluido" class="modal-status-btn ${(!isAnalise && !isAndamento) ? 'active' : ''}" style="background: #ecfdf5; color: #059669; border-color: #6ee7b7;">
+                        ✅ CONCLUÍDO
                     </div>
                 </div>
-                <div id="dateFieldContainer" style="display: ${initialStatus === 'concluido' ? 'block' : 'none'}">
-                    <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block">Nova Data</label>
+                <div id="dateFieldContainer" style="display: ${(!isAnalise && !isAndamento) ? 'block' : 'none'}">
+                    <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block">Nova Data (Conclusão)</label>
                     <input type="date" id="editVal" value="${isDate ? v.toISOString().split('T')[0] : ''}" class="w-full border p-3 rounded-xl text-xs">
                 </div>
             `;
@@ -678,7 +595,8 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}
+            `).join('');
         }
 
         function filterTasks() {
@@ -746,11 +664,7 @@
             renderTable(); 
         }
 
-        function exportarExcel() { 
-            const wb = XLSX.utils.book_new(); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); 
-            XLSX.writeFile(wb, `TopLine_Backup.xlsx`); 
-        }
+        function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
 
         function distribuirTarefas(statusAlvo) {
             const responsaveis = ['jordan', 'silene', 'ingrid'];
@@ -761,17 +675,10 @@
                 headers.forEach(col => {
                     if (col === 'CLIENTE') return;
                     if (getStatus(row[col], row, col) === statusAlvo) {
-                        let prazo = row[col];
-                        if (prazo instanceof Date && !isNaN(prazo.getTime())) {
-                            prazo = prazo.toLocaleDateString('pt-BR');
-                        } else {
-                            prazo = String(prazo || '-');
-                        }
-                        if (prazo === '[object Date]') prazo = '-';
                         tarefasParaSorteio.push({
                             cliente: row.CLIENTE,
                             documento: col,
-                            prazo: prazo,
+                            prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
                             originalRowIndex: rowIndex 
                         });
                     }
