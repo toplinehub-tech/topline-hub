@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.8</title>
+    <title>TopLineHub | Gestão Integrada v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -340,26 +340,12 @@
 
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
-        let currentEditTarget = {};
+        let currentEditTarget = null;
         let lastKnownDataHash = ""; 
         let selectedModalStatus = "concluido";
         let currentTasksData = { jordan: [], silene: [], ingrid: [] };
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
-
-        // Tornar funções globais
-        window.openEditCell = openEditCell;
-        window.selectModalStatus = selectModalStatus;
-        window.closeModal = closeModal;
-        window.toggleStatusFilter = toggleStatusFilter;
-        window.toggleDocFilter = toggleDocFilter;
-        window.switchTab = switchTab;
-        window.resetAllFilters = resetAllFilters;
-        window.exportarExcel = exportarExcel;
-        window.distribuirTarefas = distribuirTarefas;
-        window.manualSync = manualSync;
-        window.filterTasks = filterTasks;
-        window.renderSenhas = renderSenhas;
 
         window.onload = () => {
             setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; }, 1200);
@@ -451,6 +437,8 @@
         }
 
         async function saveEdit() {
+            if (!currentEditTarget) return;
+            
             const { r, c } = currentEditTarget;
             let valorParaEnviar;
             let isConcluido = false;
@@ -479,7 +467,6 @@
             rawData[r][c+"_OBS"] = "";
 
             try {
-                // Enviar para o Google Sheets como texto puro
                 const payload = { 
                     cliente: rawData[r].CLIENTE, 
                     coluna: c, 
@@ -572,7 +559,7 @@
                 return `<tr>${headers.map(h => {
                     const s = getStatus(row[h], row, h);
                     const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="window.openEditCell(${originalIndex}, '${h}')">${val}</td>`;
+                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
                 }).join('')}</tr>`;
             }).join('');
             updateAnalytics();
@@ -592,13 +579,13 @@
             
             document.getElementById('modalContent').innerHTML = `
                 <div class="flex gap-3 mb-4">
-                    <div onclick="window.selectModalStatus('analise')" id="status-analise" class="modal-status-btn ${isAnalise ? 'active' : ''}" style="background: #fff7ed; color: #ea580c; border-color: #fdba74;">
+                    <div onclick="selectModalStatus('analise')" id="status-analise" class="modal-status-btn ${isAnalise ? 'active' : ''}" style="background: #fff7ed; color: #ea580c; border-color: #fdba74;">
                         ANALISE
                     </div>
-                    <div onclick="window.selectModalStatus('andamento')" id="status-andamento" class="modal-status-btn ${isAndamento ? 'active' : ''}" style="background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd;">
+                    <div onclick="selectModalStatus('andamento')" id="status-andamento" class="modal-status-btn ${isAndamento ? 'active' : ''}" style="background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd;">
                         ANDAMENTO
                     </div>
-                    <div onclick="window.selectModalStatus('concluido')" id="status-concluido" class="modal-status-btn ${(!isAnalise && !isAndamento) ? 'active' : ''}" style="background: #ecfdf5; color: #059669; border-color: #6ee7b7;">
+                    <div onclick="selectModalStatus('concluido')" id="status-concluido" class="modal-status-btn ${(!isAnalise && !isAndamento) ? 'active' : ''}" style="background: #ecfdf5; color: #059669; border-color: #6ee7b7;">
                         CONCLUIDO
                     </div>
                 </div>
@@ -615,7 +602,8 @@
         function selectModalStatus(status) {
             selectedModalStatus = status;
             document.querySelectorAll('.modal-status-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`status-${status}`).classList.add('active');
+            const activeBtn = document.getElementById(`status-${status}`);
+            if (activeBtn) activeBtn.classList.add('active');
             
             const dateContainer = document.getElementById('dateFieldContainer');
             if(dateContainer) {
@@ -627,7 +615,7 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</td>`).join('');
         }
 
         function filterTasks() {
@@ -645,7 +633,7 @@
                 filteredTasks.forEach(t => {
                     const card = document.createElement('div');
                     card.className = "task-card p-3 bg-white border border-slate-200 rounded-xl text-[10px] shadow-sm mb-2";
-                    card.onclick = () => window.openEditCell(t.originalRowIndex, t.documento);
+                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
                     card.innerHTML = `
                         <div class="font-black text-slate-800 uppercase flex justify-between">
                             ${t.cliente}
@@ -684,6 +672,7 @@
 
         function closeModal() { 
             document.getElementById('editModal').classList.add('hidden'); 
+            currentEditTarget = null;
         }
         
         function resetAllFilters() { 
