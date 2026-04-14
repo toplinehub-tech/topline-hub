@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.3</title>
+    <title>TopLineHub | Gestão Integrada v1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -29,7 +29,6 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        /* Novos estilos de Seleção */
         .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
         .option-card { transition: all 0.2s ease; cursor: pointer; }
@@ -50,6 +49,9 @@
             transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #notification-toast.show { right: 24px; }
+        
+        .toast-success { border-left-color: #10b981 !important; }
+        .toast-error { border-left-color: #ef4444 !important; }
     </style>
 </head>
 <body>
@@ -66,7 +68,7 @@
                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </div>
             <div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização em tempo real</h4>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização</h4>
                 <p id="notif-message" class="text-xs font-bold text-slate-700 leading-tight mt-1">Uma tarefa foi atualizada.</p>
                 <p id="notif-cliente" class="text-[11px] text-emerald-600 font-black mt-1 uppercase"></p>
             </div>
@@ -271,7 +273,7 @@
                     const csvSenhas = await resSenhas.text();
                     Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = r.data; } });
                 }
-            } catch (e) { console.error("Erro na sincronização."); }
+            } catch (e) { console.error("Erro na sincronização.", e); }
         }
 
         function processRow(row) {
@@ -300,9 +302,21 @@
             }
         }
 
-        function showNotification(cliente) {
+        function showNotification(cliente, isError = false) {
             const toast = document.getElementById('notification-toast');
-            document.getElementById('notif-cliente').innerText = cliente;
+            const notifMessage = document.getElementById('notif-message');
+            const notifCliente = document.getElementById('notif-cliente');
+            
+            if (isError) {
+                notifMessage.innerHTML = '❌ Erro ao salvar no Google Sheets';
+                notifCliente.innerHTML = 'Verifique o console para mais detalhes';
+                toast.style.borderLeftColor = '#ef4444';
+            } else {
+                notifMessage.innerHTML = '✓ Atualizado com sucesso!';
+                notifCliente.innerHTML = cliente;
+                toast.style.borderLeftColor = '#10b981';
+            }
+            
             toast.classList.add('show');
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
         }
@@ -310,6 +324,12 @@
         async function saveEdit() {
             const { r, c } = currentEditTarget;
             let valorParaSalvar = null;
+            let tipo = selectedOption;
+            
+            if (!selectedOption) {
+                alert('Por favor, selecione uma opção (Análise, Andamento ou Data)');
+                return;
+            }
             
             if (selectedOption === 'analise') {
                 valorParaSalvar = "ANALISE";
@@ -317,31 +337,71 @@
                 valorParaSalvar = "EM ANDAMENTO";
             } else if (selectedOption === 'data') {
                 const dataInput = document.getElementById('dateValue').value;
-                if (dataInput) {
-                    const dataObj = new Date(dataInput + "T12:00:00");
-                    valorParaSalvar = dataObj;
+                if (!dataInput) {
+                    alert('Por favor, selecione uma data');
+                    return;
+                }
+                valorParaSalvar = dataInput;
+            }
+            
+            // Atualizar localmente primeiro para feedback imediato
+            if (valorParaSalvar !== null) {
+                if (selectedOption === 'data') {
+                    const dataObj = new Date(valorParaSalvar + "T12:00:00");
+                    rawData[r][c] = dataObj;
                 } else {
-                    valorParaSalvar = null;
+                    rawData[r][c] = valorParaSalvar;
+                }
+                rawData[r][c + "_DONE"] = false;
+                renderTable();
+            }
+            
+            // Preparar payload para enviar ao Google Sheets
+            const payload = {
+                acao: 'atualizar',
+                cliente: rawData[r].CLIENTE,
+                coluna: c,
+                tipo: selectedOption,
+                valor: valorParaSalvar,
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log('Enviando para o Google Sheets:', payload);
+            
+            try {
+                // Usar fetch com CORS apropriado
+                const response = await fetch(URL_SCRIPT_GOOGLE, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Resposta do Google Sheets:', result);
+                    showNotification(rawData[r].CLIENTE);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Erro ao enviar para o Google Sheets:', error);
+                showNotification('Erro: ' + error.message, true);
+                
+                // Tentar enviar via método alternativo (GET)
+                try {
+                    const params = new URLSearchParams(payload);
+                    const fallbackUrl = `${URL_SCRIPT_GOOGLE}?${params.toString()}`;
+                    await fetch(fallbackUrl, { method: 'GET', mode: 'no-cors' });
+                    console.log('Tentativa alternativa enviada (modo no-cors)');
+                } catch (fallbackError) {
+                    console.error('Erro também no fallback:', fallbackError);
                 }
             }
             
-            if (valorParaSalvar !== null) {
-                rawData[r][c] = valorParaSalvar;
-                rawData[r][c + "_DONE"] = false;
-            }
-            
-            try {
-                const payload = { 
-                    cliente: rawData[r].CLIENTE, 
-                    coluna: c, 
-                    tipo: selectedOption,
-                    valor: selectedOption === 'data' ? document.getElementById('dateValue').value : valorParaSalvar,
-                    concluido: false
-                };
-                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            } catch (e) { }
-            closeModal(); 
-            renderTable();
+            closeModal();
         }
 
         function getStatus(val, row, col) {
@@ -388,19 +448,15 @@
 
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
-            
             document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
             if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
-            
             renderTable(); 
         }
 
         function toggleDocFilter(d) { 
             activeDoc = (activeDoc === d) ? null : d; 
-            
             document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
             if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
-            
             renderTable(); 
         }
 
@@ -500,7 +556,7 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
         function switchTab(tab) {
@@ -524,7 +580,11 @@
             renderTable(); 
         }
 
-        function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
+        function exportarExcel() { 
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); 
+            XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); 
+        }
 
         function distribuirTarefas(statusAlvo) {
             const responsaveis = ['jordan', 'silene', 'patricia'];
