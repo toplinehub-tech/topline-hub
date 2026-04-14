@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.7</title>
+    <title>TopLineHub | Gestão Integrada v1.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -31,12 +31,10 @@
         .col-fixed:hover { background-color: #d1fae5 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        /* Estilos melhorados para cards selecionados - sombra na cor principal */
         .card-selected { 
             transform: translateY(-6px) scale(1.03); 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        /* Cores específicas para cada card quando selecionado - sombra na cor escura da principal */
         #btn-vencido.card-selected { 
             box-shadow: 0 20px 30px -8px rgba(220, 38, 38, 0.5) !important; 
             border: 2px solid #dc2626 !important; 
@@ -68,7 +66,6 @@
             background: #fff7ed !important; 
         }
         
-        /* Estilo para botões de documento selecionados - sombra verde escura */
         .doc-btn-active { 
             background-color: #10b981 !important; 
             color: white !important; 
@@ -87,6 +84,7 @@
             cursor: pointer;
             text-align: center;
             border: 2px solid transparent;
+            flex: 1;
         }
         .modal-status-btn.active { border-color: currentColor; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
@@ -282,7 +280,6 @@
 
         <div id="view-tasks" class="hidden">
             <div class="white-card p-4 mb-8">
-                <!-- Barra de filtro igual a da aba senhas -->
                 <div class="search-container mb-4">
                     <input type="text" id="searchTasks" oninput="filterTasks()" placeholder="Filtrar tarefas por cliente..." class="w-full p-2 border rounded-xl text-xs outline-none pl-8">
                 </div>
@@ -325,7 +322,7 @@
     </div>
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
+        <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
             <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar</h4>
             <div id="modalContent" class="space-y-4"></div>
             <div class="flex gap-3 mt-8">
@@ -347,9 +344,22 @@
         let lastKnownDataHash = ""; 
         let selectedModalStatus = "concluido";
         let currentTasksData = { jordan: [], silene: [], ingrid: [] };
-        let tasksFilter = "";
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
+
+        // Tornar funções globais
+        window.openEditCell = openEditCell;
+        window.selectModalStatus = selectModalStatus;
+        window.closeModal = closeModal;
+        window.toggleStatusFilter = toggleStatusFilter;
+        window.toggleDocFilter = toggleDocFilter;
+        window.switchTab = switchTab;
+        window.resetAllFilters = resetAllFilters;
+        window.exportarExcel = exportarExcel;
+        window.distribuirTarefas = distribuirTarefas;
+        window.manualSync = manualSync;
+        window.filterTasks = filterTasks;
+        window.renderSenhas = renderSenhas;
 
         window.onload = () => {
             setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; }, 1200);
@@ -442,26 +452,45 @@
 
         async function saveEdit() {
             const { r, c } = currentEditTarget;
+            let valorParaEnviar;
+            let isConcluido = false;
             
             if (selectedModalStatus === "analise") {
                 rawData[r][c] = "ANALISE";
                 rawData[r][c+"_DONE"] = false;
+                valorParaEnviar = "ANALISE";
+                isConcluido = false;
             } else if (selectedModalStatus === "andamento") {
                 rawData[r][c] = "EM ANDAMENTO";
                 rawData[r][c+"_DONE"] = false;
+                valorParaEnviar = "EM ANDAMENTO";
+                isConcluido = false;
             } else if (selectedModalStatus === "concluido") {
                 const inputDate = document.getElementById('editVal').value;
                 if(inputDate) {
-                    rawData[r][c] = new Date(inputDate + "T12:00:00");
+                    const newDate = new Date(inputDate + "T12:00:00");
+                    rawData[r][c] = newDate;
                     rawData[r][c+"_DONE"] = true;
+                    valorParaEnviar = inputDate;
+                    isConcluido = true;
                 }
             }
             
             rawData[r][c+"_OBS"] = "";
 
             try {
-                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: rawData[r][c], concluido: selectedModalStatus === "concluido" };
-                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                // Enviar para o Google Sheets como texto puro
+                const payload = { 
+                    cliente: rawData[r].CLIENTE, 
+                    coluna: c, 
+                    valor: valorParaEnviar,
+                    concluido: isConcluido 
+                };
+                fetch(URL_SCRIPT_GOOGLE, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify(payload) 
+                });
             } catch (e) { }
             closeModal(); 
             renderTable();
@@ -538,12 +567,12 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map((row, idx) => {
+            body.innerHTML = filtered.map((row) => {
                 const originalIndex = rawData.findIndex(r => r.CLIENTE === row.CLIENTE);
                 return `<tr>${headers.map(h => {
                     const s = getStatus(row[h], row, h);
                     const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
+                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="window.openEditCell(${originalIndex}, '${h}')">${val}</td>`;
                 }).join('')}</tr>`;
             }).join('');
             updateAnalytics();
@@ -562,15 +591,15 @@
             const isDate = v instanceof Date;
             
             document.getElementById('modalContent').innerHTML = `
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    <div onclick="selectModalStatus('analise')" id="status-analise" class="modal-status-btn ${isAnalise ? 'active' : ''}" style="background: #fff7ed; color: #ea580c; border-color: #fdba74;">
-                        📋 ANÁLISE
+                <div class="flex gap-3 mb-4">
+                    <div onclick="window.selectModalStatus('analise')" id="status-analise" class="modal-status-btn ${isAnalise ? 'active' : ''}" style="background: #fff7ed; color: #ea580c; border-color: #fdba74;">
+                        ANALISE
                     </div>
-                    <div onclick="selectModalStatus('andamento')" id="status-andamento" class="modal-status-btn ${isAndamento ? 'active' : ''}" style="background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd;">
-                        ⚡ ANDAMENTO
+                    <div onclick="window.selectModalStatus('andamento')" id="status-andamento" class="modal-status-btn ${isAndamento ? 'active' : ''}" style="background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd;">
+                        ANDAMENTO
                     </div>
-                    <div onclick="selectModalStatus('concluido')" id="status-concluido" class="modal-status-btn ${(!isAnalise && !isAndamento) ? 'active' : ''}" style="background: #ecfdf5; color: #059669; border-color: #6ee7b7;">
-                        ✅ CONCLUÍDO
+                    <div onclick="window.selectModalStatus('concluido')" id="status-concluido" class="modal-status-btn ${(!isAnalise && !isAndamento) ? 'active' : ''}" style="background: #ecfdf5; color: #059669; border-color: #6ee7b7;">
+                        CONCLUIDO
                     </div>
                 </div>
                 <div id="dateFieldContainer" style="display: ${(!isAnalise && !isAndamento) ? 'block' : 'none'}">
@@ -579,7 +608,7 @@
                 </div>
             `;
             
-            document.getElementById('modalSaveBtn').onclick = saveEdit;
+            document.getElementById('modalSaveBtn').onclick = () => saveEdit();
             document.getElementById('editModal').classList.remove('hidden');
         }
         
@@ -616,7 +645,7 @@
                 filteredTasks.forEach(t => {
                     const card = document.createElement('div');
                     card.className = "task-card p-3 bg-white border border-slate-200 rounded-xl text-[10px] shadow-sm mb-2";
-                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
+                    card.onclick = () => window.openEditCell(t.originalRowIndex, t.documento);
                     card.innerHTML = `
                         <div class="font-black text-slate-800 uppercase flex justify-between">
                             ${t.cliente}
@@ -642,7 +671,6 @@
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             
-            // Esconde/mostra a barra de pesquisa do cabeçalho baseado na aba
             const searchHeader = document.getElementById('searchContainerHeader');
             if (tab === 'dash') {
                 searchHeader.style.display = 'block';
