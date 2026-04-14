@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.6</title>
+    <title>TopLineHub | Gestão Integrada v1.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -125,6 +125,16 @@
             transform: translateY(-50%);
             font-size: 12px;
             opacity: 0.5;
+        }
+        
+        .timer-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
         }
     </style>
 </head>
@@ -257,8 +267,13 @@
 
         <div id="view-tasks" class="hidden">
             <div class="white-card p-4 mb-8">
-                <div class="search-container mb-4">
-                    <input type="text" id="searchTasks" oninput="filterTasks()" placeholder="Filtrar tarefas por cliente..." class="w-full p-2 border rounded-xl text-xs outline-none pl-8">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                    <div class="search-container flex-1">
+                        <input type="text" id="searchTasks" oninput="filterTasks()" placeholder="Filtrar tarefas por cliente..." class="w-full p-2 border rounded-xl text-xs outline-none pl-8">
+                    </div>
+                    <div id="timerDisplay" class="timer-badge px-4 py-2 rounded-xl text-white text-[10px] font-black uppercase tracking-wider hidden">
+                        ⏱️ Sorteio expira em: <span id="countdownTimer">--:--:--</span>
+                    </div>
                 </div>
                 <div class="flex gap-3 justify-center flex-wrap">
                     <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
@@ -292,7 +307,7 @@
                     <table class="w-full text-left">
                         <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
                         <tbody id="senhasBody"></tbody>
-                    </table>
+                    堆
                 </div>
             </div>
         </div>
@@ -322,7 +337,8 @@
         let selectedModalStatus = "concluido";
         let currentTasksData = { jordan: [], silene: [], ingrid: [] };
         let tasksFilter = "";
-        
+        let countdownInterval = null;
+
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
@@ -337,7 +353,98 @@
             });
             fetchGoogleSheets(true);
             setInterval(() => autoSync(), 15000);
+            loadSavedDraw(); // Carregar sorteio salvo ao iniciar
+            startCountdown(); // Iniciar contador regressivo
         };
+
+        // Funções para gerenciar sorteio salvo no localStorage
+        function saveDrawToLocalStorage(tasksData) {
+            const drawData = {
+                tasks: tasksData,
+                timestamp: Date.now(),
+                expiryTime: Date.now() + (12 * 60 * 60 * 1000) // 12 horas em milliseconds
+            };
+            localStorage.setItem('topline_draw_data', JSON.stringify(drawData));
+            currentTasksData = tasksData;
+            startCountdown();
+        }
+
+        function loadSavedDraw() {
+            const savedDraw = localStorage.getItem('topline_draw_data');
+            if (savedDraw) {
+                const drawData = JSON.parse(savedDraw);
+                const now = Date.now();
+                
+                // Verificar se o sorteio ainda é válido (menos de 12 horas)
+                if (now < drawData.expiryTime) {
+                    currentTasksData = drawData.tasks;
+                    filterTasks();
+                    startCountdown();
+                    showNotificationMessage("Sorteio anterior carregado!", drawData.expiryTime);
+                } else {
+                    // Sorteio expirado, limpar localStorage
+                    localStorage.removeItem('topline_draw_data');
+                    currentTasksData = { jordan: [], silene: [], ingrid: [] };
+                    filterTasks();
+                }
+            }
+        }
+
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            const savedDraw = localStorage.getItem('topline_draw_data');
+            if (!savedDraw) {
+                document.getElementById('timerDisplay').classList.add('hidden');
+                return;
+            }
+            
+            const drawData = JSON.parse(savedDraw);
+            const now = Date.now();
+            
+            if (now >= drawData.expiryTime) {
+                localStorage.removeItem('topline_draw_data');
+                document.getElementById('timerDisplay').classList.add('hidden');
+                return;
+            }
+            
+            document.getElementById('timerDisplay').classList.remove('hidden');
+            
+            countdownInterval = setInterval(() => {
+                const currentNow = Date.now();
+                const remaining = drawData.expiryTime - currentNow;
+                
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('timerDisplay').classList.add('hidden');
+                    localStorage.removeItem('topline_draw_data');
+                    currentTasksData = { jordan: [], silene: [], ingrid: [] };
+                    filterTasks();
+                    showNotificationMessage("⏰ Sorteio expirado! Realize um novo sorteio.", null);
+                    return;
+                }
+                
+                const hours = Math.floor(remaining / (1000 * 60 * 60));
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                
+                document.getElementById('countdownTimer').innerHTML = 
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function showNotificationMessage(message, expiryTime) {
+            const toast = document.getElementById('notification-toast');
+            document.getElementById('notif-cliente').innerHTML = message;
+            if (expiryTime) {
+                const expiryDate = new Date(expiryTime);
+                document.getElementById('notif-message').innerHTML = `Expira às ${expiryDate.toLocaleTimeString('pt-BR')}`;
+            } else {
+                document.getElementById('notif-message').innerHTML = message;
+            }
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 5000);
+        }
 
         async function autoSync() {
             const syncToast = document.getElementById('sync-toast');
@@ -410,6 +517,7 @@
         function showNotification(cliente) {
             const toast = document.getElementById('notification-toast');
             document.getElementById('notif-cliente').innerText = cliente;
+            document.getElementById('notif-message').innerHTML = "Uma tarefa foi atualizada.";
             toast.classList.add('show');
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
         }
@@ -420,27 +528,49 @@
             if (selectedModalStatus === "analise") {
                 rawData[r][c] = "ANALISE";
                 rawData[r][c+"_DONE"] = false;
+                // Enviar como texto para o Google Sheets
+                await sendToGoogleSheets(rawData[r].CLIENTE, c, "ANALISE", false);
             } else if (selectedModalStatus === "andamento") {
                 rawData[r][c] = "EM ANDAMENTO";
                 rawData[r][c+"_DONE"] = false;
+                // Enviar como texto para o Google Sheets
+                await sendToGoogleSheets(rawData[r].CLIENTE, c, "EM ANDAMENTO", false);
             } else if (selectedModalStatus === "concluido") {
                 const inputDate = document.getElementById('editVal').value;
                 if(inputDate) {
-                    rawData[r][c] = new Date(inputDate + "T12:00:00");
+                    const newDate = new Date(inputDate + "T12:00:00");
+                    rawData[r][c] = newDate;
                     rawData[r][c+"_DONE"] = true;
+                    // Enviar como data formatada para o Google Sheets
+                    await sendToGoogleSheets(rawData[r].CLIENTE, c, inputDate, true);
                 }
             }
             
             rawData[r][c+"_OBS"] = "";
 
-            try {
-                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: rawData[r][c], concluido: selectedModalStatus === "concluido" };
-                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            } catch (e) { }
             closeModal(); 
             renderTable();
             if (!document.getElementById('view-tasks').classList.contains('hidden')) {
                 filterTasks();
+            }
+        }
+
+        async function sendToGoogleSheets(cliente, coluna, valor, isConcluido) {
+            try {
+                const payload = { 
+                    cliente: cliente, 
+                    coluna: coluna, 
+                    novoValor: valor,
+                    concluido: isConcluido 
+                };
+                // Usando fetch com no-cors para não bloquear
+                fetch(URL_SCRIPT_GOOGLE, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify(payload) 
+                });
+            } catch (e) {
+                console.error("Erro ao enviar para Google Sheets:", e);
             }
         }
 
@@ -616,7 +746,6 @@
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             
-            // Esconde/mostra a barra de pesquisa do cabeçalho baseado na aba
             const searchHeader = document.getElementById('searchContainerHeader');
             if (tab === 'dash') {
                 searchHeader.style.display = 'block';
@@ -674,8 +803,14 @@
                 listas[destino].push(tarefa);
             });
 
-            currentTasksData = listas;
+            // Salvar no localStorage para todos os usuários verem
+            saveDrawToLocalStorage(listas);
             filterTasks();
+            
+            // Mostrar notificação do sorteio
+            const expiryTime = Date.now() + (12 * 60 * 60 * 1000);
+            const expiryDate = new Date(expiryTime);
+            showNotificationMessage(`🎲 Sorteio de ${statusAlvo.toUpperCase()} realizado! Válido por 12 horas.`, expiryTime);
         }
     </script>
 </body>
