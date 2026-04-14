@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.8</title>
+    <title>TopLineHub | Gestão Integrada v1.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -30,6 +30,7 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .col-fixed:hover { background-color: #d1fae5 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
+        .btn-mini.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
         
         .card-selected { 
             transform: translateY(-4px) scale(1.02); 
@@ -276,10 +277,10 @@
                     </div>
                 </div>
                 <div class="flex gap-3 justify-center flex-wrap">
-                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
-                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
+                    <button onclick="distribuirTarefas('vencido')" id="btn-sortear-vencido" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                    <button onclick="distribuirTarefas('30')" id="btn-sortear-30" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                    <button onclick="distribuirTarefas('60')" id="btn-sortear-60" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+                    <button onclick="distribuirTarefas('90')" id="btn-sortear-90" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
                 </div>
             </div>
             <div class="grid grid-cols-3 gap-6">
@@ -336,7 +337,6 @@
         let lastKnownDataHash = ""; 
         let selectedModalStatus = "concluido";
         let currentTasksData = { jordan: [], silene: [], ingrid: [] };
-        let tasksFilter = "";
         let countdownInterval = null;
 
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
@@ -353,20 +353,42 @@
             });
             fetchGoogleSheets(true);
             setInterval(() => autoSync(), 15000);
-            loadSavedDraw(); // Carregar sorteio salvo ao iniciar
-            startCountdown(); // Iniciar contador regressivo
+            loadSavedDraw();
+            startCountdown();
+            updateSortearButtonsState();
         };
 
-        // Funções para gerenciar sorteio salvo no localStorage
-        function saveDrawToLocalStorage(tasksData) {
+        function updateSortearButtonsState() {
+            const hasActiveDraw = localStorage.getItem('topline_draw_data') !== null;
+            const drawData = hasActiveDraw ? JSON.parse(localStorage.getItem('topline_draw_data')) : null;
+            const isValid = drawData && Date.now() < drawData.expiryTime;
+            
+            const buttons = ['btn-sortear-vencido', 'btn-sortear-30', 'btn-sortear-60', 'btn-sortear-90'];
+            buttons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (isValid) {
+                        btn.classList.add('disabled');
+                        btn.title = 'Aguarde o sorteio atual expirar (12h)';
+                    } else {
+                        btn.classList.remove('disabled');
+                        btn.title = '';
+                    }
+                }
+            });
+        }
+
+        function saveDrawToLocalStorage(tasksData, statusAlvo) {
             const drawData = {
                 tasks: tasksData,
+                status: statusAlvo,
                 timestamp: Date.now(),
-                expiryTime: Date.now() + (12 * 60 * 60 * 1000) // 12 horas em milliseconds
+                expiryTime: Date.now() + (12 * 60 * 60 * 1000)
             };
             localStorage.setItem('topline_draw_data', JSON.stringify(drawData));
             currentTasksData = tasksData;
             startCountdown();
+            updateSortearButtonsState();
         }
 
         function loadSavedDraw() {
@@ -375,19 +397,18 @@
                 const drawData = JSON.parse(savedDraw);
                 const now = Date.now();
                 
-                // Verificar se o sorteio ainda é válido (menos de 12 horas)
                 if (now < drawData.expiryTime) {
                     currentTasksData = drawData.tasks;
                     filterTasks();
                     startCountdown();
-                    showNotificationMessage("Sorteio anterior carregado!", drawData.expiryTime);
+                    showNotificationMessage(`Sorteio de ${drawData.status.toUpperCase()} ativo!`, drawData.expiryTime);
                 } else {
-                    // Sorteio expirado, limpar localStorage
                     localStorage.removeItem('topline_draw_data');
                     currentTasksData = { jordan: [], silene: [], ingrid: [] };
                     filterTasks();
                 }
             }
+            updateSortearButtonsState();
         }
 
         function startCountdown() {
@@ -405,6 +426,7 @@
             if (now >= drawData.expiryTime) {
                 localStorage.removeItem('topline_draw_data');
                 document.getElementById('timerDisplay').classList.add('hidden');
+                updateSortearButtonsState();
                 return;
             }
             
@@ -420,6 +442,7 @@
                     localStorage.removeItem('topline_draw_data');
                     currentTasksData = { jordan: [], silene: [], ingrid: [] };
                     filterTasks();
+                    updateSortearButtonsState();
                     showNotificationMessage("⏰ Sorteio expirado! Realize um novo sorteio.", null);
                     return;
                 }
@@ -528,12 +551,10 @@
             if (selectedModalStatus === "analise") {
                 rawData[r][c] = "ANALISE";
                 rawData[r][c+"_DONE"] = false;
-                // Enviar como texto para o Google Sheets
                 await sendToGoogleSheets(rawData[r].CLIENTE, c, "ANALISE", false);
             } else if (selectedModalStatus === "andamento") {
                 rawData[r][c] = "EM ANDAMENTO";
                 rawData[r][c+"_DONE"] = false;
-                // Enviar como texto para o Google Sheets
                 await sendToGoogleSheets(rawData[r].CLIENTE, c, "EM ANDAMENTO", false);
             } else if (selectedModalStatus === "concluido") {
                 const inputDate = document.getElementById('editVal').value;
@@ -541,7 +562,6 @@
                     const newDate = new Date(inputDate + "T12:00:00");
                     rawData[r][c] = newDate;
                     rawData[r][c+"_DONE"] = true;
-                    // Enviar como data formatada para o Google Sheets
                     await sendToGoogleSheets(rawData[r].CLIENTE, c, inputDate, true);
                 }
             }
@@ -563,7 +583,6 @@
                     novoValor: valor,
                     concluido: isConcluido 
                 };
-                // Usando fetch com no-cors para não bloquear
                 fetch(URL_SCRIPT_GOOGLE, { 
                     method: 'POST', 
                     mode: 'no-cors', 
@@ -642,7 +661,7 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map((row, idx) => {
+            body.innerHTML = filtered.map((row) => {
                 const originalIndex = rawData.findIndex(r => r.CLIENTE === row.CLIENTE);
                 return `<tr>${headers.map(h => {
                     const s = getStatus(row[h], row, h);
@@ -702,7 +721,7 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</td>`).join('');
         }
 
         function filterTasks() {
@@ -773,6 +792,15 @@
         function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
 
         function distribuirTarefas(statusAlvo) {
+            const savedDraw = localStorage.getItem('topline_draw_data');
+            if (savedDraw) {
+                const drawData = JSON.parse(savedDraw);
+                if (Date.now() < drawData.expiryTime) {
+                    alert(`❌ Não é possível realizar um novo sorteio!\n\nUm sorteio de "${drawData.status.toUpperCase()}" já está ativo.\nAguarde a expiração do sorteio atual (12 horas).`);
+                    return;
+                }
+            }
+            
             const responsaveis = ['jordan', 'silene', 'ingrid'];
             const listas = { jordan: [], silene: [], ingrid: [] };
             
@@ -803,11 +831,9 @@
                 listas[destino].push(tarefa);
             });
 
-            // Salvar no localStorage para todos os usuários verem
-            saveDrawToLocalStorage(listas);
+            saveDrawToLocalStorage(listas, statusAlvo);
             filterTasks();
             
-            // Mostrar notificação do sorteio
             const expiryTime = Date.now() + (12 * 60 * 60 * 1000);
             const expiryDate = new Date(expiryTime);
             showNotificationMessage(`🎲 Sorteio de ${statusAlvo.toUpperCase()} realizado! Válido por 12 horas.`, expiryTime);
