@@ -2,8 +2,8 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>TopLineHub | Gestão Integrada v1.7</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopLineHub | Gestão Integrada v1.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -26,44 +26,12 @@
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
-        td:hover { background-color: #d1fae5 !important; transform: scale(1.01); transition: all 0.2s; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
-        .col-fixed:hover { background-color: #d1fae5 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        .card-selected { 
-            transform: translateY(-4px) scale(1.02); 
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; 
-            border: 2px solid currentColor !important; 
-            filter: brightness(0.98) saturate(1.05);
-        }
-        #btn-vencido.card-selected { box-shadow: 0 20px 25px -5px rgba(220, 38, 38, 0.3), 0 10px 15px -3px rgba(220, 38, 38, 0.2) !important; border-color: #ef4444 !important; background: #fef2f2 !important; }
-        #btn-30.card-selected { box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.3), 0 10px 15px -3px rgba(245, 158, 11, 0.2) !important; border-color: #f59e0b !important; background: #fffbeb !important; }
-        #btn-60.card-selected { box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.3), 0 10px 15px -3px rgba(16, 185, 129, 0.2) !important; border-color: #10b981 !important; background: #ecfdf5 !important; }
-        #btn-90.card-selected { box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.3), 0 10px 15px -3px rgba(14, 165, 233, 0.2) !important; border-color: #0ea5e9 !important; background: #f0f9ff !important; }
-        #btn-andamento.card-selected { box-shadow: 0 20px 25px -5px rgba(168, 85, 247, 0.3), 0 10px 15px -3px rgba(168, 85, 247, 0.2) !important; border-color: #a855f7 !important; background: #f5f3ff !important; }
-        #btn-analise.card-selected { box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.3), 0 10px 15px -3px rgba(249, 115, 22, 0.2) !important; border-color: #f97316 !important; background: #fff7ed !important; }
-        
-        .doc-btn-active { 
-            background-color: #10b981 !important; 
-            color: white !important; 
-            border-color: #059669 !important; 
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
-            transform: translateY(-1px);
-        }
-
-        .modal-status-btn { 
-            padding: 12px; 
-            border-radius: 12px; 
-            font-weight: 800; 
-            font-size: 11px; 
-            text-transform: uppercase;
-            transition: all 0.2s;
-            cursor: pointer;
-            text-align: center;
-            border: 2px solid transparent;
-        }
-        .modal-status-btn.active { border-color: currentColor; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* Novos estilos de Seleção */
+        .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
+        .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
 
         #notification-toast {
             position: fixed;
@@ -79,53 +47,6 @@
             transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #notification-toast.show { right: 24px; }
-        
-        #sync-toast {
-            position: fixed;
-            bottom: 24px;
-            left: -400px;
-            width: 280px;
-            background: #1e293b;
-            color: white;
-            border-radius: 12px;
-            padding: 12px 16px;
-            z-index: 1000;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        #sync-toast.show { left: 24px; }
-        .sync-spinner { width: 16px; height: 16px; border: 2px solid #10b981; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .task-card {
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-        .task-card:hover {
-            transform: translateX(4px);
-            background-color: #f0fdf4 !important;
-            border-color: #10b981 !important;
-        }
-        
-        .search-container {
-            position: relative;
-        }
-        .search-container input {
-            padding-left: 32px;
-        }
-        .search-container::before {
-            content: "🔍";
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 12px;
-            opacity: 0.5;
-        }
     </style>
 </head>
 <body>
@@ -149,11 +70,6 @@
         </div>
     </div>
 
-    <div id="sync-toast">
-        <div class="sync-spinner"></div>
-        <span>Sincronizando com Google Sheets...</span>
-    </div>
-
     <div class="p-6 max-w-[1600px] mx-auto">
         <header class="white-card p-5 flex justify-between items-center mb-6">
             <div>
@@ -165,10 +81,8 @@
                 </nav>
             </div>
             <div class="flex items-center gap-3">
-                <div id="searchContainerHeader" class="search-container">
-                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none pl-8">
-                </div>
-                <button onclick="manualSync()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
                 <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
                 <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
             </div>
@@ -215,7 +129,7 @@
                 </div>
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Ingrid.</p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Patricia.</p>
                     <div class="mt-4 flex gap-2">
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
@@ -224,27 +138,27 @@
             </div>
 
             <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
@@ -256,38 +170,30 @@
         </div>
 
         <div id="view-tasks" class="hidden">
-            <div class="white-card p-4 mb-8">
-                <div class="search-container mb-4">
-                    <input type="text" id="searchTasks" oninput="filterTasks()" placeholder="Filtrar tarefas por cliente..." class="w-full p-2 border rounded-xl text-xs outline-none pl-8">
-                </div>
-                <div class="flex gap-3 justify-center flex-wrap">
-                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
-                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
-                </div>
+            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
+                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
             </div>
             <div class="grid grid-cols-3 gap-6">
                 <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
                     <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
-                    <div id="list-jordan" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
+                    <div id="list-jordan" class="space-y-2"></div>
                 </div>
                 <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
                     <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
-                    <div id="list-silene" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
+                    <div id="list-silene" class="space-y-2"></div>
                 </div>
                 <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Ingrid <span id="count-ingrid">0</span></h3>
-                    <div id="list-ingrid" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
+                    <div id="list-patricia" class="space-y-2"></div>
                 </div>
             </div>
         </div>
 
         <div id="view-senhas" class="hidden">
             <div class="white-card p-6">
-                <div class="search-container mb-4">
-                    <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full p-2 border rounded-xl text-xs outline-none pl-8">
-                </div>
+                <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                 <div class="scroll-container">
                     <table class="w-full text-left">
                         <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
@@ -300,11 +206,11 @@
 
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl">
-            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar Documento</h4>
+            <h4 id="modalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Editar</h4>
             <div id="modalContent" class="space-y-4"></div>
             <div class="flex gap-3 mt-8">
-                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-emerald-600 transition">Salvar</button>
-                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-200">Cancelar</button>
+                <button id="modalSaveBtn" class="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-[10px]">Salvar</button>
+                <button onclick="closeModal()" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold uppercase text-[10px]">Sair</button>
             </div>
         </div>
     </div>
@@ -319,10 +225,6 @@
         let activeDoc = null, activeStatus = null;
         let currentEditTarget = {};
         let lastKnownDataHash = ""; 
-        let selectedModalMode = "data"; // 'data' or 'texto'
-        let modalTextValue = "";
-        let currentTasksData = { jordan: [], silene: [], ingrid: [] };
-        let tasksFilter = "";
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -337,22 +239,8 @@
                 container.appendChild(btn);
             });
             fetchGoogleSheets(true);
-            setInterval(() => autoSync(), 15000);
+            setInterval(() => fetchGoogleSheets(false), 30000);
         };
-
-        async function autoSync() {
-            const syncToast = document.getElementById('sync-toast');
-            syncToast.classList.add('show');
-            await fetchGoogleSheets(false);
-            setTimeout(() => { syncToast.classList.remove('show'); }, 2000);
-        }
-
-        async function manualSync() {
-            const syncToast = document.getElementById('sync-toast');
-            syncToast.classList.add('show');
-            await fetchGoogleSheets(false);
-            setTimeout(() => { syncToast.classList.remove('show'); }, 2000);
-        }
 
         async function fetchGoogleSheets(isFirstLoad) {
             try {
@@ -369,7 +257,7 @@
                         }
                         rawData = newData;
                         lastKnownDataHash = csvDados;
-                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && h !== 'CLIENTE_OBS');
+                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
                     }
                 });
@@ -417,50 +305,28 @@
 
         async function saveEdit() {
             const { r, c } = currentEditTarget;
+            const novoValor = document.getElementById('editVal').value;
+            const isDate = !isNaN(Date.parse(novoValor)) && novoValor.includes('-');
             
-            if (selectedModalMode === "data") {
-                const inputDate = document.getElementById('editDate').value;
-                if (inputDate) {
-                    const newDate = new Date(inputDate + "T12:00:00");
-                    rawData[r][c] = newDate;
-                    rawData[r][c+"_DONE"] = true; 
-                } else {
-                    closeModal();
-                    return;
-                }
-            } else if (selectedModalMode === "analise") {
-                rawData[r][c] = "ANALISE";
-                rawData[r][c+"_DONE"] = false;
-            } else if (selectedModalMode === "andamento") {
-                rawData[r][c] = "EM ANDAMENTO";
-                rawData[r][c+"_DONE"] = false;
-            } else if (selectedModalMode === "texto") {
-                const textoCustom = document.getElementById('editText')?.value.trim();
-                if (textoCustom) {
-                    rawData[r][c] = textoCustom;
-                    rawData[r][c+"_DONE"] = false;
-                } else {
-                    closeModal();
-                    return;
-                }
+            if (isDate) {
+                rawData[r][c] = new Date(novoValor + "T12:00:00");
+            } else {
+                rawData[r][c] = novoValor;
             }
             
-            rawData[r][c+"_OBS"] = "";
+            rawData[r][c + "_DONE"] = document.getElementById('taskDone').checked;
 
             try {
                 const payload = { 
                     cliente: rawData[r].CLIENTE, 
                     coluna: c, 
-                    novoValor: rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : rawData[r][c],
-                    isDate: rawData[r][c] instanceof Date
+                    novoValor: novoValor,
+                    concluido: rawData[r][c + "_DONE"]
                 };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
             } catch (e) { }
             closeModal(); 
             renderTable();
-            if (!document.getElementById('view-tasks').classList.contains('hidden')) {
-                filterTasks();
-            }
         }
 
         function getStatus(val, row, col) {
@@ -507,15 +373,19 @@
 
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s; 
+            
             document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
             if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
+            
             renderTable(); 
         }
 
         function toggleDocFilter(d) { 
             activeDoc = (activeDoc === d) ? null : d; 
+            
             document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
             if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
+            
             renderTable(); 
         }
 
@@ -531,128 +401,57 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map((row, idx) => {
-                const originalIndex = rawData.findIndex(r => r.CLIENTE === row.CLIENTE);
-                return `<tr>${headers.map(h => {
-                    const s = getStatus(row[h], row, h);
-                    const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                    return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${originalIndex}, '${h}')">${val}</td>`;
-                }).join('')}</tr>`;
-            }).join('');
+            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
+                const s = getStatus(row[h], row, h);
+                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+            }).join('')}</tr>`).join('');
             updateAnalytics();
         }
 
         function openEditCell(r, c) {
             if(c === 'CLIENTE') return;
             currentEditTarget = { r, c };
-            const currentVal = rawData[r][c];
-            selectedModalMode = currentVal instanceof Date ? "data" : (currentVal === "ANALISE" ? "analise" : (currentVal === "EM ANDAMENTO" ? "andamento" : "texto"));
+            const v = rawData[r][c];
+            const valorAtual = v instanceof Date ? v.toISOString().split('T')[0] : (v || '');
             
             document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`;
-            
-            let dateValue = currentVal instanceof Date ? currentVal.toISOString().split('T')[0] : "";
-            let textValue = (!(currentVal instanceof Date) && currentVal !== "ANALISE" && currentVal !== "EM ANDAMENTO") ? (currentVal || "") : "";
-            
             document.getElementById('modalContent').innerHTML = `
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    <div onclick="selectModalAction('data')" id="action-data" class="modal-status-btn ${selectedModalMode === 'data' ? 'active' : ''}" style="background: #ecfdf5; color: #059669; border-color: #6ee7b7;">
-                        📅 NOVA DATA
-                    </div>
-                    <div onclick="selectModalAction('analise')" id="action-analise" class="modal-status-btn ${selectedModalMode === 'analise' ? 'active' : ''}" style="background: #fff7ed; color: #ea580c; border-color: #fdba74;">
-                        📋 ANÁLISE
-                    </div>
-                    <div onclick="selectModalAction('andamento')" id="action-andamento" class="modal-status-btn ${selectedModalMode === 'andamento' ? 'active' : ''}" style="background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd;">
-                        ⚡ ANDAMENTO
+                <div class="mb-4">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">
+                        ${valorAtual || '<span class="text-slate-300 italic">vazio</span>'}
                     </div>
                 </div>
-                <div id="action-data-container" style="display: ${selectedModalMode === 'data' ? 'block' : 'none'}">
-                    <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block">Nova Data de Vencimento</label>
-                    <input type="date" id="editDate" value="${dateValue}" class="w-full border p-3 rounded-xl text-sm font-medium">
+                <div class="mb-4">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Novo valor</label>
+                    <input type="text" id="editVal" value="${valorAtual}" class="w-full border border-slate-200 p-3 rounded-xl text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Digite o novo valor...">
+                    <p class="text-[9px] text-slate-400 mt-2">* Aceita texto, números ou datas no formato AAAA-MM-DD</p>
                 </div>
-                <div id="action-texto-container" style="display: ${selectedModalMode === 'texto' ? 'block' : 'none'}">
-                    <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block">Texto personalizado</label>
-                    <textarea id="editText" rows="3" class="w-full border p-3 rounded-xl text-xs">${textValue}</textarea>
-                    <p class="text-[9px] text-slate-400 mt-1">Digite observação, protocolo ou novo status textual.</p>
+                <div class="flex items-center gap-3 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                    <input type="checkbox" id="taskDone" ${rawData[r][c+"_DONE"] ? 'checked' : ''} class="w-4 h-4 text-emerald-600 rounded">
+                    <label class="text-[11px] font-bold uppercase text-emerald-700 tracking-wider">Marcar como concluído</label>
                 </div>
             `;
-            
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
-        }
-        
-        function selectModalAction(action) {
-            selectedModalMode = action;
-            document.querySelectorAll('.modal-status-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`action-${action}`).classList.add('active');
-            
-            const dataContainer = document.getElementById('action-data-container');
-            const textoContainer = document.getElementById('action-texto-container');
-            if(dataContainer) dataContainer.style.display = (action === 'data') ? 'block' : 'none';
-            if(textoContainer) textoContainer.style.display = (action === 'texto') ? 'block' : 'none';
         }
 
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
-                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td class="font-mono text-[9px]">${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'font-bold text-emerald-700':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
-        }
-
-        function filterTasks() {
-            const searchTerm = document.getElementById('searchTasks')?.value.toLowerCase() || '';
-            
-            ['jordan', 'silene', 'ingrid'].forEach(responsavel => {
-                const container = document.getElementById(`list-${responsavel}`);
-                if (!container) return;
-                
-                const filteredTasks = currentTasksData[responsavel].filter(task => 
-                    task.cliente.toLowerCase().includes(searchTerm)
-                );
-                
-                container.innerHTML = '';
-                filteredTasks.forEach(t => {
-                    const card = document.createElement('div');
-                    card.className = "task-card p-3 bg-white border border-slate-200 rounded-xl text-[10px] shadow-sm mb-2";
-                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
-                    card.innerHTML = `
-                        <div class="font-black text-slate-800 uppercase flex justify-between">
-                            ${t.cliente}
-                            <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                        </div>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-emerald-600 font-bold">${t.documento}</span>
-                            <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-                
-                document.getElementById(`count-${responsavel}`).innerText = filteredTasks.length;
-            });
+                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'senhas'].forEach(t => { 
-                document.getElementById('view-'+t).classList.add('hidden'); 
-                document.getElementById('tab-'+t).classList.remove('tab-active'); 
-            });
+            ['dash', 'tasks', 'senhas'].forEach(t => { document.getElementById('view-'+t).classList.add('hidden'); document.getElementById('tab-'+t).classList.remove('tab-active'); });
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
-            
-            const searchHeader = document.getElementById('searchContainerHeader');
-            if (tab === 'dash') {
-                searchHeader.style.display = 'block';
-            } else {
-                searchHeader.style.display = 'none';
-            }
-            
             if(tab === 'senhas') renderSenhas();
-            if(tab === 'tasks') filterTasks();
         }
 
-        function closeModal() { 
-            document.getElementById('editModal').classList.add('hidden'); 
-        }
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
         
         function resetAllFilters() { 
             activeDoc = null; 
@@ -666,9 +465,14 @@
         function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
 
         function distribuirTarefas(statusAlvo) {
-            const responsaveis = ['jordan', 'silene', 'ingrid'];
-            const listas = { jordan: [], silene: [], ingrid: [] };
+            const responsaveis = ['jordan', 'silene', 'patricia'];
+            const listas = { jordan: [], silene: [], patricia: [] };
             
+            responsaveis.forEach(r => {
+                document.getElementById(`list-${r}`).innerHTML = "";
+                document.getElementById(`count-${r}`).innerText = "0";
+            });
+
             let tarefasParaSorteio = [];
             rawData.forEach((row, rowIndex) => {
                 headers.forEach(col => {
@@ -696,8 +500,27 @@
                 listas[destino].push(tarefa);
             });
 
-            currentTasksData = listas;
-            filterTasks();
+            responsaveis.forEach(r => {
+                const container = document.getElementById(`list-${r}`);
+                document.getElementById(`count-${r}`).innerText = listas[r].length;
+                
+                listas[r].forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
+                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
+                    card.innerHTML = `
+                        <div class="font-black text-slate-800 uppercase flex justify-between">
+                            ${t.cliente}
+                            <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-emerald-600 font-bold">${t.documento}</span>
+                            <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            });
         }
     </script>
 </body>
