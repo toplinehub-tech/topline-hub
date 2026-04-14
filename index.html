@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.4</title>
+    <title>TopLineHub | Gestão Integrada v1.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -26,7 +26,9 @@
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        td:hover { background-color: #f0fdf4 !important; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
+        .col-fixed:hover { background-color: #f0fdf4 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
         /* Novos estilos de Seleção melhorados */
@@ -102,6 +104,14 @@
         #sync-toast.show { left: 24px; }
         .sync-spinner { width: 16px; height: 16px; border: 2px solid #10b981; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .task-card {
+            transition: all 0.2s ease;
+        }
+        .task-card:hover {
+            transform: translateX(4px);
+            background-color: #f0fdf4 !important;
+        }
     </style>
 </head>
 <body>
@@ -230,24 +240,27 @@
         </div>
 
         <div id="view-tasks" class="hidden">
-            <div class="white-card p-4 mb-8 flex gap-3 justify-center flex-wrap">
-                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
-                <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
+            <div class="white-card p-4 mb-8">
+                <input type="text" id="searchTasks" oninput="renderTasks()" placeholder="Filtrar tarefas por cliente..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                <div class="flex gap-3 justify-center flex-wrap">
+                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
+                </div>
             </div>
             <div class="grid grid-cols-3 gap-6">
                 <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
                     <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
-                    <div id="list-jordan" class="space-y-2"></div>
+                    <div id="list-jordan" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
                 </div>
                 <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
                     <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
-                    <div id="list-silene" class="space-y-2"></div>
+                    <div id="list-silene" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
                 </div>
                 <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
                     <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Ingrid <span id="count-ingrid">0</span></h3>
-                    <div id="list-ingrid" class="space-y-2"></div>
+                    <div id="list-ingrid" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
                 </div>
             </div>
         </div>
@@ -287,6 +300,7 @@
         let currentEditTarget = {};
         let lastKnownDataHash = ""; 
         let selectedModalStatus = "concluido";
+        let currentTasksData = { jordan: [], silene: [], ingrid: [] };
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -403,7 +417,12 @@
                 const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: rawData[r][c], concluido: selectedModalStatus === "concluido" };
                 fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
             } catch (e) { }
-            closeModal(); renderTable();
+            closeModal(); 
+            renderTable();
+            // Re-render tasks if they're visible
+            if (!document.getElementById('view-tasks').classList.contains('hidden')) {
+                renderTasks();
+            }
         }
 
         function getStatus(val, row, col) {
@@ -534,14 +553,53 @@
                 ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
+        function renderTasks() {
+            const searchTerm = document.getElementById('searchTasks')?.value.toLowerCase() || '';
+            
+            ['jordan', 'silene', 'ingrid'].forEach(responsavel => {
+                const container = document.getElementById(`list-${responsavel}`);
+                if (!container) return;
+                
+                const filteredTasks = currentTasksData[responsavel].filter(task => 
+                    task.cliente.toLowerCase().includes(searchTerm)
+                );
+                
+                container.innerHTML = '';
+                filteredTasks.forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = "task-card p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer shadow-sm mb-2";
+                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
+                    card.innerHTML = `
+                        <div class="font-black text-slate-800 uppercase flex justify-between">
+                            ${t.cliente}
+                            <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-emerald-600 font-bold">${t.documento}</span>
+                            <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+                
+                document.getElementById(`count-${responsavel}`).innerText = filteredTasks.length;
+            });
+        }
+
         function switchTab(tab) {
-            ['dash', 'tasks', 'senhas'].forEach(t => { document.getElementById('view-'+t).classList.add('hidden'); document.getElementById('tab-'+t).classList.remove('tab-active'); });
+            ['dash', 'tasks', 'senhas'].forEach(t => { 
+                document.getElementById('view-'+t).classList.add('hidden'); 
+                document.getElementById('tab-'+t).classList.remove('tab-active'); 
+            });
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
+            if(tab === 'tasks') renderTasks();
         }
 
-        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function closeModal() { 
+            document.getElementById('editModal').classList.add('hidden'); 
+        }
         
         function resetAllFilters() { 
             activeDoc = null; 
@@ -558,11 +616,6 @@
             const responsaveis = ['jordan', 'silene', 'ingrid'];
             const listas = { jordan: [], silene: [], ingrid: [] };
             
-            responsaveis.forEach(r => {
-                document.getElementById(`list-${r}`).innerHTML = "";
-                document.getElementById(`count-${r}`).innerText = "0";
-            });
-
             let tarefasParaSorteio = [];
             rawData.forEach((row, rowIndex) => {
                 headers.forEach(col => {
@@ -590,27 +643,8 @@
                 listas[destino].push(tarefa);
             });
 
-            responsaveis.forEach(r => {
-                const container = document.getElementById(`list-${r}`);
-                document.getElementById(`count-${r}`).innerText = listas[r].length;
-                
-                listas[r].forEach(t => {
-                    const card = document.createElement('div');
-                    card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
-                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
-                    card.innerHTML = `
-                        <div class="font-black text-slate-800 uppercase flex justify-between">
-                            ${t.cliente}
-                            <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                        </div>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-emerald-600 font-bold">${t.documento}</span>
-                            <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            });
+            currentTasksData = listas;
+            renderTasks();
         }
     </script>
 </body>
