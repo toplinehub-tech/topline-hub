@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.9</title>
+    <title>TopLineHub | Gestão Integrada v1.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -30,27 +30,51 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .col-fixed:hover { background-color: #d1fae5 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
-        .btn-mini.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
         
+        /* Estilos melhorados para cards selecionados - sombra na cor principal */
         .card-selected { 
-            transform: translateY(-4px) scale(1.02); 
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; 
-            border: 2px solid currentColor !important; 
-            filter: brightness(0.98) saturate(1.05);
+            transform: translateY(-6px) scale(1.03); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        #btn-vencido.card-selected { box-shadow: 0 20px 25px -5px rgba(220, 38, 38, 0.3), 0 10px 15px -3px rgba(220, 38, 38, 0.2) !important; border-color: #ef4444 !important; background: #fef2f2 !important; }
-        #btn-30.card-selected { box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.3), 0 10px 15px -3px rgba(245, 158, 11, 0.2) !important; border-color: #f59e0b !important; background: #fffbeb !important; }
-        #btn-60.card-selected { box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.3), 0 10px 15px -3px rgba(16, 185, 129, 0.2) !important; border-color: #10b981 !important; background: #ecfdf5 !important; }
-        #btn-90.card-selected { box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.3), 0 10px 15px -3px rgba(14, 165, 233, 0.2) !important; border-color: #0ea5e9 !important; background: #f0f9ff !important; }
-        #btn-andamento.card-selected { box-shadow: 0 20px 25px -5px rgba(168, 85, 247, 0.3), 0 10px 15px -3px rgba(168, 85, 247, 0.2) !important; border-color: #a855f7 !important; background: #f5f3ff !important; }
-        #btn-analise.card-selected { box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.3), 0 10px 15px -3px rgba(249, 115, 22, 0.2) !important; border-color: #f97316 !important; background: #fff7ed !important; }
+        /* Cores específicas para cada card quando selecionado - sombra na cor escura da principal */
+        #btn-vencido.card-selected { 
+            box-shadow: 0 20px 30px -8px rgba(220, 38, 38, 0.5) !important; 
+            border: 2px solid #dc2626 !important; 
+            background: #fef2f2 !important; 
+        }
+        #btn-30.card-selected { 
+            box-shadow: 0 20px 30px -8px rgba(245, 158, 11, 0.5) !important; 
+            border: 2px solid #f59e0b !important; 
+            background: #fffbeb !important; 
+        }
+        #btn-60.card-selected { 
+            box-shadow: 0 20px 30px -8px rgba(16, 185, 129, 0.5) !important; 
+            border: 2px solid #10b981 !important; 
+            background: #ecfdf5 !important; 
+        }
+        #btn-90.card-selected { 
+            box-shadow: 0 20px 30px -8px rgba(14, 165, 233, 0.5) !important; 
+            border: 2px solid #0ea5e9 !important; 
+            background: #f0f9ff !important; 
+        }
+        #btn-andamento.card-selected { 
+            box-shadow: 0 20px 30px -8px rgba(168, 85, 247, 0.5) !important; 
+            border: 2px solid #a855f7 !important; 
+            background: #f5f3ff !important; 
+        }
+        #btn-analise.card-selected { 
+            box-shadow: 0 20px 30px -8px rgba(249, 115, 22, 0.5) !important; 
+            border: 2px solid #f97316 !important; 
+            background: #fff7ed !important; 
+        }
         
+        /* Estilo para botões de documento selecionados - sombra verde escura */
         .doc-btn-active { 
             background-color: #10b981 !important; 
             color: white !important; 
             border-color: #059669 !important; 
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
-            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(16, 185, 129, 0.5) !important;
+            transform: translateY(-2px);
         }
 
         .modal-status-btn { 
@@ -126,16 +150,6 @@
             transform: translateY(-50%);
             font-size: 12px;
             opacity: 0.5;
-        }
-        
-        .timer-badge {
-            background: linear-gradient(135deg, #10b981, #059669);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
         }
     </style>
 </head>
@@ -235,27 +249,27 @@
             </div>
 
             <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left transition-all duration-300">
                     <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left transition-all duration-300">
                     <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left transition-all duration-300">
                     <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left transition-all duration-300">
                     <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left transition-all duration-300">
                     <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02] transition-all">
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left transition-all duration-300">
                     <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
@@ -268,19 +282,15 @@
 
         <div id="view-tasks" class="hidden">
             <div class="white-card p-4 mb-8">
-                <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-                    <div class="search-container flex-1">
-                        <input type="text" id="searchTasks" oninput="filterTasks()" placeholder="Filtrar tarefas por cliente..." class="w-full p-2 border rounded-xl text-xs outline-none pl-8">
-                    </div>
-                    <div id="timerDisplay" class="timer-badge px-4 py-2 rounded-xl text-white text-[10px] font-black uppercase tracking-wider hidden">
-                        ⏱️ Sorteio expira em: <span id="countdownTimer">--:--:--</span>
-                    </div>
+                <!-- Barra de filtro igual a da aba senhas -->
+                <div class="search-container mb-4">
+                    <input type="text" id="searchTasks" oninput="filterTasks()" placeholder="Filtrar tarefas por cliente..." class="w-full p-2 border rounded-xl text-xs outline-none pl-8">
                 </div>
                 <div class="flex gap-3 justify-center flex-wrap">
-                    <button onclick="distribuirTarefas('vencido')" id="btn-sortear-vencido" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                    <button onclick="distribuirTarefas('30')" id="btn-sortear-30" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                    <button onclick="distribuirTarefas('60')" id="btn-sortear-60" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
-                    <button onclick="distribuirTarefas('90')" id="btn-sortear-90" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
+                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
                 </div>
             </div>
             <div class="grid grid-cols-3 gap-6">
@@ -337,8 +347,8 @@
         let lastKnownDataHash = ""; 
         let selectedModalStatus = "concluido";
         let currentTasksData = { jordan: [], silene: [], ingrid: [] };
-        let countdownInterval = null;
-
+        let tasksFilter = "";
+        
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
@@ -353,121 +363,7 @@
             });
             fetchGoogleSheets(true);
             setInterval(() => autoSync(), 15000);
-            loadSavedDraw();
-            startCountdown();
-            updateSortearButtonsState();
         };
-
-        function updateSortearButtonsState() {
-            const hasActiveDraw = localStorage.getItem('topline_draw_data') !== null;
-            const drawData = hasActiveDraw ? JSON.parse(localStorage.getItem('topline_draw_data')) : null;
-            const isValid = drawData && Date.now() < drawData.expiryTime;
-            
-            const buttons = ['btn-sortear-vencido', 'btn-sortear-30', 'btn-sortear-60', 'btn-sortear-90'];
-            buttons.forEach(btnId => {
-                const btn = document.getElementById(btnId);
-                if (btn) {
-                    if (isValid) {
-                        btn.classList.add('disabled');
-                        btn.title = 'Aguarde o sorteio atual expirar (12h)';
-                    } else {
-                        btn.classList.remove('disabled');
-                        btn.title = '';
-                    }
-                }
-            });
-        }
-
-        function saveDrawToLocalStorage(tasksData, statusAlvo) {
-            const drawData = {
-                tasks: tasksData,
-                status: statusAlvo,
-                timestamp: Date.now(),
-                expiryTime: Date.now() + (12 * 60 * 60 * 1000)
-            };
-            localStorage.setItem('topline_draw_data', JSON.stringify(drawData));
-            currentTasksData = tasksData;
-            startCountdown();
-            updateSortearButtonsState();
-        }
-
-        function loadSavedDraw() {
-            const savedDraw = localStorage.getItem('topline_draw_data');
-            if (savedDraw) {
-                const drawData = JSON.parse(savedDraw);
-                const now = Date.now();
-                
-                if (now < drawData.expiryTime) {
-                    currentTasksData = drawData.tasks;
-                    filterTasks();
-                    startCountdown();
-                    showNotificationMessage(`Sorteio de ${drawData.status.toUpperCase()} ativo!`, drawData.expiryTime);
-                } else {
-                    localStorage.removeItem('topline_draw_data');
-                    currentTasksData = { jordan: [], silene: [], ingrid: [] };
-                    filterTasks();
-                }
-            }
-            updateSortearButtonsState();
-        }
-
-        function startCountdown() {
-            if (countdownInterval) clearInterval(countdownInterval);
-            
-            const savedDraw = localStorage.getItem('topline_draw_data');
-            if (!savedDraw) {
-                document.getElementById('timerDisplay').classList.add('hidden');
-                return;
-            }
-            
-            const drawData = JSON.parse(savedDraw);
-            const now = Date.now();
-            
-            if (now >= drawData.expiryTime) {
-                localStorage.removeItem('topline_draw_data');
-                document.getElementById('timerDisplay').classList.add('hidden');
-                updateSortearButtonsState();
-                return;
-            }
-            
-            document.getElementById('timerDisplay').classList.remove('hidden');
-            
-            countdownInterval = setInterval(() => {
-                const currentNow = Date.now();
-                const remaining = drawData.expiryTime - currentNow;
-                
-                if (remaining <= 0) {
-                    clearInterval(countdownInterval);
-                    document.getElementById('timerDisplay').classList.add('hidden');
-                    localStorage.removeItem('topline_draw_data');
-                    currentTasksData = { jordan: [], silene: [], ingrid: [] };
-                    filterTasks();
-                    updateSortearButtonsState();
-                    showNotificationMessage("⏰ Sorteio expirado! Realize um novo sorteio.", null);
-                    return;
-                }
-                
-                const hours = Math.floor(remaining / (1000 * 60 * 60));
-                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-                
-                document.getElementById('countdownTimer').innerHTML = 
-                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            }, 1000);
-        }
-
-        function showNotificationMessage(message, expiryTime) {
-            const toast = document.getElementById('notification-toast');
-            document.getElementById('notif-cliente').innerHTML = message;
-            if (expiryTime) {
-                const expiryDate = new Date(expiryTime);
-                document.getElementById('notif-message').innerHTML = `Expira às ${expiryDate.toLocaleTimeString('pt-BR')}`;
-            } else {
-                document.getElementById('notif-message').innerHTML = message;
-            }
-            toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 5000);
-        }
 
         async function autoSync() {
             const syncToast = document.getElementById('sync-toast');
@@ -540,7 +436,6 @@
         function showNotification(cliente) {
             const toast = document.getElementById('notification-toast');
             document.getElementById('notif-cliente').innerText = cliente;
-            document.getElementById('notif-message').innerHTML = "Uma tarefa foi atualizada.";
             toast.classList.add('show');
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
         }
@@ -551,45 +446,27 @@
             if (selectedModalStatus === "analise") {
                 rawData[r][c] = "ANALISE";
                 rawData[r][c+"_DONE"] = false;
-                await sendToGoogleSheets(rawData[r].CLIENTE, c, "ANALISE", false);
             } else if (selectedModalStatus === "andamento") {
                 rawData[r][c] = "EM ANDAMENTO";
                 rawData[r][c+"_DONE"] = false;
-                await sendToGoogleSheets(rawData[r].CLIENTE, c, "EM ANDAMENTO", false);
             } else if (selectedModalStatus === "concluido") {
                 const inputDate = document.getElementById('editVal').value;
                 if(inputDate) {
-                    const newDate = new Date(inputDate + "T12:00:00");
-                    rawData[r][c] = newDate;
+                    rawData[r][c] = new Date(inputDate + "T12:00:00");
                     rawData[r][c+"_DONE"] = true;
-                    await sendToGoogleSheets(rawData[r].CLIENTE, c, inputDate, true);
                 }
             }
             
             rawData[r][c+"_OBS"] = "";
 
+            try {
+                const payload = { cliente: rawData[r].CLIENTE, coluna: c, novaData: rawData[r][c], concluido: selectedModalStatus === "concluido" };
+                fetch(URL_SCRIPT_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            } catch (e) { }
             closeModal(); 
             renderTable();
             if (!document.getElementById('view-tasks').classList.contains('hidden')) {
                 filterTasks();
-            }
-        }
-
-        async function sendToGoogleSheets(cliente, coluna, valor, isConcluido) {
-            try {
-                const payload = { 
-                    cliente: cliente, 
-                    coluna: coluna, 
-                    novoValor: valor,
-                    concluido: isConcluido 
-                };
-                fetch(URL_SCRIPT_GOOGLE, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify(payload) 
-                });
-            } catch (e) {
-                console.error("Erro ao enviar para Google Sheets:", e);
             }
         }
 
@@ -661,7 +538,7 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map((row) => {
+            body.innerHTML = filtered.map((row, idx) => {
                 const originalIndex = rawData.findIndex(r => r.CLIENTE === row.CLIENTE);
                 return `<tr>${headers.map(h => {
                     const s = getStatus(row[h], row, h);
@@ -721,7 +598,7 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</td>`).join('');
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span class="${p[c]?'password-highlight':''}">${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
         function filterTasks() {
@@ -765,6 +642,7 @@
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             
+            // Esconde/mostra a barra de pesquisa do cabeçalho baseado na aba
             const searchHeader = document.getElementById('searchContainerHeader');
             if (tab === 'dash') {
                 searchHeader.style.display = 'block';
@@ -792,15 +670,6 @@
         function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup.xlsx`); }
 
         function distribuirTarefas(statusAlvo) {
-            const savedDraw = localStorage.getItem('topline_draw_data');
-            if (savedDraw) {
-                const drawData = JSON.parse(savedDraw);
-                if (Date.now() < drawData.expiryTime) {
-                    alert(`❌ Não é possível realizar um novo sorteio!\n\nUm sorteio de "${drawData.status.toUpperCase()}" já está ativo.\nAguarde a expiração do sorteio atual (12 horas).`);
-                    return;
-                }
-            }
-            
             const responsaveis = ['jordan', 'silene', 'ingrid'];
             const listas = { jordan: [], silene: [], ingrid: [] };
             
@@ -831,12 +700,8 @@
                 listas[destino].push(tarefa);
             });
 
-            saveDrawToLocalStorage(listas, statusAlvo);
+            currentTasksData = listas;
             filterTasks();
-            
-            const expiryTime = Date.now() + (12 * 60 * 60 * 1000);
-            const expiryDate = new Date(expiryTime);
-            showNotificationMessage(`🎲 Sorteio de ${statusAlvo.toUpperCase()} realizado! Válido por 12 horas.`, expiryTime);
         }
     </script>
 </body>
