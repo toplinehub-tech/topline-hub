@@ -17,16 +17,16 @@
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         #login-screen { position: fixed; inset: 0; z-index: 9998; background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #10b981 100%); display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
-        .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
-        .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
-        .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
-        .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
-        .analise { background-color: #fff7ed !important; color: #c2410c !important; }
+        .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; font-weight: bold !important; }
+        .vence-30 { background-color: #fff9db !important; color: #92400e !important; font-weight: bold !important; }
+        .vence-60 { background-color: #e6fffa !important; color: #047481 !important; font-weight: bold !important; }
+        .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; font-weight: bold !important; }
+        .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; font-weight: bold !important; }
+        .analise { background-color: #fff7ed !important; color: #c2410c !important; font-weight: bold !important; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
-        th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
+        th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; font-weight: bold; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
@@ -36,7 +36,7 @@
         .option-card { transition: all 0.2s ease; cursor: pointer; }
         .option-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .option-selected { border: 2px solid #10b981 !important; background-color: #f0fdf4 !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
-        .profile-btn { transition: all 0.3s ease; cursor: pointer; background: white; color: #064e3b; border: 2px solid #a7f3d0; border-radius: 60px; padding: 12px 28px; font-weight: bold; font-size: 1rem; text-align: center; min-width: 120px; }
+        .profile-btn { transition: all 0.3s ease; cursor: pointer; background: white; color: #064e3b; border: 2px solid #a7f3d0; border-radius: 40px; padding: 8px 20px; font-weight: bold; font-size: 0.9rem; text-align: center; min-width: 90px; }
         .profile-btn:hover { transform: scale(1.05); background: #10b981; color: white; border-color: #10b981; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
         .user-badge { position: fixed; top: 20px; right: 20px; z-index: 100; background: white; border-radius: 50px; padding: 8px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
@@ -86,7 +86,7 @@
         
         .login-btn-group {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             flex-wrap: wrap;
             justify-content: center;
         }
@@ -100,16 +100,16 @@
 <body>
 
     <div id="splash-screen">
-        <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-        <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
+        <div class="brand-name text-3xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+        <div class="text-slate-400 text-[8px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
     </div>
 
     <div id="login-screen">
-        <div class="bg-white/95 backdrop-blur-sm rounded-3xl p-10 max-w-3xl w-full mx-4 shadow-2xl">
-            <div class="text-center mb-8">
-                <div class="brand-name text-3xl justify-center mb-3"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                <p class="text-slate-500 text-sm">Selecione seu perfil para continuar</p>
+        <div class="bg-white/95 backdrop-blur-sm rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-2xl">
+            <div class="text-center mb-4">
+                <div class="brand-name text-2xl justify-center mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                <p class="text-slate-500 text-[11px]">Selecione seu perfil</p>
             </div>
             <div class="login-btn-group">
                 <button onclick="login('Ingrid')" class="profile-btn">Ingrid</button>
@@ -325,7 +325,7 @@
             setTimeout(() => { 
                 document.getElementById('splash-screen').style.display = 'none';
                 document.getElementById('login-screen').style.display = 'flex';
-            }, 1200);
+            }, 800);
             loadHistory();
             loadDistribuicaoStorage();
             setInterval(() => syncDistribuicaoFromStorage(), 3000);
@@ -523,15 +523,50 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
+        function formatDateToBR(dateStr) {
+            if (!dateStr) return '';
+            // Se já estiver no formato DD/MM/AAAA
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) return dateStr;
+            // Se for objeto Date
+            if (dateStr instanceof Date) {
+                const d = dateStr;
+                return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+            }
+            // Se for string ISO
+            if (dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        function formatDateToISO(dateStr) {
+            if (!dateStr) return '';
+            // Se já estiver no formato YYYY-MM-DD
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) return dateStr;
+            // Se estiver no formato DD/MM/AAAA
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const parts = dateStr.split('/');
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        }
+
         function enviarParaGoogleSheets(cliente, coluna, tipo, valor, valorAntigo) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                
+                let valorEnvio = valor;
+                // Se for data, enviar no formato DD/MM/AAAA
+                if (tipo === 'data' && valor) {
+                    valorEnvio = formatDateToBR(valor);
+                }
                 
                 const params = new URLSearchParams({
                     cliente: cliente,
                     coluna: coluna,
                     tipo: tipo,
-                    valor: valor,
+                    valor: valorEnvio,
                     callback: callbackName,
                     _: Date.now()
                 });
@@ -544,7 +579,7 @@
                     clearTimeout(timeout);
                     
                     if (response && response.success) {
-                        addToHistory(cliente, coluna, valorAntigo, valor, tipo);
+                        addToHistory(cliente, coluna, valorAntigo, valorEnvio, tipo);
                         resolve(response);
                     } else {
                         reject(new Error(response?.error || 'Erro desconhecido'));
@@ -590,7 +625,9 @@
                     showNotification('Selecione uma data', true);
                     return;
                 }
-                valorParaSalvar = dataInput;
+                // Converter data do input (YYYY-MM-DD) para DD/MM/AAAA para exibir
+                const dataObj = new Date(dataInput + "T12:00:00");
+                valorParaSalvar = dataInput; // Mantém no formato ISO para o objeto Date
             }
             
             if (valorParaSalvar !== null) {
@@ -681,7 +718,9 @@
             });
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
-                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                // Aplicar negrito nas células com status
+                const isStatusCell = s !== null && s !== undefined && s !== 'ok';
                 return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
             }).join('')}</tr>`).join('');
             updateAnalytics();
@@ -724,7 +763,7 @@
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-4">
                     <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label>
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all" style="font-weight: bold;">
                         ${valorExibicao}
                     </div>
                 </div>
@@ -764,8 +803,11 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             if (!passwordData.length) return;
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
-                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
-                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
+                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td>
+                <td>${p.CNPJ || '-'}</td>
+                <td>${p.CCM || '-'}</td>
+                ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}
+                `).join('');
         }
 
         function switchTab(tab) {
@@ -845,7 +887,6 @@
 
         function renderTarefasNaTela() {
             const responsaveis = ['jordan', 'sirlene', 'ingrid'];
-            const nomes = { jordan: 'Jordan', sirlene: 'Sirlene', ingrid: 'Ingrid' };
             
             responsaveis.forEach(r => {
                 const container = document.getElementById(`list-${r}`);
