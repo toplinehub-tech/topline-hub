@@ -16,7 +16,7 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        #login-screen { position: fixed; inset: 0; z-index: 9998; background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); display: none; flex-direction: column; align-items: center; justify-content: center; }
+        #login-screen { position: fixed; inset: 0; z-index: 9998; background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%); display: none; flex-direction: column; align-items: center; justify-content: center; }
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -25,20 +25,19 @@
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
-        .white-card-selected { transform: translateY(-2px); box-shadow: 0 12px 20px -8px rgba(16, 185, 129, 0.3); border: 2px solid #10b981 !important; background: #f0fdf4; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
         th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        .card-selected { transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2); border: 2px solid #10b981 !important; background: #f0fdf4; }
-        .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); transform: translateY(-2px); }
+        .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
+        .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
         .option-card { transition: all 0.2s ease; cursor: pointer; }
         .option-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .option-selected { border: 2px solid #10b981 !important; background-color: #f0fdf4 !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
-        .profile-btn { transition: all 0.3s ease; cursor: pointer; background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #a7f3d0; }
-        .profile-btn:hover { transform: scale(1.05); background: #a7f3d0 !important; color: #064e3b !important; }
+        .profile-btn { transition: all 0.3s ease; cursor: pointer; background: white !important; color: #065f46 !important; border: 2px solid #a7f3d0 !important; }
+        .profile-btn:hover { transform: scale(1.05); background: #10b981 !important; color: white !important; border-color: #10b981 !important; }
         .user-badge { position: fixed; top: 20px; right: 20px; z-index: 100; background: white; border-radius: 50px; padding: 8px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
         #notification-toast {
@@ -91,18 +90,30 @@
             border-color: #059669 !important;
         }
         
+        .login-btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
         .login-card {
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
+            background: white;
+            padding: 16px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid #a7f3d0;
+            color: #065f46;
         }
-        
-        .timer-text {
-            font-family: monospace;
-            font-weight: 800;
-        }
-        
-        .small-chart {
-            max-height: 200px;
+        .login-card:hover {
+            transform: translateY(-3px);
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
         }
     </style>
 </head>
@@ -115,23 +126,23 @@
     </div>
 
     <div id="login-screen">
-        <div class="login-card bg-white/95 backdrop-blur-sm rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl border border-emerald-200">
-            <div class="text-center mb-8">
+        <div class="bg-white/95 backdrop-blur-sm rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
+            <div class="text-center mb-6">
                 <div class="brand-name text-3xl justify-center mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                 <p class="text-slate-500 text-xs mt-2">Selecione seu perfil para continuar</p>
             </div>
-            <div class="space-y-3">
-                <button onclick="login('Jordan')" class="profile-btn w-full py-4 rounded-xl font-bold uppercase text-sm transition">Jordan</button>
-                <button onclick="login('Silene')" class="profile-btn w-full py-4 rounded-xl font-bold uppercase text-sm transition">Silene</button>
-                <button onclick="login('Ingrid')" class="profile-btn w-full py-4 rounded-xl font-bold uppercase text-sm transition">Ingrid</button>
-                <button onclick="login('Patricia')" class="profile-btn w-full py-4 rounded-xl font-bold uppercase text-sm transition">Patricia</button>
-                <button onclick="login('ADM')" class="profile-btn w-full bg-gray-700 text-white py-4 rounded-xl font-bold uppercase text-sm transition">ADM - Administrador</button>
+            <div class="login-btn-group">
+                <div onclick="login('Jordan')" class="login-card">Jordan</div>
+                <div onclick="login('Silene')" class="login-card">Silene</div>
+                <div onclick="login('Ingrid')" class="login-card">Ingrid</div>
+                <div onclick="login('Patricia')" class="login-card">Patricia</div>
+                <div onclick="login('ADM')" class="login-card">Administrador</div>
             </div>
         </div>
     </div>
 
     <div id="userBadge" class="user-badge hidden" onclick="logout()">
-        <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold" id="userAvatar"></div>
+        <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold" id="userAvatar">👤</div>
         <span id="userName" class="text-sm font-bold text-slate-700"></span>
         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
     </div>
@@ -176,13 +187,15 @@
         </header>
 
         <div id="view-dash">
-            <!-- Apenas Distribuição por Responsável - gráfico pequeno -->
-            <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
-                <div class="white-card p-4">
-                    <h3 class="text-[11px] font-black uppercase text-slate-400 mb-2">👥 Distribuição por Responsável</h3>
-                    <div class="small-chart">
-                        <canvas id="responsavelChart" width="400" height="180"></canvas>
-                    </div>
+            <!-- Gráficos Avançados -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="white-card p-6">
+                    <h3 class="text-[11px] font-black uppercase text-slate-400 mb-4">📈 Documentos por Status</h3>
+                    <canvas id="statusChart" width="400" height="300"></canvas>
+                </div>
+                <div class="white-card p-6">
+                    <h3 class="text-[11px] font-black uppercase text-slate-400 mb-4">👥 Distribuição por Responsável</h3>
+                    <canvas id="responsavelChart" width="400" height="300"></canvas>
                 </div>
             </div>
 
@@ -226,7 +239,7 @@
                 </div>
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões.</p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos.</p>
                     <div class="mt-4 flex gap-2">
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
@@ -234,28 +247,51 @@
                 </div>
             </div>
 
+            <!-- Filtros Avançados -->
+            <div class="white-card p-4 mb-6">
+                <h3 class="text-[10px] font-black uppercase text-slate-400 mb-3">🔍 Filtros Avançados</h3>
+                <div class="flex flex-wrap gap-3">
+                    <select id="filterPeriodo" onchange="applyAdvancedFilters()" class="text-xs border rounded-xl px-3 py-2 bg-white">
+                        <option value="">📅 Todos os períodos</option>
+                        <option value="30">📆 Próximos 30 dias</option>
+                        <option value="60">📆 Próximos 60 dias</option>
+                        <option value="90">📆 Próximos 90 dias</option>
+                        <option value="vencidos">⚠️ Vencidos</option>
+                    </select>
+                    <select id="filterResponsavel" onchange="applyAdvancedFilters()" class="text-xs border rounded-xl px-3 py-2 bg-white">
+                        <option value="">👥 Todos os responsáveis</option>
+                        <option value="Jordan">👤 Jordan</option>
+                        <option value="Silene">👩 Silene</option>
+                        <option value="Ingrid">👩 Ingrid</option>
+                        <option value="Patricia">👩 Patricia</option>
+                    </select>
+                    <input type="text" id="filterCliente" oninput="applyAdvancedFilters()" placeholder="🏢 Nome do cliente..." class="text-xs border rounded-xl px-3 py-2 w-48">
+                    <button onclick="clearAdvancedFilters()" class="btn-mini text-slate-500">🗑️ Limpar filtros</button>
+                </div>
+            </div>
+
             <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02] transition">
+                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
                     <span class="text-xs font-bold text-slate-700">Vencidos</span>
                 </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02] transition">
+                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
                     <span class="text-xs font-bold text-slate-700">30 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02] transition">
+                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
                     <span class="text-xs font-bold text-slate-700">60 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02] transition">
+                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
                     <span class="text-xs font-bold text-slate-700">90 Dias</span>
                 </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02] transition">
+                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
                     <span class="text-xs font-bold text-slate-700">Andamento</span>
                 </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02] transition">
+                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
                     <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
                     <span class="text-xs font-bold text-slate-700">Análise</span>
                 </button>
@@ -267,17 +303,11 @@
         </div>
 
         <div id="view-tasks" class="hidden">
-            <div class="white-card p-4 mb-8">
-                <div class="flex gap-3 justify-center flex-wrap">
-                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
-                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
-                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
-                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
-                </div>
-                <div id="timerInfo" class="mt-4 text-center"></div>
-                <div class="flex justify-center mt-3">
-                    <button id="resetTimerBtn" onclick="resetDrawTimer()" class="btn-mini border-red-200 text-red-700 hidden">🔄 Resetar Timer (Admin)</button>
-                </div>
+            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
+                <button onclick="distribuirTarefas('vencido')" id="btn-sortear-vencido" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
+                <button onclick="distribuirTarefas('30')" id="btn-sortear-30" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
+                <button onclick="distribuirTarefas('60')" id="btn-sortear-60" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
+                <button onclick="distribuirTarefas('90')" id="btn-sortear-90" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
             </div>
             <div class="grid grid-cols-3 gap-6">
                 <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
@@ -341,10 +371,8 @@
         let lastKnownDataHash = ""; 
         let selectedOption = null;
         let currentUser = null;
-        let responsavelChart = null;
+        let statusChart = null, responsavelChart = null;
         let historyLog = [];
-        let lastDrawTime = null;
-        let timerInterval = null;
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -352,9 +380,9 @@
             setTimeout(() => { 
                 document.getElementById('splash-screen').style.display = 'none';
                 document.getElementById('login-screen').style.display = 'flex';
-            }, 1200);
+            }, 800);
             loadHistory();
-            loadDrawState();
+            loadDistribuicaoStorage();
         };
 
         function login(perfil) {
@@ -365,21 +393,27 @@
             
             let userName = perfil;
             let userAvatar = "👤";
-            if (perfil === 'Jordan') userAvatar = "J";
-            if (perfil === 'Silene') userAvatar = "S";
-            if (perfil === 'Ingrid') userAvatar = "I";
-            if (perfil === 'Patricia') userAvatar = "P";
-            if (perfil === 'ADM') userAvatar = "A";
+            if (perfil === 'Jordan') userAvatar = "👤";
+            if (perfil === 'Silene') userAvatar = "👩";
+            if (perfil === 'Ingrid') userAvatar = "👩";
+            if (perfil === 'Patricia') userAvatar = "👩";
+            if (perfil === 'ADM') userAvatar = "⚙️";
             
             document.getElementById('userName').innerText = userName;
             document.getElementById('userAvatar').innerHTML = userAvatar;
             
-            const resetBtn = document.getElementById('resetTimerBtn');
-            if (currentUser === 'ADM' || currentUser === 'Ingrid') {
-                resetBtn.classList.remove('hidden');
-            } else {
-                resetBtn.classList.add('hidden');
-            }
+            // Controlar visibilidade dos botões de sorteio
+            const botoesSorteio = ['btn-sortear-vencido', 'btn-sortear-30', 'btn-sortear-60', 'btn-sortear-90'];
+            botoesSorteio.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (currentUser === 'Ingrid' || currentUser === 'ADM') {
+                        btn.style.display = 'flex';
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                }
+            });
             
             showNotification(`Bem-vindo(a), ${perfil}!`, false, '');
             
@@ -387,7 +421,7 @@
             container.innerHTML = '';
             docList.forEach(doc => {
                 const btn = document.createElement('button');
-                btn.className = "btn-mini doc-filter-btn transition";
+                btn.className = "btn-mini doc-filter-btn";
                 btn.id = "btn-doc-" + doc; btn.innerText = doc;
                 btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
                 container.appendChild(btn);
@@ -395,8 +429,7 @@
             
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
-            updateTimerDisplay();
-            updateTaskDisplay(); // Carregar visualização das tarefas ao logar
+            setInterval(() => loadDistribuicaoStorage(), 5000);
         }
 
         function logout() {
@@ -471,9 +504,15 @@
 
         async function fetchGoogleSheets(isFirstLoad) {
             try {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (isFirstLoad) loadingOverlay.style.display = 'flex';
+                
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
                 const csvDados = await resDados.text();
-                if (!isFirstLoad && csvDados === lastKnownDataHash) return;
+                if (!isFirstLoad && csvDados === lastKnownDataHash) {
+                    if (isFirstLoad) loadingOverlay.style.display = 'none';
+                    return;
+                }
                 
                 Papa.parse(csvDados, {
                     header: true, dynamicTyping: true, skipEmptyLines: true,
@@ -487,6 +526,8 @@
                         if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
                         updateCharts();
+                        if (isFirstLoad) setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
+                        else loadingOverlay.style.display = 'none';
                     }
                 });
 
@@ -495,7 +536,10 @@
                     const csvSenhas = await resSenhas.text();
                     Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = r.data; } });
                 }
-            } catch (e) { console.error("Erro na sincronização.", e); }
+            } catch (e) { 
+                console.error("Erro na sincronização.", e);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
         }
 
         function processRow(row) {
@@ -610,41 +654,37 @@
                     showNotification('Selecione uma data', true);
                     return;
                 }
-                // Converter para formato DD/MM/YYYY para envio
-                const dataObj = new Date(dataInput + "T12:00:00");
-                valorParaSalvar = dataObj.toLocaleDateString('pt-BR');
-                rawData[r][c] = dataObj;
+                valorParaSalvar = dataInput;
             }
             
-            if (valorParaSalvar !== null && selectedOption !== 'data') {
-                rawData[r][c] = valorParaSalvar;
+            if (valorParaSalvar !== null) {
+                if (selectedOption === 'data') {
+                    const dataObj = new Date(valorParaSalvar + "T12:00:00");
+                    rawData[r][c] = dataObj;
+                } else {
+                    rawData[r][c] = valorParaSalvar;
+                }
                 rawData[r][c + "_DONE"] = false;
-                renderTable();
-                updateCharts();
-            } else if (selectedOption === 'data') {
                 renderTable();
                 updateCharts();
             }
             
             closeModal();
             
-            // Mostrar loading por apenas 2 segundos
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
-            
-            setTimeout(() => {
-                loadingOverlay.style.display = 'none';
-            }, 2000);
             
             const cliente = rawData[r].CLIENTE;
             const coluna = c;
             
             try {
                 await enviarParaGoogleSheets(cliente, coluna, selectedOption, valorParaSalvar, valorAntigo);
+                loadingOverlay.style.display = 'none';
                 showNotification('Atualizado com sucesso!', false, cliente);
                 setTimeout(() => fetchGoogleSheets(false), 2000);
             } catch (error) {
                 console.error('Erro:', error);
+                loadingOverlay.style.display = 'none';
                 showNotification('Erro: ' + error.message, true);
             }
         }
@@ -692,7 +732,33 @@
         }
 
         function updateCharts() {
+            if (statusChart) statusChart.destroy();
             if (responsavelChart) responsavelChart.destroy();
+            
+            let c = { vencido: 0, andamento: 0, analise: 0 };
+            rawData.forEach(row => {
+                headers.forEach(col => {
+                    if (col === 'CLIENTE') return;
+                    const status = getStatus(row[col], row, col);
+                    if (status === 'vencido') c.vencido++;
+                    if (status === 'andamento') c.andamento++;
+                    if (status === 'analise') c.analise++;
+                });
+            });
+            
+            const ctx1 = document.getElementById('statusChart').getContext('2d');
+            statusChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Vencidos', 'Em Andamento', 'Em Análise'],
+                    datasets: [{
+                        data: [c.vencido, c.andamento, c.analise],
+                        backgroundColor: ['#f87171', '#c084fc', '#fb923c'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
             
             const responsaveis = { Jordan: 0, Silene: 0, Ingrid: 0 };
             if (window.tarefasDistribuidas) {
@@ -713,18 +779,61 @@
                         borderRadius: 8
                     }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: true,
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { font: { size: 10 } } } 
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 9 } } },
-                        x: { ticks: { font: { size: 10 } } }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
             });
+        }
+
+        function applyAdvancedFilters() {
+            const periodo = document.getElementById('filterPeriodo').value;
+            const responsavel = document.getElementById('filterResponsavel').value;
+            const cliente = document.getElementById('filterCliente').value.toLowerCase();
+            
+            let filteredData = rawData;
+            
+            if (cliente) {
+                filteredData = filteredData.filter(row => row.CLIENTE?.toLowerCase().includes(cliente));
+            }
+            
+            renderFilteredTable(filteredData);
+        }
+
+        function renderFilteredTable(filteredData) {
+            const body = document.getElementById('tableBody');
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            
+            const finalFiltered = filteredData.filter(row => {
+                if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
+                if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
+                if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
+                return true;
+            });
+            
+            body.innerHTML = finalFiltered.map(row => `<tr>${headers.map(h => {
+                const s = getStatus(row[h], row, h);
+                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+            }).join('')}</tr>`).join('');
+        }
+
+        function clearAdvancedFilters() {
+            document.getElementById('filterPeriodo').value = '';
+            document.getElementById('filterResponsavel').value = '';
+            document.getElementById('filterCliente').value = '';
+            renderTable();
+        }
+
+        function toggleStatusFilter(s) { 
+            activeStatus = (activeStatus === s) ? null : s; 
+            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
+            if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
+            renderTable(); 
+        }
+
+        function toggleDocFilter(d) { 
+            activeDoc = (activeDoc === d) ? null : d; 
+            document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
+            if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
+            renderTable(); 
         }
 
         function renderTable() {
@@ -741,7 +850,7 @@
             });
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
-                let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                 return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
             }).join('')}</tr>`).join('');
             updateAnalytics();
@@ -841,7 +950,6 @@
             if(tab === 'senhas') renderSenhas();
             if(tab === 'history') renderHistory();
             if(tab === 'dash') updateCharts();
-            if(tab === 'tasks') updateTaskDisplay();
         }
 
         function closeModal() { 
@@ -864,99 +972,41 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); 
         }
 
-        // Funções para controle de sorteio com timer de 9 horas
-        function saveDrawState() {
-            const state = {
-                tarefasDistribuidas: window.tarefasDistribuidas,
-                lastDrawTime: lastDrawTime
+        function salvarDistribuicaoStorage(listas) {
+            const dados = {
+                jordan: listas.jordan,
+                silene: listas.silene,
+                ingrid: listas.ingrid,
+                timestamp: Date.now()
             };
-            localStorage.setItem('topline_draw_state', JSON.stringify(state));
+            localStorage.setItem('topline_distribuicao', JSON.stringify(dados));
+            window.tarefasDistribuidas = listas;
         }
 
-        function loadDrawState() {
-            const saved = localStorage.getItem('topline_draw_state');
+        function loadDistribuicaoStorage() {
+            const saved = localStorage.getItem('topline_distribuicao');
             if (saved) {
-                try {
-                    const state = JSON.parse(saved);
-                    window.tarefasDistribuidas = state.tarefasDistribuidas;
-                    lastDrawTime = state.lastDrawTime;
-                    if (window.tarefasDistribuidas) {
-                        updateTaskDisplay();
-                        updateCharts();
-                    }
-                } catch(e) {}
+                const dados = JSON.parse(saved);
+                window.tarefasDistribuidas = {
+                    jordan: dados.jordan || [],
+                    silene: dados.silene || [],
+                    ingrid: dados.ingrid || []
+                };
+                renderTarefasNaTela();
             }
         }
 
-        function canDraw() {
-            if (!lastDrawTime) return true;
-            const now = Date.now();
-            const hoursPassed = (now - lastDrawTime) / (1000 * 60 * 60);
-            return hoursPassed >= 9;
-        }
-
-        function getRemainingTime() {
-            if (!lastDrawTime) return 0;
-            const now = Date.now();
-            const elapsed = now - lastDrawTime;
-            const remaining = (9 * 60 * 60 * 1000) - elapsed;
-            return Math.max(0, remaining);
-        }
-
-        function updateTimerDisplay() {
-            const timerInfo = document.getElementById('timerInfo');
-            if (!timerInfo) return;
-            
-            if (!lastDrawTime) {
-                timerInfo.innerHTML = '<span class="text-xs text-emerald-600 font-bold">✅ Sorteio disponível</span>';
-                return;
-            }
-            
-            const remaining = getRemainingTime();
-            if (remaining <= 0) {
-                timerInfo.innerHTML = '<span class="text-xs text-emerald-600 font-bold">✅ Sorteio disponível</span>';
-            } else {
-                const hours = Math.floor(remaining / (1000 * 60 * 60));
-                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-                timerInfo.innerHTML = `<span class="text-xs text-orange-600 font-bold timer-text">⏱️ Próximo sorteio disponível em: ${hours}h ${minutes}m ${seconds}s</span>`;
-            }
-        }
-
-        function startTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                updateTimerDisplay();
-            }, 1000);
-        }
-
-        function resetDrawTimer() {
-            if (currentUser !== 'ADM' && currentUser !== 'Ingrid') {
-                showNotification('Apenas ADM ou Ingrid podem resetar o timer!', true);
-                return;
-            }
-            
-            if (confirm('Resetar o timer permitirá um novo sorteio imediatamente. Confirmar?')) {
-                lastDrawTime = null;
-                saveDrawState();
-                updateTimerDisplay();
-                showNotification('Timer resetado! Novo sorteio disponível.', false, '');
-            }
-        }
-
-        function updateTaskDisplay() {
-            if (!window.tarefasDistribuidas) return;
-            
+        function renderTarefasNaTela() {
             const responsaveis = ['jordan', 'silene', 'ingrid'];
+            const nomes = { jordan: 'Jordan', silene: 'Silene', ingrid: 'Ingrid' };
+            
             responsaveis.forEach(r => {
                 const container = document.getElementById(`list-${r}`);
-                const countElem = document.getElementById(`count-${r}`);
-                if (container && countElem) {
-                    const tasks = window.tarefasDistribuidas[r] || [];
-                    countElem.innerText = tasks.length;
+                const countSpan = document.getElementById(`count-${r}`);
+                if (container && window.tarefasDistribuidas && window.tarefasDistribuidas[r]) {
+                    countSpan.innerText = window.tarefasDistribuidas[r].length;
                     container.innerHTML = '';
-                    
-                    tasks.forEach(t => {
+                    window.tarefasDistribuidas[r].forEach(t => {
                         const card = document.createElement('div');
                         card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
                         card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
@@ -974,112 +1024,67 @@
                     });
                 }
             });
+            updateCharts();
         }
 
         function distribuirTarefas(statusAlvo) {
-            // Verificar permissão - apenas Ingrid pode sortear
-            if (currentUser !== 'Ingrid') {
-                showNotification('Apenas Ingrid pode realizar o sorteio de tarefas!', true);
+            if (currentUser !== 'Ingrid' && currentUser !== 'ADM') {
+                showNotification('Apenas a Ingrid ou o Administrador podem realizar sorteios!', true);
                 return;
             }
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
             
-            // Verificar timer de 9 horas
-            if (!canDraw()) {
-                const remaining = getRemainingTime();
-                const hours = Math.floor(remaining / (1000 * 60 * 60));
-                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                showNotification(`Aguarde ${hours}h ${minutes}m para um novo sorteio!`, true);
-                return;
-            }
-            
-            const responsaveis = ['jordan', 'silene', 'ingrid'];
-            const listas = { jordan: [], silene: [], ingrid: [] };
-            
-            // Agrupar tarefas por cliente
-            let tarefasPorCliente = {};
-            
-            rawData.forEach((row, rowIndex) => {
-                const cliente = row.CLIENTE;
-                if (!tarefasPorCliente[cliente]) {
-                    tarefasPorCliente[cliente] = [];
+            setTimeout(() => {
+                const responsaveis = ['jordan', 'silene', 'ingrid'];
+                const listas = { jordan: [], silene: [], ingrid: [] };
+                
+                // Agrupar tarefas por cliente
+                const tarefasPorCliente = new Map();
+                
+                rawData.forEach((row, rowIndex) => {
+                    headers.forEach(col => {
+                        if (col === 'CLIENTE') return;
+                        if (getStatus(row[col], row, col) === statusAlvo) {
+                            const cliente = row.CLIENTE;
+                            if (!tarefasPorCliente.has(cliente)) {
+                                tarefasPorCliente.set(cliente, []);
+                            }
+                            tarefasPorCliente.get(cliente).push({
+                                cliente: cliente,
+                                documento: col,
+                                prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
+                                originalRowIndex: rowIndex
+                            });
+                        }
+                    });
+                });
+                
+                if (tarefasPorCliente.size === 0) {
+                    loadingOverlay.style.display = 'none';
+                    showNotification('Nenhuma tarefa encontrada para este filtro', true);
+                    return;
                 }
                 
-                headers.forEach(col => {
-                    if (col === 'CLIENTE') return;
-                    const status = getStatus(row[col], row, col);
-                    if (status === statusAlvo) {
-                        tarefasPorCliente[cliente].push({
-                            cliente: cliente,
-                            documento: col,
-                            prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
-                            originalRowIndex: rowIndex
-                        });
-                    }
+                // Distribuir clientes inteiros para os responsáveis
+                const clientes = Array.from(tarefasPorCliente.keys());
+                clientes.sort(() => Math.random() - 0.5);
+                
+                clientes.forEach((cliente, index) => {
+                    const destino = responsaveis[index % responsaveis.length];
+                    const tarefasDoCliente = tarefasPorCliente.get(cliente);
+                    listas[destino].push(...tarefasDoCliente);
                 });
-            });
-
-            // Coletar todas as tarefas
-            let todasTarefas = [];
-            for (let cliente in tarefasPorCliente) {
-                todasTarefas.push(...tarefasPorCliente[cliente]);
-            }
-
-            if (todasTarefas.length === 0) {
-                showNotification('Nenhuma tarefa encontrada para este filtro', true);
-                return;
-            }
-
-            // Distribuir por cliente (empresa) - mesma empresa cai para o mesmo funcionário
-            const clientes = Object.keys(tarefasPorCliente);
-            // Embaralhar os clientes para distribuição aleatória
-            for (let i = clientes.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [clientes[i], clientes[j]] = [clientes[j], clientes[i]];
-            }
-            
-            clientes.forEach((cliente, index) => {
-                const tarefasDoCliente = tarefasPorCliente[cliente];
-                const responsavel = responsaveis[index % responsaveis.length];
-                listas[responsavel].push(...tarefasDoCliente);
-            });
-
-            window.tarefasDistribuidas = listas;
-            
-            // Atualizar timestamp do último sorteio
-            lastDrawTime = Date.now();
-            saveDrawState();
-            
-            // Iniciar timer se não estiver rodando
-            if (!timerInterval) startTimer();
-            
-            updateTaskDisplay();
-            updateCharts();
-            updateTimerDisplay();
-            showNotification(`Tarefas distribuídas! Próximo sorteio em 9 horas.`, false, '');
+                
+                window.tarefasDistribuidas = listas;
+                salvarDistribuicaoStorage(listas);
+                renderTarefasNaTela();
+                
+                loadingOverlay.style.display = 'none';
+                showNotification(`Tarefas distribuídas para ${statusAlvo.toUpperCase()}!`, false, `${clientes.length} clientes`);
+            }, 100);
         }
-
-        function toggleStatusFilter(s) { 
-            activeStatus = (activeStatus === s) ? null : s; 
-            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
-            if(activeStatus) {
-                const selectedBtn = document.getElementById('btn-' + s);
-                if(selectedBtn) selectedBtn.classList.add('card-selected');
-            }
-            renderTable(); 
-        }
-
-        function toggleDocFilter(d) { 
-            activeDoc = (activeDoc === d) ? null : d; 
-            document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
-            if(activeDoc) {
-                const selectedBtn = document.getElementById('btn-doc-' + d);
-                if(selectedBtn) selectedBtn.classList.add('doc-btn-active');
-            }
-            renderTable(); 
-        }
-
-        // Iniciar timer ao carregar
-        startTimer();
     </script>
 </body>
 </html>
