@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.7</title>
+    <title>TopLineHub | Gestão Integrada v1.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -15,6 +15,7 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        #login-screen { position: fixed; inset: 0; z-index: 10000; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -69,6 +70,23 @@
             text-align: center;
             min-width: 200px;
         }
+        
+        .login-btn {
+            transition: all 0.2s ease;
+        }
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .user-badge {
+            background: #f1f5f9;
+            border-radius: 40px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+        }
     </style>
 </head>
 <body>
@@ -77,6 +95,25 @@
         <div class="brand-name text-4xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
         <div class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Gestão Integrada</div>
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
+    </div>
+
+    <div id="login-screen">
+        <div class="white-card p-8 max-w-md w-full mx-4 text-center">
+            <div class="brand-name text-3xl justify-center mb-6"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+            <p class="text-slate-500 text-xs mb-8 uppercase tracking-wide">Acesso ao sistema</p>
+            
+            <div class="flex flex-wrap justify-center gap-3 mb-8">
+                <button onclick="login('Ingrid')" class="login-btn px-5 py-2 bg-white border-2 border-emerald-200 rounded-full text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition">Ingrid</button>
+                <button onclick="login('Sirlene')" class="login-btn px-5 py-2 bg-white border-2 border-emerald-200 rounded-full text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition">Sirlene</button>
+                <button onclick="login('Patricia')" class="login-btn px-5 py-2 bg-white border-2 border-emerald-200 rounded-full text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition">Patricia</button>
+                <button onclick="login('Jordan')" class="login-btn px-5 py-2 bg-white border-2 border-emerald-200 rounded-full text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition">Jordan</button>
+                <button onclick="login('Nikolas')" class="login-btn px-5 py-2 bg-white border-2 border-emerald-200 rounded-full text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition">Nikolas</button>
+            </div>
+            
+            <div class="text-[9px] text-slate-400 uppercase tracking-wider border-t pt-4 mt-2">
+                Sistema de Gestão de Certidões
+            </div>
+        </div>
     </div>
 
     <div id="loadingOverlay" class="loading-overlay">
@@ -100,135 +137,143 @@
         </div>
     </div>
 
-    <div class="p-6 max-w-[1600px] mx-auto">
-        <header class="white-card p-5 flex justify-between items-center mb-6">
-            <div>
-                <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                <nav class="flex gap-6 mt-3">
-                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
-                </nav>
-            </div>
-            <div class="flex items-center gap-3">
-                <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
-                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
-                <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
-                <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
-            </div>
-        </header>
+    <div id="main-app" style="display: none;">
+        <div class="p-6 max-w-[1600px] mx-auto">
+            <header class="white-card p-5 flex justify-between items-center mb-6">
+                <div>
+                    <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                    <nav class="flex gap-6 mt-3">
+                        <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
+                        <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
+                        <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                    </nav>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="user-badge flex items-center gap-2">
+                        <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span id="current-user-name" class="text-emerald-700">Usuário</span>
+                        <button onclick="logout()" class="ml-2 text-slate-400 hover:text-red-500 transition">Sair</button>
+                    </div>
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
+                    <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
+                    <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
+                    <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
+                </div>
+            </header>
 
-        <div id="view-dash">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="white-card p-6 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-wider">Resumo Crítico Operacional</h3>
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-3">
-                                <span class="w-3 h-3 rounded-full bg-red-400"></span>
-                                <span class="text-xs font-bold text-slate-600 w-24">Vencidos:</span>
-                                <span id="dash-count-vencido" class="text-xs font-black text-slate-800">0</span>
+            <div id="view-dash">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="white-card p-6 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-wider">Resumo Crítico Operacional</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                                    <span class="text-xs font-bold text-slate-600 w-24">Vencidos:</span>
+                                    <span id="dash-count-vencido" class="text-xs font-black text-slate-800">0</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-purple-400"></span>
+                                    <span class="text-xs font-bold text-slate-600 w-24">Andamento:</span>
+                                    <span id="dash-count-andamento" class="text-xs font-black text-slate-800">0</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-orange-400"></span>
+                                    <span class="text-xs font-bold text-slate-600 w-24">Análise:</span>
+                                    <span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span>
+                                </div>
+                                <div class="pt-2 border-t mt-2 flex gap-4">
+                                    <span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos itens: <span id="dash-count-total">0</span></span>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3 h-3 rounded-full bg-purple-400"></span>
-                                <span class="text-xs font-bold text-slate-600 w-24">Andamento:</span>
-                                <span id="dash-count-andamento" class="text-xs font-black text-slate-800">0</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3 h-3 rounded-full bg-orange-400"></span>
-                                <span class="text-xs font-bold text-slate-600 w-24">Análise:</span>
-                                <span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span>
-                            </div>
-                            <div class="pt-2 border-t mt-2 flex gap-4">
-                                <span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos itens: <span id="dash-count-total">0</span></span>
+                        </div>
+                        <div class="relative w-32 h-32">
+                            <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                                <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="4"></circle>
+                                <circle id="circle-vencido" cx="18" cy="18" r="16" fill="none" stroke="#f87171" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                                <circle id="circle-andamento" cx="18" cy="18" r="16" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                                <circle id="circle-analise" cx="18" cy="18" r="16" fill="none" stroke="#fb923c" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center flex-col leading-none">
+                                <span id="dash-percent" class="text-xl font-extrabold text-slate-800">0%</span>
+                                <span class="text-[7px] font-bold text-slate-400 uppercase mt-1">Status</span>
                             </div>
                         </div>
                     </div>
-                    <div class="relative w-32 h-32">
-                        <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
-                            <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="4"></circle>
-                            <circle id="circle-vencido" cx="18" cy="18" r="16" fill="none" stroke="#f87171" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                            <circle id="circle-andamento" cx="18" cy="18" r="16" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                            <circle id="circle-analise" cx="18" cy="18" r="16" fill="none" stroke="#fb923c" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                        </svg>
-                        <div class="absolute inset-0 flex items-center justify-center flex-col leading-none">
-                            <span id="dash-percent" class="text-xl font-extrabold text-slate-800">0%</span>
-                            <span class="text-[7px] font-bold text-slate-400 uppercase mt-1">Status</span>
+                    <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
+                        <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
+                        <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos.</p>
+                        <div class="mt-4 flex gap-2">
+                            <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
+                            <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
                         </div>
                     </div>
                 </div>
-                <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
-                    <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Patricia.</p>
-                    <div class="mt-4 flex gap-2">
-                        <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
-                        <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
+
+                <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
+                    <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
+                        <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
+                        <span class="text-xs font-bold text-slate-700">Vencidos</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
+                        <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
+                        <span class="text-xs font-bold text-slate-700">30 Dias</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
+                        <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
+                        <span class="text-xs font-bold text-slate-700">60 Dias</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
+                        <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
+                        <span class="text-xs font-bold text-slate-700">90 Dias</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
+                        <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
+                        <span class="text-xs font-bold text-slate-700">Andamento</span>
+                    </button>
+                    <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
+                        <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
+                        <span class="text-xs font-bold text-slate-700">Análise</span>
+                    </button>
+                </div>
+                <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
+                <div class="white-card overflow-hidden">
+                    <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+                </div>
+            </div>
+
+            <div id="view-tasks" class="hidden">
+                <div class="white-card p-4 mb-8 flex gap-3 justify-center flex-wrap">
+                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
+                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
+                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">Sortear 90 D</button>
+                </div>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
+                        <div id="list-jordan" class="space-y-2"></div>
+                    </div>
+                    <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
+                        <div id="list-silene" class="space-y-2"></div>
+                    </div>
+                    <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
+                        <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
+                        <div id="list-patricia" class="space-y-2"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]">
-                    <span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span>
-                    <span class="text-xs font-bold text-slate-700">Vencidos</span>
-                </button>
-                <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]">
-                    <span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span>
-                    <span class="text-xs font-bold text-slate-700">30 Dias</span>
-                </button>
-                <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]">
-                    <span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span>
-                    <span class="text-xs font-bold text-slate-700">60 Dias</span>
-                </button>
-                <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]">
-                    <span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span>
-                    <span class="text-xs font-bold text-slate-700">90 Dias</span>
-                </button>
-                <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]">
-                    <span class="block text-[8px] font-black text-purple-500 uppercase">Status</span>
-                    <span class="text-xs font-bold text-slate-700">Andamento</span>
-                </button>
-                <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]">
-                    <span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span>
-                    <span class="text-xs font-bold text-slate-700">Análise</span>
-                </button>
-            </div>
-            <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
-            <div class="white-card overflow-hidden">
-                <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
-            </div>
-        </div>
-
-        <div id="view-tasks" class="hidden">
-            <div class="white-card p-4 mb-8 flex gap-3 justify-center">
-                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
-            </div>
-            <div class="grid grid-cols-3 gap-6">
-                <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3>
-                    <div id="list-jordan" class="space-y-2"></div>
-                </div>
-                <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
-                    <div id="list-silene" class="space-y-2"></div>
-                </div>
-                <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
-                    <div id="list-patricia" class="space-y-2"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-senhas" class="hidden">
-            <div class="white-card p-6">
-                <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
-                <div class="scroll-container">
-                    <table class="w-full text-left">
-                        <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
-                        <tbody id="senhasBody"></tbody>
-                    </table>
+            <div id="view-senhas" class="hidden">
+                <div class="white-card p-6">
+                    <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                    <div class="scroll-container">
+                        <table class="w-full text-left">
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
+                            <tbody id="senhasBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -256,6 +301,7 @@
         let currentEditTarget = {};
         let lastKnownDataHash = ""; 
         let selectedOption = null;
+        let currentUser = "";
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -269,9 +315,22 @@
                 btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
                 container.appendChild(btn);
             });
+        };
+
+        function login(userName) {
+            currentUser = userName;
+            document.getElementById('current-user-name').innerText = currentUser;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
-        };
+        }
+
+        function logout() {
+            currentUser = "";
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+        }
 
         async function fetchGoogleSheets(isFirstLoad) {
             try {
@@ -350,7 +409,6 @@
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
                 
-                // Criar URL com parâmetros
                 const params = new URLSearchParams({
                     cliente: cliente,
                     coluna: coluna,
@@ -363,7 +421,6 @@
                 const url = `${URL_SCRIPT_GOOGLE}?${params.toString()}`;
                 console.log('Enviando JSONP:', url);
                 
-                // Criar função callback global
                 window[callbackName] = function(response) {
                     delete window[callbackName];
                     document.body.removeChild(script);
@@ -377,14 +434,12 @@
                     }
                 };
                 
-                // Timeout de 30 segundos
                 const timeout = setTimeout(() => {
                     delete window[callbackName];
                     if (document.body.contains(script)) document.body.removeChild(script);
                     reject(new Error('Timeout - O Google Sheets não respondeu'));
                 }, 30000);
                 
-                // Criar e inserir script
                 const script = document.createElement('script');
                 script.src = url;
                 script.onerror = () => {
@@ -420,7 +475,6 @@
                 valorParaSalvar = dataInput;
             }
             
-            // Atualizar localmente primeiro para feedback imediato
             if (valorParaSalvar !== null) {
                 if (selectedOption === 'data') {
                     const dataObj = new Date(valorParaSalvar + "T12:00:00");
@@ -434,7 +488,6 @@
             
             closeModal();
             
-            // Mostrar loading
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
             
@@ -448,7 +501,6 @@
                 console.log('Sucesso!', resultado);
                 loadingOverlay.style.display = 'none';
                 showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
-                // Recarregar dados após 2 segundos para confirmar
                 setTimeout(() => fetchGoogleSheets(false), 2000);
             } catch (error) {
                 console.error('Erro ao enviar:', error);
@@ -652,13 +704,18 @@
                 document.getElementById(`count-${r}`).innerText = "0";
             });
 
-            let tarefasParaSorteio = [];
+            let tarefasPorCliente = new Map();
+            
             rawData.forEach((row, rowIndex) => {
+                const clienteNome = row.CLIENTE;
                 headers.forEach(col => {
                     if (col === 'CLIENTE') return;
                     if (getStatus(row[col], row, col) === statusAlvo) {
-                        tarefasParaSorteio.push({
-                            cliente: row.CLIENTE,
+                        if (!tarefasPorCliente.has(clienteNome)) {
+                            tarefasPorCliente.set(clienteNome, []);
+                        }
+                        tarefasPorCliente.get(clienteNome).push({
+                            cliente: clienteNome,
                             documento: col,
                             prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
                             originalRowIndex: rowIndex 
@@ -667,23 +724,39 @@
                 });
             });
 
-            if (tarefasParaSorteio.length === 0) {
+            if (tarefasPorCliente.size === 0) {
                 showNotification('Nenhuma tarefa encontrada para este filtro', true);
                 return;
             }
 
-            tarefasParaSorteio.sort(() => Math.random() - 0.5);
-
-            tarefasParaSorteio.forEach((tarefa, index) => {
-                const destino = responsaveis[index % responsaveis.length];
-                listas[destino].push(tarefa);
+            let clientesArray = Array.from(tarefasPorCliente.entries());
+            clientesArray.sort((a, b) => b[1].length - a[1].length);
+            
+            let distribuicao = { jordan: [], silene: [], patricia: [] };
+            let cargas = { jordan: 0, silene: 0, patricia: 0 };
+            
+            clientesArray.forEach(([cliente, tarefas]) => {
+                let menorCarga = 'jordan';
+                let menorValor = cargas.jordan;
+                
+                if (cargas.silene < menorValor) {
+                    menorValor = cargas.silene;
+                    menorCarga = 'silene';
+                }
+                if (cargas.patricia < menorValor) {
+                    menorValor = cargas.patricia;
+                    menorCarga = 'patricia';
+                }
+                
+                distribuicao[menorCarga].push(...tarefas);
+                cargas[menorCarga] += tarefas.length;
             });
-
+            
             responsaveis.forEach(r => {
                 const container = document.getElementById(`list-${r}`);
-                document.getElementById(`count-${r}`).innerText = listas[r].length;
+                document.getElementById(`count-${r}`).innerText = distribuicao[r].length;
                 
-                listas[r].forEach(t => {
+                distribuicao[r].forEach(t => {
                     const card = document.createElement('div');
                     card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
                     card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
@@ -700,6 +773,8 @@
                     container.appendChild(card);
                 });
             });
+            
+            showNotification(`Distribuição concluída para status: ${statusAlvo}`, false, `${tarefasPorCliente.size} clientes`);
         }
     </script>
 </body>
