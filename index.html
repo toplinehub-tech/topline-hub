@@ -138,7 +138,7 @@
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner">
             <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-sm font-bold text-slate-700">Processando...</p>
+            <p class="text-sm font-bold text-slate-700">Salvando alterações...</p>
         </div>
     </div>
 
@@ -292,27 +292,30 @@
 
         function formatDateToBR(date) {
             if (!date) return '';
-            if (typeof date === 'string') return date;
+            if (typeof date === 'string' && date.match(/^\d{2}\/\d{2}\/\d{4}$/)) return date;
             const d = new Date(date);
+            if (isNaN(d.getTime())) return String(date);
             return d.toLocaleDateString('pt-BR');
         }
 
         function parseDateFromBR(dateStr) {
             if (!dateStr) return null;
-            const parts = dateStr.split('/');
-            if (parts.length === 3) return new Date(parts[2], parts[1]-1, parts[0]);
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const parts = dateStr.split('/');
+                return new Date(parts[2], parts[1]-1, parts[0]);
+            }
             return new Date(dateStr);
         }
 
         function loadSorteioState() {
-            const saved = localStorage.getItem('topline_sorteio');
+            const saved = localStorage.getItem('topline_sorteio_global');
             if(saved) {
                 const data = JSON.parse(saved);
                 if(data.timestamp && (Date.now() - data.timestamp) < 10 * 3600000) {
                     lastSorteioTimestamp = data.timestamp;
                     if(data.tarefas) window.tarefasDistribuidas = data.tarefas;
                 } else {
-                    localStorage.removeItem('topline_sorteio');
+                    localStorage.removeItem('topline_sorteio_global');
                     window.tarefasDistribuidas = null;
                 }
             }
@@ -332,7 +335,7 @@
             const remaining = 10 * 3600000 - elapsed;
             if(remaining <= 0) {
                 lastSorteioTimestamp = null;
-                localStorage.removeItem('topline_sorteio');
+                localStorage.removeItem('topline_sorteio_global');
                 timerEl.innerText = "Disponível";
                 updateButtonsState();
                 return;
@@ -467,7 +470,14 @@
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
                 const csvDados = await resDados.text();
                 if (!isFirstLoad && csvDados === lastKnownDataHash) return;
-                Papa.parse(csvDados, { header: true, dynamicTyping: true, skipEmptyLines: true, complete: (results) => { const newData = results.data.map(processRow); rawData = newData; lastKnownDataHash = csvDados; if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS')); renderTable(); updateCharts(); } });
+                Papa.parse(csvDados, { header: true, dynamicTyping: true, skipEmptyLines: true, complete: (results) => { 
+                    const newData = results.data.map(processRow); 
+                    rawData = newData; 
+                    lastKnownDataHash = csvDados; 
+                    if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS')); 
+                    renderTable(); 
+                    updateCharts(); 
+                } });
                 if(isFirstLoad) { const resSenhas = await fetch(URL_SENHAS); const csvSenhas = await resSenhas.text(); Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = r.data; } }); }
             } catch (e) { console.error("Erro na sincronização.", e); }
         }
@@ -533,7 +543,8 @@
             } else if (selectedOption === 'data') {
                 const dataInput = document.getElementById('dateValue').value;
                 if (!dataInput) { showNotification('Selecione uma data', true); return; }
-                valorParaSalvar = dataInput;
+                const [ano, mes, dia] = dataInput.split('-');
+                valorParaSalvar = `${dia}/${mes}/${ano}`;
             }
             
             if (valorParaSalvar !== null) {
@@ -558,9 +569,11 @@
             
             try {
                 await enviarParaGoogleSheets(cliente, coluna, selectedOption, valorParaSalvar, valorAntigo);
-                loadingOverlay.style.display = 'none';
-                showNotification('Atualizado com sucesso!', false, cliente);
-                setTimeout(() => fetchGoogleSheets(false), 3000);
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                    showNotification('Atualizado com sucesso!', false, cliente);
+                }, 3000);
+                setTimeout(() => fetchGoogleSheets(false), 4000);
             } catch (error) {
                 console.error('Erro:', error);
                 loadingOverlay.style.display = 'none';
@@ -685,7 +698,7 @@
             
             window.tarefasDistribuidas = listas;
             lastSorteioTimestamp = Date.now();
-            localStorage.setItem('topline_sorteio', JSON.stringify({ timestamp: lastSorteioTimestamp, tarefas: listas }));
+            localStorage.setItem('topline_sorteio_global', JSON.stringify({ timestamp: lastSorteioTimestamp, tarefas: listas }));
             
             renderTasksFromStorage();
             updateCharts();
