@@ -95,6 +95,13 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        
+        /* Estilo para células com data - fundo verde e negrito */
+        .data-cell {
+            background-color: #d1fae5 !important;
+            color: #065f46 !important;
+            font-weight: bold !important;
+        }
     </style>
 </head>
 <body>
@@ -523,31 +530,18 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
+        // Função para converter data do formato ISO (YYYY-MM-DD) para DD/MM/AAAA
         function formatDateToBR(dateStr) {
             if (!dateStr) return '';
-            // Se já estiver no formato DD/MM/AAAA
-            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) return dateStr;
             // Se for objeto Date
             if (dateStr instanceof Date) {
                 const d = dateStr;
                 return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
             }
-            // Se for string ISO
-            if (dateStr.includes('-')) {
+            // Se for string no formato YYYY-MM-DD
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 const parts = dateStr.split('-');
-                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-            return dateStr;
-        }
-
-        function formatDateToISO(dateStr) {
-            if (!dateStr) return '';
-            // Se já estiver no formato YYYY-MM-DD
-            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) return dateStr;
-            // Se estiver no formato DD/MM/AAAA
-            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                const parts = dateStr.split('/');
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
             }
             return dateStr;
         }
@@ -625,9 +619,8 @@
                     showNotification('Selecione uma data', true);
                     return;
                 }
-                // Converter data do input (YYYY-MM-DD) para DD/MM/AAAA para exibir
-                const dataObj = new Date(dataInput + "T12:00:00");
-                valorParaSalvar = dataInput; // Mantém no formato ISO para o objeto Date
+                // Mantém no formato YYYY-MM-DD para o objeto Date
+                valorParaSalvar = dataInput;
             }
             
             if (valorParaSalvar !== null) {
@@ -719,9 +712,13 @@
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
                 let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                // Aplicar negrito nas células com status
-                const isStatusCell = s !== null && s !== undefined && s !== 'ok';
-                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+                // Aplicar classe especial para células de data com fundo verde
+                const isDateCell = row[h] instanceof Date;
+                let additionalClass = '';
+                if (isDateCell && !s) {
+                    additionalClass = 'data-cell';
+                }
+                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')} ${additionalClass}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
             }).join('')}</tr>`).join('');
             updateAnalytics();
         }
