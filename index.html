@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.7</title>
+    <title>TopLineHub | Gestão Integrada v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
@@ -15,6 +16,7 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        #login-screen { position: fixed; inset: 0; z-index: 9998; background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #10b981 100%); display: none; flex-direction: column; align-items: center; justify-content: center; }
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -29,11 +31,14 @@
         .col-fixed { position: sticky; left: 0; background: #ffffff !important; z-index: 10; font-weight: 600; border-right: 1px solid #e2e8f0; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #e2e8f0; background: white; }
         
-        .card-selected { transform: translateY(-4px) scale(1.02); shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
+        .card-selected { transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
         .option-card { transition: all 0.2s ease; cursor: pointer; }
         .option-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .option-selected { border: 2px solid #10b981 !important; background-color: #f0fdf4 !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+        .profile-btn { transition: all 0.3s ease; cursor: pointer; background: white; color: #064e3b; border: 2px solid #a7f3d0; border-radius: 60px; padding: 12px 28px; font-weight: bold; font-size: 1rem; text-align: center; min-width: 120px; }
+        .profile-btn:hover { transform: scale(1.05); background: #10b981; color: white; border-color: #10b981; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+        .user-badge { position: fixed; top: 20px; right: 20px; z-index: 100; background: white; border-radius: 50px; padding: 8px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
         #notification-toast {
             position: fixed;
@@ -69,6 +74,27 @@
             text-align: center;
             min-width: 200px;
         }
+        
+        .history-item {
+            border-left: 3px solid #10b981;
+            transition: all 0.2s ease;
+        }
+        .history-item:hover {
+            background: #f0fdf4;
+            transform: translateX(4px);
+        }
+        
+        .login-btn-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .sorteio-btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -79,11 +105,32 @@
         <div class="w-12 h-1 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mt-6"></div>
     </div>
 
+    <div id="login-screen">
+        <div class="bg-white/95 backdrop-blur-sm rounded-3xl p-10 max-w-3xl w-full mx-4 shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="brand-name text-3xl justify-center mb-3"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                <p class="text-slate-500 text-sm">Selecione seu perfil para continuar</p>
+            </div>
+            <div class="login-btn-group">
+                <button onclick="login('Ingrid')" class="profile-btn">Ingrid</button>
+                <button onclick="login('Jordan')" class="profile-btn">Jordan</button>
+                <button onclick="login('Patricia')" class="profile-btn">Patricia</button>
+                <button onclick="login('Sirlene')" class="profile-btn">Sirlene</button>
+                <button onclick="login('Nikolas')" class="profile-btn">Nikolas</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="userBadge" class="user-badge hidden" onclick="logout()">
+        <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold" id="userAvatar">👤</div>
+        <span id="userName" class="text-sm font-bold text-slate-700"></span>
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+    </div>
+
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner">
             <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-sm font-bold text-slate-700">Enviando para o Google Sheets...</p>
-            <p class="text-xs text-slate-400 mt-2">Aguarde um momento</p>
+            <p class="text-sm font-bold text-slate-700">Processando...</p>
         </div>
     </div>
 
@@ -100,21 +147,22 @@
         </div>
     </div>
 
-    <div class="p-6 max-w-[1600px] mx-auto">
+    <div class="p-6 max-w-[1600px] mx-auto" id="mainContent" style="display: none;">
         <header class="white-card p-5 flex justify-between items-center mb-6">
             <div>
                 <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                 <nav class="flex gap-6 mt-3">
-                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">📊 Painel</button>
+                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">✅ Tarefas</button>
+                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">🔑 Senhas</button>
+                    <button onclick="switchTab('history')" id="tab-history" class="text-[10px] font-bold uppercase pb-1 text-slate-400">📜 Histórico</button>
                 </nav>
             </div>
             <div class="flex items-center gap-3">
                 <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
-                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
-                <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
-                <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
+                <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">🔄 Sincronizar</button>
+                <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">📎 Backup</button>
+                <button onclick="resetAllFilters()" class="btn-mini text-slate-500">🗑️ Limpar</button>
             </div>
         </header>
 
@@ -140,16 +188,16 @@
                                 <span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span>
                             </div>
                             <div class="pt-2 border-t mt-2 flex gap-4">
-                                <span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos itens: <span id="dash-count-total">0</span></span>
+                                <span class="text-[10px] font-black text-emerald-600 uppercase">Total: <span id="dash-count-total">0</span></span>
                             </div>
                         </div>
                     </div>
                     <div class="relative w-32 h-32">
                         <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
                             <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="4"></circle>
-                            <circle id="circle-vencido" cx="18" cy="18" r="16" fill="none" stroke="#f87171" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                            <circle id="circle-andamento" cx="18" cy="18" r="16" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                            <circle id="circle-analise" cx="18" cy="18" r="16" fill="none" stroke="#fb923c" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
+                            <circle id="circle-vencido" cx="18" cy="18" r="16" fill="none" stroke="#f87171" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round"></circle>
+                            <circle id="circle-andamento" cx="18" cy="18" r="16" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round"></circle>
+                            <circle id="circle-analise" cx="18" cy="18" r="16" fill="none" stroke="#fb923c" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round"></circle>
                         </svg>
                         <div class="absolute inset-0 flex items-center justify-center flex-col leading-none">
                             <span id="dash-percent" class="text-xl font-extrabold text-slate-800">0%</span>
@@ -159,7 +207,7 @@
                 </div>
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos para Jordan, Silene e Patricia.</p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões.</p>
                     <div class="mt-4 flex gap-2">
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
@@ -201,9 +249,10 @@
 
         <div id="view-tasks" class="hidden">
             <div class="white-card p-4 mb-8 flex gap-3 justify-center">
-                <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">Sortear Vencidas</button>
-                <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">Sortear 30 D</button>
-                <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">Sortear 60 D</button>
+                <button onclick="distribuirTarefas('vencido')" id="btn-sortear-vencido" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
+                <button onclick="distribuirTarefas('30')" id="btn-sortear-30" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
+                <button onclick="distribuirTarefas('60')" id="btn-sortear-60" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
+                <button onclick="distribuirTarefas('90')" id="btn-sortear-90" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
             </div>
             <div class="grid grid-cols-3 gap-6">
                 <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]">
@@ -211,12 +260,12 @@
                     <div id="list-jordan" class="space-y-2"></div>
                 </div>
                 <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Silene <span id="count-silene">0</span></h3>
-                    <div id="list-silene" class="space-y-2"></div>
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Sirlene <span id="count-sirlene">0</span></h3>
+                    <div id="list-sirlene" class="space-y-2"></div>
                 </div>
                 <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]">
-                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Patricia <span id="count-patricia">0</span></h3>
-                    <div id="list-patricia" class="space-y-2"></div>
+                    <h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Ingrid <span id="count-ingrid">0</span></h3>
+                    <div id="list-ingrid" class="space-y-2"></div>
                 </div>
             </div>
         </div>
@@ -230,6 +279,16 @@
                         <tbody id="senhasBody"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <div id="view-history" class="hidden">
+            <div class="white-card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-black uppercase text-slate-400">📜 Histórico de Alterações</h3>
+                    <button onclick="clearHistory()" class="btn-mini text-red-600 border-red-200">🗑️ Limpar histórico</button>
+                </div>
+                <div id="historyList" class="space-y-2 max-h-[500px] overflow-auto"></div>
             </div>
         </div>
     </div>
@@ -256,22 +315,139 @@
         let currentEditTarget = {};
         let lastKnownDataHash = ""; 
         let selectedOption = null;
+        let currentUser = null;
+        let historyLog = [];
+        let lastDistribuicaoHash = "";
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         window.onload = () => {
-            setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; }, 1200);
+            setTimeout(() => { 
+                document.getElementById('splash-screen').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+            }, 1200);
+            loadHistory();
+            loadDistribuicaoStorage();
+            setInterval(() => syncDistribuicaoFromStorage(), 3000);
+        };
+
+        function login(perfil) {
+            currentUser = perfil;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('userBadge').classList.remove('hidden');
+            
+            let userName = perfil;
+            let userAvatar = "👤";
+            if (perfil === 'Jordan') userAvatar = "👤";
+            if (perfil === 'Sirlene') userAvatar = "👩";
+            if (perfil === 'Ingrid') userAvatar = "👩";
+            if (perfil === 'Patricia') userAvatar = "👩";
+            if (perfil === 'Nikolas') userAvatar = "👤";
+            
+            document.getElementById('userName').innerText = userName;
+            document.getElementById('userAvatar').innerHTML = userAvatar;
+            
+            // Configurar visibilidade dos botões de sorteio (apenas Ingrid)
+            const botoesSorteio = ['btn-sortear-vencido', 'btn-sortear-30', 'btn-sortear-60', 'btn-sortear-90'];
+            botoesSorteio.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (currentUser === 'Ingrid') {
+                        btn.style.display = 'flex';
+                        btn.classList.remove('sorteio-btn-disabled');
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                }
+            });
+            
+            showNotification(`Bem-vindo(a), ${perfil}!`, false, '');
+            
             const container = document.getElementById('docButtons');
+            container.innerHTML = '';
             docList.forEach(doc => {
                 const btn = document.createElement('button');
                 btn.className = "btn-mini doc-filter-btn";
-                btn.id = "btn-doc-" + doc; btn.innerText = doc;
+                btn.id = "btn-doc-" + doc; 
+                btn.innerText = doc;
                 btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
                 container.appendChild(btn);
             });
+            
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
-        };
+        }
+
+        function logout() {
+            if (confirm('Deseja realmente sair?')) {
+                currentUser = null;
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('userBadge').classList.add('hidden');
+                document.getElementById('login-screen').style.display = 'flex';
+            }
+        }
+
+        function addToHistory(cliente, coluna, valorAntigo, valorNovo, tipo) {
+            const history = {
+                id: Date.now(),
+                data: new Date().toLocaleString('pt-BR'),
+                usuario: currentUser,
+                cliente: cliente,
+                coluna: coluna,
+                valorAntigo: valorAntigo || '(vazio)',
+                valorNovo: valorNovo,
+                tipo: tipo
+            };
+            historyLog.unshift(history);
+            if (historyLog.length > 100) historyLog.pop();
+            saveHistory();
+            renderHistory();
+        }
+
+        function saveHistory() {
+            localStorage.setItem('topline_history', JSON.stringify(historyLog));
+        }
+
+        function loadHistory() {
+            const saved = localStorage.getItem('topline_history');
+            if (saved) {
+                historyLog = JSON.parse(saved);
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('Tem certeza que deseja limpar todo o histórico?')) {
+                historyLog = [];
+                saveHistory();
+                renderHistory();
+                showNotification('Histórico limpo!', false, '');
+            }
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            if (!container) return;
+            
+            if (historyLog.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 text-xs py-8">Nenhuma alteração registrada ainda.</div>';
+                return;
+            }
+            
+            container.innerHTML = historyLog.map(h => `
+                <div class="history-item bg-white border border-slate-200 rounded-xl p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-emerald-600">${h.usuario}</span>
+                            <span class="text-[9px] text-slate-400">${h.data}</span>
+                        </div>
+                        <span class="text-[9px] font-bold px-2 py-1 rounded-full ${h.tipo === 'analise' ? 'bg-orange-100 text-orange-700' : (h.tipo === 'andamento' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700')}">${h.tipo || 'data'}</span>
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">${h.cliente} - ${h.coluna}</div>
+                    <div class="text-[10px] text-slate-500 mt-1">Antigo: ${h.valorAntigo} → Novo: ${h.valorNovo}</div>
+                </div>
+            `).join('');
+        }
 
         async function fetchGoogleSheets(isFirstLoad) {
             try {
@@ -290,6 +466,7 @@
                         lastKnownDataHash = csvDados;
                         if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
+                        updateAnalytics();
                     }
                 });
 
@@ -334,7 +511,7 @@
             
             if (isError) {
                 notifMessage.innerHTML = '⚠️ ' + message;
-                notifCliente.innerHTML = 'Tente novamente em alguns segundos';
+                notifCliente.innerHTML = 'Tente novamente';
                 toast.style.borderLeftColor = '#ef4444';
             } else {
                 notifMessage.innerHTML = '✓ ' + message;
@@ -346,11 +523,10 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
-        function enviarParaGoogleSheets(cliente, coluna, tipo, valor) {
+        function enviarParaGoogleSheets(cliente, coluna, tipo, valor, valorAntigo) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
                 
-                // Criar URL com parâmetros
                 const params = new URLSearchParams({
                     cliente: cliente,
                     coluna: coluna,
@@ -361,37 +537,33 @@
                 });
                 
                 const url = `${URL_SCRIPT_GOOGLE}?${params.toString()}`;
-                console.log('Enviando JSONP:', url);
                 
-                // Criar função callback global
                 window[callbackName] = function(response) {
                     delete window[callbackName];
                     document.body.removeChild(script);
                     clearTimeout(timeout);
                     
-                    console.log('Resposta do Google Sheets:', response);
                     if (response && response.success) {
+                        addToHistory(cliente, coluna, valorAntigo, valor, tipo);
                         resolve(response);
                     } else {
                         reject(new Error(response?.error || 'Erro desconhecido'));
                     }
                 };
                 
-                // Timeout de 30 segundos
                 const timeout = setTimeout(() => {
                     delete window[callbackName];
                     if (document.body.contains(script)) document.body.removeChild(script);
-                    reject(new Error('Timeout - O Google Sheets não respondeu'));
+                    reject(new Error('Timeout'));
                 }, 30000);
                 
-                // Criar e inserir script
                 const script = document.createElement('script');
                 script.src = url;
                 script.onerror = () => {
                     delete window[callbackName];
                     clearTimeout(timeout);
                     if (document.body.contains(script)) document.body.removeChild(script);
-                    reject(new Error('Erro de rede - Não foi possível conectar'));
+                    reject(new Error('Erro de rede'));
                 };
                 document.body.appendChild(script);
             });
@@ -401,6 +573,7 @@
             const { r, c } = currentEditTarget;
             let valorParaSalvar = null;
             let tipo = selectedOption;
+            const valorAntigo = rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : (rawData[r][c] || '');
             
             if (!selectedOption) {
                 showNotification('Selecione uma opção (Análise, Andamento ou Data)', true);
@@ -420,7 +593,6 @@
                 valorParaSalvar = dataInput;
             }
             
-            // Atualizar localmente primeiro para feedback imediato
             if (valorParaSalvar !== null) {
                 if (selectedOption === 'data') {
                     const dataObj = new Date(valorParaSalvar + "T12:00:00");
@@ -430,28 +602,24 @@
                 }
                 rawData[r][c + "_DONE"] = false;
                 renderTable();
+                updateAnalytics();
             }
             
             closeModal();
             
-            // Mostrar loading
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
             
             const cliente = rawData[r].CLIENTE;
             const coluna = c;
             
-            console.log('Enviando para o Google Sheets:', { cliente, coluna, tipo, valor: valorParaSalvar });
-            
             try {
-                const resultado = await enviarParaGoogleSheets(cliente, coluna, tipo, valorParaSalvar);
-                console.log('Sucesso!', resultado);
+                await enviarParaGoogleSheets(cliente, coluna, selectedOption, valorParaSalvar, valorAntigo);
                 loadingOverlay.style.display = 'none';
-                showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
-                // Recarregar dados após 2 segundos para confirmar
+                showNotification('Atualizado com sucesso!', false, cliente);
                 setTimeout(() => fetchGoogleSheets(false), 2000);
             } catch (error) {
-                console.error('Erro ao enviar:', error);
+                console.error('Erro:', error);
                 loadingOverlay.style.display = 'none';
                 showNotification('Erro: ' + error.message, true);
             }
@@ -499,20 +667,6 @@
             document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
-        function toggleStatusFilter(s) { 
-            activeStatus = (activeStatus === s) ? null : s; 
-            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
-            if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
-            renderTable(); 
-        }
-
-        function toggleDocFilter(d) { 
-            activeDoc = (activeDoc === d) ? null : d; 
-            document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
-            if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
-            renderTable(); 
-        }
-
         function renderTable() {
             const head = document.getElementById('tableHeader');
             const body = document.getElementById('tableBody');
@@ -551,6 +705,7 @@
 
         function openEditCell(r, c) {
             if(c === 'CLIENTE') return;
+            // Todos os usuários podem editar
             currentEditTarget = { r, c };
             selectedOption = null;
             
@@ -614,13 +769,14 @@
         }
 
         function switchTab(tab) {
-            ['dash', 'tasks', 'senhas'].forEach(t => { 
+            ['dash', 'tasks', 'senhas', 'history'].forEach(t => { 
                 document.getElementById('view-'+t).classList.add('hidden'); 
                 document.getElementById('tab-'+t).classList.remove('tab-active'); 
             });
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
+            if(tab === 'history') renderHistory();
         }
 
         function closeModal() { 
@@ -643,63 +799,151 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); 
         }
 
-        function distribuirTarefas(statusAlvo) {
-            const responsaveis = ['jordan', 'silene', 'patricia'];
-            const listas = { jordan: [], silene: [], patricia: [] };
+        function salvarDistribuicaoStorage(listas) {
+            const dados = {
+                jordan: listas.jordan || [],
+                sirlene: listas.sirlene || [],
+                ingrid: listas.ingrid || [],
+                timestamp: Date.now()
+            };
+            localStorage.setItem('topline_distribuicao', JSON.stringify(dados));
+            window.tarefasDistribuidas = listas;
+            renderTarefasNaTela();
+        }
+
+        function loadDistribuicaoStorage() {
+            const saved = localStorage.getItem('topline_distribuicao');
+            if (saved) {
+                const dados = JSON.parse(saved);
+                window.tarefasDistribuidas = {
+                    jordan: dados.jordan || [],
+                    sirlene: dados.sirlene || [],
+                    ingrid: dados.ingrid || []
+                };
+                renderTarefasNaTela();
+            } else {
+                window.tarefasDistribuidas = { jordan: [], sirlene: [], ingrid: [] };
+            }
+        }
+
+        function syncDistribuicaoFromStorage() {
+            const saved = localStorage.getItem('topline_distribuicao');
+            if (saved) {
+                const dados = JSON.parse(saved);
+                const currentHash = JSON.stringify(dados);
+                if (currentHash !== lastDistribuicaoHash) {
+                    lastDistribuicaoHash = currentHash;
+                    window.tarefasDistribuidas = {
+                        jordan: dados.jordan || [],
+                        sirlene: dados.sirlene || [],
+                        ingrid: dados.ingrid || []
+                    };
+                    renderTarefasNaTela();
+                }
+            }
+        }
+
+        function renderTarefasNaTela() {
+            const responsaveis = ['jordan', 'sirlene', 'ingrid'];
+            const nomes = { jordan: 'Jordan', sirlene: 'Sirlene', ingrid: 'Ingrid' };
             
             responsaveis.forEach(r => {
-                document.getElementById(`list-${r}`).innerHTML = "";
-                document.getElementById(`count-${r}`).innerText = "0";
+                const container = document.getElementById(`list-${r}`);
+                const countSpan = document.getElementById(`count-${r}`);
+                if (container && window.tarefasDistribuidas && window.tarefasDistribuidas[r]) {
+                    countSpan.innerText = window.tarefasDistribuidas[r].length;
+                    container.innerHTML = '';
+                    window.tarefasDistribuidas[r].forEach(t => {
+                        const card = document.createElement('div');
+                        card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
+                        card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
+                        card.innerHTML = `
+                            <div class="font-black text-slate-800 uppercase flex justify-between">
+                                ${t.cliente}
+                                <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                            </div>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-emerald-600 font-bold">${t.documento}</span>
+                                <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
             });
+        }
 
-            let tarefasParaSorteio = [];
-            rawData.forEach((row, rowIndex) => {
-                headers.forEach(col => {
-                    if (col === 'CLIENTE') return;
-                    if (getStatus(row[col], row, col) === statusAlvo) {
-                        tarefasParaSorteio.push({
-                            cliente: row.CLIENTE,
-                            documento: col,
-                            prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
-                            originalRowIndex: rowIndex 
-                        });
-                    }
-                });
-            });
-
-            if (tarefasParaSorteio.length === 0) {
-                showNotification('Nenhuma tarefa encontrada para este filtro', true);
+        function distribuirTarefas(statusAlvo) {
+            if (currentUser !== 'Ingrid') {
+                showNotification('Apenas a Ingrid pode realizar sorteios!', true);
                 return;
             }
 
-            tarefasParaSorteio.sort(() => Math.random() - 0.5);
-
-            tarefasParaSorteio.forEach((tarefa, index) => {
-                const destino = responsaveis[index % responsaveis.length];
-                listas[destino].push(tarefa);
-            });
-
-            responsaveis.forEach(r => {
-                const container = document.getElementById(`list-${r}`);
-                document.getElementById(`count-${r}`).innerText = listas[r].length;
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            
+            setTimeout(() => {
+                const responsaveis = ['jordan', 'sirlene', 'ingrid'];
+                const listas = { jordan: [], sirlene: [], ingrid: [] };
                 
-                listas[r].forEach(t => {
-                    const card = document.createElement('div');
-                    card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
-                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
-                    card.innerHTML = `
-                        <div class="font-black text-slate-800 uppercase flex justify-between">
-                            ${t.cliente}
-                            <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                        </div>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-emerald-600 font-bold">${t.documento}</span>
-                            <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
+                // Agrupar tarefas por cliente
+                const tarefasPorCliente = new Map();
+                
+                rawData.forEach((row, rowIndex) => {
+                    headers.forEach(col => {
+                        if (col === 'CLIENTE') return;
+                        if (getStatus(row[col], row, col) === statusAlvo) {
+                            const cliente = row.CLIENTE;
+                            if (!tarefasPorCliente.has(cliente)) {
+                                tarefasPorCliente.set(cliente, []);
+                            }
+                            tarefasPorCliente.get(cliente).push({
+                                cliente: cliente,
+                                documento: col,
+                                prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
+                                originalRowIndex: rowIndex
+                            });
+                        }
+                    });
                 });
-            });
+                
+                if (tarefasPorCliente.size === 0) {
+                    loadingOverlay.style.display = 'none';
+                    showNotification('Nenhuma tarefa encontrada para este filtro', true);
+                    return;
+                }
+                
+                // Distribuir clientes inteiros para os responsáveis
+                const clientes = Array.from(tarefasPorCliente.keys());
+                clientes.sort(() => Math.random() - 0.5);
+                
+                clientes.forEach((cliente, index) => {
+                    const destino = responsaveis[index % responsaveis.length];
+                    const tarefasDoCliente = tarefasPorCliente.get(cliente);
+                    listas[destino].push(...tarefasDoCliente);
+                });
+                
+                window.tarefasDistribuidas = listas;
+                salvarDistribuicaoStorage(listas);
+                renderTarefasNaTela();
+                
+                loadingOverlay.style.display = 'none';
+                showNotification(`Tarefas distribuídas para ${statusAlvo.toUpperCase()}!`, false, `${clientes.length} clientes`);
+            }, 100);
+        }
+
+        function toggleStatusFilter(s) { 
+            activeStatus = (activeStatus === s) ? null : s; 
+            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
+            if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected');
+            renderTable(); 
+        }
+
+        function toggleDocFilter(d) { 
+            activeDoc = (activeDoc === d) ? null : d; 
+            document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
+            if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active');
+            renderTable(); 
         }
     </script>
 </body>
