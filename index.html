@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.8</title>
+    <title>TopLineHub | Gestão Integrada v1.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -87,6 +87,35 @@
             color: #1e293b;
             border: 1px solid #e2e8f0;
         }
+        
+        /* Estilos para o card de sorteio */
+        .sorteio-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .timer-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .timer-progress {
+            height: 100%;
+            background: #ffd700;
+            transition: width 1s linear;
+        }
+        .tarefa-sorteada {
+            font-size: 18px;
+            font-weight: 800;
+            margin: 15px 0;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -162,6 +191,28 @@
             </header>
 
             <div id="view-dash">
+                <!-- NOVO CARD DE SORTEIO GLOBAL -->
+                <div class="sorteio-card white-card p-6 mb-6" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-[10px] font-black uppercase opacity-80">🎲 SORTEIO GLOBAL</h3>
+                            <p class="text-[9px] opacity-70 mt-1">Todos os funcionários veem a mesma tarefa</p>
+                        </div>
+                        <button onclick="realizarSorteioGlobal()" id="btnSortearGlobal" class="bg-white/20 backdrop-blur px-4 py-2 rounded-full text-xs font-bold hover:bg-white/30 transition">
+                            🎲 SORTEAR
+                        </button>
+                    </div>
+                    <div class="tarefa-sorteada" id="tarefaSorteadaGlobal">
+                        Carregando...
+                    </div>
+                    <div class="text-center text-[10px] opacity-70 mt-2" id="infoSorteioGlobal">
+                        Aguardando...
+                    </div>
+                    <div class="timer-bar" id="timerBar" style="display: none;">
+                        <div class="timer-progress" id="timerProgress" style="width: 0%;"></div>
+                    </div>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div class="white-card p-6 flex items-center justify-between">
                         <div>
@@ -238,7 +289,7 @@
                 </div>
                 <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
                 <div class="white-card overflow-hidden">
-                    <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+                    <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody><table></div>
                 </div>
             </div>
 
@@ -302,6 +353,7 @@
         let lastKnownDataHash = ""; 
         let selectedOption = null;
         let currentUser = "";
+        let intervalSorteio = null;
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -324,13 +376,91 @@
             document.getElementById('main-app').style.display = 'block';
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
+            verificarSorteioGlobal(); // Verificar sorteio ao logar
+            if (intervalSorteio) clearInterval(intervalSorteio);
+            intervalSorteio = setInterval(verificarSorteioGlobal, 60000); // Atualizar a cada minuto
         }
 
         function logout() {
+            if (intervalSorteio) clearInterval(intervalSorteio);
             currentUser = "";
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('login-screen').style.display = 'flex';
         }
+
+        // ========== FUNÇÕES DE SORTEIO GLOBAL ==========
+        
+        async function verificarSorteioGlobal() {
+            try {
+                const response = await fetch(`${URL_SCRIPT_GOOGLE}?acao=verSorteio&callback=?`);
+                const data = await response.json();
+                
+                if (data.success && data.tem_sorteio) {
+                    document.getElementById('tarefaSorteadaGlobal').innerHTML = data.tarefa_atual;
+                    
+                    if (data.ativo) {
+                        document.getElementById('infoSorteioGlobal').innerHTML = `⏰ Próximo sorteio em: ${data.tempo_restante_texto}`;
+                        document.getElementById('btnSortearGlobal').disabled = true;
+                        document.getElementById('btnSortearGlobal').style.opacity = '0.5';
+                        document.getElementById('timerBar').style.display = 'block';
+                        
+                        // Calcular porcentagem do tempo restante
+                        if (data.horas_restantes) {
+                            const porcentagem = (data.horas_restantes / 8) * 100;
+                            document.getElementById('timerProgress').style.width = `${porcentagem}%`;
+                        }
+                    } else {
+                        document.getElementById('infoSorteioGlobal').innerHTML = '🎯 Sorteio disponível! Clique em "Sortear" para uma nova tarefa.';
+                        document.getElementById('btnSortearGlobal').disabled = false;
+                        document.getElementById('btnSortearGlobal').style.opacity = '1';
+                        document.getElementById('timerBar').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('tarefaSorteadaGlobal').innerHTML = 'Nenhum sorteio realizado';
+                    document.getElementById('infoSorteioGlobal').innerHTML = 'Clique em "Sortear" para iniciar o sorteio!';
+                    document.getElementById('btnSortearGlobal').disabled = false;
+                    document.getElementById('btnSortearGlobal').style.opacity = '1';
+                    document.getElementById('timerBar').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar sorteio:', error);
+                document.getElementById('tarefaSorteadaGlobal').innerHTML = 'Erro ao carregar';
+            }
+        }
+        
+        async function realizarSorteioGlobal() {
+            const btn = document.getElementById('btnSortearGlobal');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '🔄 SORTEANDO...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${URL_SCRIPT_GOOGLE}?acao=sortear&callback=?`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(`✅ Tarefa sorteada: ${data.tarefa_sorteada}`, false, 'Sorteio Global');
+                    verificarSorteioGlobal();
+                    // Forçar atualização para todos os usuários
+                    setTimeout(() => verificarSorteioGlobal(), 1000);
+                } else {
+                    showNotification(`❌ ${data.error}`, true);
+                    if (data.horas_restantes) {
+                        showNotification(`Próximo sorteio em: ${data.horas_restantes} horas`, true);
+                    }
+                    verificarSorteioGlobal();
+                }
+            } catch (error) {
+                console.error('Erro ao sortear:', error);
+                showNotification('Erro ao realizar sorteio', true);
+                verificarSorteioGlobal();
+            } finally {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }
+        }
+        
+        // ========== FIM FUNÇÕES DE SORTEIO ==========
 
         async function fetchGoogleSheets(isFirstLoad) {
             try {
@@ -661,7 +791,7 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             if (!passwordData.length) return;
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
-                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>
+                <tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td></td>${p.CCM || '-'}</td>
                 ${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}</tr>`).join('');
         }
 
@@ -673,6 +803,7 @@
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
+            if(tab === 'dash') verificarSorteioGlobal();
         }
 
         function closeModal() { 
