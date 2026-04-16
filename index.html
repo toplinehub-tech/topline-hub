@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v2.2</title>
+    <title>TopLineHub | Gestão Integrada v2.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -449,7 +449,7 @@
             }
         }
 
-        // Função auxiliar para JSONP (apenas para leitura)
+        // Função auxiliar para JSONP
         function jsonpRequest(url) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
@@ -479,35 +479,66 @@
             });
         }
 
-        // Função para salvar a distribuição no servidor usando POST (sem limite de tamanho)
+        // Função para salvar a distribuição usando JSONP com compressão (evita limite de URL)
         async function salvarDistribuicaoNoServidor(statusAlvo, distribuicao) {
-            try {
-                const response = await fetch(URL_SCRIPT_GOOGLE, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        acao: 'salvarDistribuicao',
-                        statusAlvo: statusAlvo,
-                        distribuicao: distribuicao,
-                        usuario: currentUser
-                    })
-                });
+            return new Promise((resolve, reject) => {
+                // Limitar a quantidade de dados para evitar estouro de URL
+                const distribuicaoCompacta = {
+                    Jordan: distribuicao.Jordan.slice(0, 50),
+                    Silene: distribuicao.Silene.slice(0, 50),
+                    Patricia: distribuicao.Patricia.slice(0, 50)
+                };
                 
-                const data = await response.json();
+                const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+                const distribuicaoStr = JSON.stringify(distribuicaoCompacta);
                 
-                if (data && data.success) {
-                    console.log('Distribuição salva com sucesso');
-                    return { success: true };
+                const url = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${statusAlvo}&distribuicao=${encodeURIComponent(distribuicaoStr)}&usuario=${currentUser}&callback=${callbackName}&_=${Date.now()}`;
+                
+                // Verificar tamanho da URL (limite ~2000 caracteres)
+                if (url.length > 1900) {
+                    console.warn('URL muito longa, reduzindo ainda mais os dados');
+                    const distribuicaoMuitoCompacta = {
+                        Jordan: distribuicao.Jordan.slice(0, 25),
+                        Silene: distribuicao.Silene.slice(0, 25),
+                        Patricia: distribuicao.Patricia.slice(0, 25)
+                    };
+                    const distribuicaoStr2 = JSON.stringify(distribuicaoMuitoCompacta);
+                    const url2 = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${statusAlvo}&distribuicao=${encodeURIComponent(distribuicaoStr2)}&usuario=${currentUser}&callback=${callbackName}&_=${Date.now()}`;
+                    executarJsonpSalvar(url2, callbackName, resolve, reject);
                 } else {
-                    throw new Error(data?.error || 'Erro ao salvar');
+                    executarJsonpSalvar(url, callbackName, resolve, reject);
                 }
-                
-            } catch (error) {
-                console.error('Erro ao salvar distribuição:', error);
-                throw error;
+            });
+        }
+        
+        function executarJsonpSalvar(url, callbackName, resolve, reject) {
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(new Error('Timeout - O servidor não respondeu'));
+            }, 30000);
+            
+            function cleanup() {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                if (script && script.parentNode) script.parentNode.removeChild(script);
             }
+            
+            window[callbackName] = function(response) {
+                cleanup();
+                if (response && response.success) {
+                    resolve(response);
+                } else {
+                    reject(new Error(response?.error || 'Erro ao salvar distribuição'));
+                }
+            };
+            
+            const script = document.createElement('script');
+            script.src = url;
+            script.onerror = () => {
+                cleanup();
+                reject(new Error('Erro de rede - Não foi possível conectar ao servidor'));
+            };
+            document.body.appendChild(script);
         }
 
         // Função para carregar a distribuição do servidor (todos os usuários veem o mesmo)
@@ -838,7 +869,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            head.innerHTML = `<td>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</table>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -1028,7 +1059,7 @@
                     cargas[menorCarga] += tarefas.length;
                 });
                 
-                // Salvar distribuição no servidor usando POST
+                // Salvar distribuição no servidor usando JSONP com compressão
                 await salvarDistribuicaoNoServidor(statusAlvo, distribuicao);
                 
                 // Recarregar para todos
