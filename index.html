@@ -84,15 +84,14 @@
             transform: translateX(4px);
         }
         
-        .filter-active {
-            background: #10b981 !important;
-            color: white !important;
-            border-color: #059669 !important;
-        }
-        
         .timer-card {
             background: linear-gradient(135deg, #064e3b, #022c22);
             color: white;
+            border-radius: 12px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
         }
         .sorteio-disabled {
             opacity: 0.5;
@@ -103,13 +102,6 @@
             background: rgba(255,255,255,0.96);
             border-radius: 32px;
             box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25);
-        }
-        .filter-btn-selected {
-            background: #10b981 !important;
-            color: white !important;
-            border-color: #059669 !important;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            transform: translateY(-1px);
         }
     </style>
 </head>
@@ -183,18 +175,7 @@
         </header>
 
         <div id="view-dash">
-            <!-- Gráficos com tamanho reduzido pela metade -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 max-w-3xl mx-auto">
-                <div class="white-card p-4">
-                    <h3 class="text-[10px] font-black uppercase text-slate-400 mb-2">📈 Documentos por Status</h3>
-                    <canvas id="statusChart" width="400" height="180" style="max-height: 180px;"></canvas>
-                </div>
-                <div class="white-card p-4">
-                    <h3 class="text-[10px] font-black uppercase text-slate-400 mb-2">👥 Distribuição por Responsável</h3>
-                    <canvas id="responsavelChart" width="400" height="180" style="max-height: 180px;"></canvas>
-                </div>
-            </div>
-
+            <!-- Apenas o resumo crítico e cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div class="white-card p-6 flex items-center justify-between">
                     <div>
@@ -235,33 +216,11 @@
                 </div>
                 <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
                     <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos.</p>
+                    <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões.</p>
                     <div class="mt-4 flex gap-2">
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
                     </div>
-                </div>
-            </div>
-
-            <div class="white-card p-4 mb-6">
-                <h3 class="text-[10px] font-black uppercase text-slate-400 mb-3">🔍 Filtros Avançados</h3>
-                <div class="flex flex-wrap gap-3">
-                    <select id="filterPeriodo" onchange="applyAdvancedFilters()" class="text-xs border rounded-xl px-3 py-2 bg-white">
-                        <option value="">📅 Todos os períodos</option>
-                        <option value="30">📆 Próximos 30 dias</option>
-                        <option value="60">📆 Próximos 60 dias</option>
-                        <option value="90">📆 Próximos 90 dias</option>
-                        <option value="vencidos">⚠️ Vencidos</option>
-                    </select>
-                    <select id="filterResponsavel" onchange="applyAdvancedFilters()" class="text-xs border rounded-xl px-3 py-2 bg-white">
-                        <option value="">👥 Todos os responsáveis</option>
-                        <option value="Jordan">👤 Jordan</option>
-                        <option value="Silene">👩 Silene</option>
-                        <option value="Ingrid">👩 Ingrid</option>
-                        <option value="Patricia">👩 Patricia</option>
-                    </select>
-                    <input type="text" id="filterCliente" oninput="applyAdvancedFilters()" placeholder="🏢 Nome do cliente..." class="text-xs border rounded-xl px-3 py-2 w-48">
-                    <button onclick="clearAdvancedFilters()" class="btn-mini text-slate-500">🗑️ Limpar filtros</button>
                 </div>
             </div>
 
@@ -281,21 +240,17 @@
 
         <div id="view-tasks" class="hidden">
             <div class="white-card p-4 mb-8">
-                <div id="timerContainer" class="timer-card p-4 rounded-xl mb-4 flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">⏱️</span>
-                        <div>
-                            <p class="text-[10px] font-bold opacity-80 uppercase">Próximo sorteio permitido</p>
-                            <p id="timerDisplay" class="text-2xl font-mono font-black tracking-wider">--:--:--</p>
-                        </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex gap-3 flex-wrap">
+                        <button onclick="distribuirTarefas('vencido')" id="btnSorteioVencido" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
+                        <button onclick="distribuirTarefas('30')" id="btnSorteio30" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
+                        <button onclick="distribuirTarefas('60')" id="btnSorteio60" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
+                        <button onclick="distribuirTarefas('90')" id="btnSorteio90" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
                     </div>
-                    <div class="text-right text-[10px] font-bold uppercase opacity-80">Sorteios por: Ingrid</div>
-                </div>
-                <div class="flex gap-3 justify-center flex-wrap">
-                    <button onclick="distribuirTarefas('vencido')" id="btnSorteioVencido" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
-                    <button onclick="distribuirTarefas('30')" id="btnSorteio30" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
-                    <button onclick="distribuirTarefas('60')" id="btnSorteio60" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
-                    <button onclick="distribuirTarefas('90')" id="btnSorteio90" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
+                    <div id="timerContainer" class="timer-card">
+                        <span>⏱️</span>
+                        <span id="timerDisplay" class="text-sm font-mono font-black tracking-wider">--:--:--</span>
+                    </div>
                 </div>
             </div>
             <div class="grid grid-cols-3 gap-6">
@@ -406,6 +361,26 @@
             });
         }
 
+        function renderTasksFromStorage() {
+            if(window.tarefasDistribuidas) {
+                const responsaveis = ['jordan', 'silene', 'ingrid'];
+                responsaveis.forEach(r => {
+                    const container = document.getElementById(`list-${r}`);
+                    if(container) {
+                        document.getElementById(`count-${r}`).innerText = window.tarefasDistribuidas[r]?.length || 0;
+                        container.innerHTML = '';
+                        (window.tarefasDistribuidas[r] || []).forEach(t => {
+                            const card = document.createElement('div');
+                            card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 shadow-sm mb-2";
+                            card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
+                            card.innerHTML = `<div class="font-black text-slate-800 uppercase flex justify-between">${t.cliente}<svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">${t.documento}</span><span class="text-slate-400 font-mono font-bold">${t.prazo}</span></div>`;
+                            container.appendChild(card);
+                        });
+                    }
+                });
+            }
+        }
+
         window.onload = () => {
             setTimeout(() => { 
                 document.getElementById('splash-screen').style.display = 'none';
@@ -435,17 +410,20 @@
             showNotification(`Bem-vindo(a), ${perfil}!`, false, '');
             
             const container = document.getElementById('docButtons');
-            docList.forEach(doc => {
-                const btn = document.createElement('button');
-                btn.className = "btn-mini doc-filter-btn";
-                btn.id = "btn-doc-" + doc; btn.innerText = doc;
-                btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
-                container.appendChild(btn);
-            });
+            if(container.children.length === 0) {
+                docList.forEach(doc => {
+                    const btn = document.createElement('button');
+                    btn.className = "btn-mini doc-filter-btn";
+                    btn.id = "btn-doc-" + doc; btn.innerText = doc;
+                    btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
+                    container.appendChild(btn);
+                });
+            }
             
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
             updateButtonsState();
+            renderTasksFromStorage();
         }
 
         function logout() {
@@ -602,29 +580,42 @@
         }
 
         function updateCharts() {
-            if (statusChart) statusChart.destroy();
-            if (responsavelChart) responsavelChart.destroy();
-            let c = { vencido: 0, andamento: 0, analise: 0 };
-            rawData.forEach(row => { headers.forEach(col => { if (col === 'CLIENTE') return; const status = getStatus(row[col], row, col); if (status === 'vencido') c.vencido++; if (status === 'andamento') c.andamento++; if (status === 'analise') c.analise++; }); });
-            const ctx1 = document.getElementById('statusChart').getContext('2d');
-            statusChart = new Chart(ctx1, { type: 'doughnut', data: { labels: ['Vencidos', 'Em Andamento', 'Em Análise'], datasets: [{ data: [c.vencido, c.andamento, c.analise], backgroundColor: ['#f87171', '#c084fc', '#fb923c'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: true } });
             const responsaveis = { Jordan: 0, Silene: 0, Ingrid: 0 };
             if (window.tarefasDistribuidas) { responsaveis.Jordan = window.tarefasDistribuidas.jordan?.length || 0; responsaveis.Silene = window.tarefasDistribuidas.silene?.length || 0; responsaveis.Ingrid = window.tarefasDistribuidas.ingrid?.length || 0; }
-            const ctx2 = document.getElementById('responsavelChart').getContext('2d');
-            responsavelChart = new Chart(ctx2, { type: 'bar', data: { labels: ['Jordan', 'Silene', 'Ingrid'], datasets: [{ label: 'Tarefas atribuídas', data: [responsaveis.Jordan, responsaveis.Silene, responsaveis.Ingrid], backgroundColor: ['#3b82f6', '#a855f7', '#ec4899'], borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } } });
+            const ctx = document.getElementById('responsavelChart');
+            if(ctx) {
+                if(responsavelChart) responsavelChart.destroy();
+                responsavelChart = new Chart(ctx, { type: 'bar', data: { labels: ['Jordan', 'Silene', 'Ingrid'], datasets: [{ label: 'Tarefas atribuídas', data: [responsaveis.Jordan, responsaveis.Silene, responsaveis.Ingrid], backgroundColor: ['#3b82f6', '#a855f7', '#ec4899'], borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } } });
+            }
         }
 
-        function applyAdvancedFilters() { const cliente = document.getElementById('filterCliente').value.toLowerCase(); let filteredData = rawData; if (cliente) filteredData = filteredData.filter(row => row.CLIENTE?.toLowerCase().includes(cliente)); renderFilteredTable(filteredData); }
-        function renderFilteredTable(filteredData) { const body = document.getElementById('tableBody'); const q = document.getElementById('searchInput').value.toLowerCase(); const finalFiltered = filteredData.filter(row => { if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false; if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc]; if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus); return true; }); body.innerHTML = finalFiltered.map(row => `<tr>${headers.map(h => { const s = getStatus(row[h], row, h); const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-'); return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`; }).join('')}</tr>`).join(''); }
-        function clearAdvancedFilters() { document.getElementById('filterPeriodo').value = ''; document.getElementById('filterResponsavel').value = ''; document.getElementById('filterCliente').value = ''; renderTable(); }
+        function renderTable() {
+            const head = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            if(!headers.length) return;
+            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            const filtered = rawData.filter(row => {
+                if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
+                if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
+                if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
+                return true;
+            });
+            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => { const s = getStatus(row[h], row, h); const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-'); return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`; }).join('')}</tr>`).join('');
+            updateAnalytics();
+        }
+
+        function selectOption(option) { selectedOption = option; document.getElementById('option-analise').classList.remove('option-selected'); document.getElementById('option-andamento').classList.remove('option-selected'); document.getElementById('option-data').classList.remove('option-selected'); document.getElementById(`option-${option}`).classList.add('option-selected'); document.getElementById('datePickerContainer').classList.add('hidden'); if (option === 'data') document.getElementById('datePickerContainer').classList.remove('hidden'); }
+        
+        function openEditCell(r, c) { if(c === 'CLIENTE') return; if (currentUser !== 'ADM' && currentUser !== 'Jordan' && currentUser !== 'Silene' && currentUser !== 'Ingrid' && currentUser !== 'Patricia') { showNotification('Apenas administradores e funcionários podem editar!', true); return; } currentEditTarget = { r, c }; selectedOption = null; const valorAtual = rawData[r][c]; let valorExibicao = ''; if (valorAtual instanceof Date) valorExibicao = valorAtual.toLocaleDateString('pt-BR'); else if (valorAtual) valorExibicao = String(valorAtual); else valorExibicao = '<span class="text-slate-300 italic">vazio</span>'; document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`; document.getElementById('modalContent').innerHTML = `<div class="mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label><div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">${valorExibicao}</div></div><div><label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Selecione uma opção</label><div class="grid grid-cols-3 gap-3"><div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">🔍</div><div class="text-xs font-black text-orange-700 uppercase">Análise</div><div class="text-[9px] text-orange-500 mt-1">Insere "ANALISE"</div></div><div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">⚡</div><div class="text-xs font-black text-purple-700 uppercase">Andamento</div><div class="text-[9px] text-purple-500 mt-1">Insere "EM ANDAMENTO"</div></div><div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">📅</div><div class="text-xs font-black text-emerald-700 uppercase">Data</div><div class="text-[9px] text-emerald-500 mt-1">Define uma data</div></div></div></div><div id="datePickerContainer" class="hidden"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Selecione a data</label><input type="date" id="dateValue" class="w-full border border-slate-200 p-3 rounded-xl text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"></div>`; document.getElementById('modalSaveBtn').onclick = saveEdit; document.getElementById('editModal').classList.remove('hidden'); }
+        
+        function renderSenhas() { const q = document.getElementById('searchSenhas').value.toLowerCase(); if (!passwordData.length) return; document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}</tr>`).join(''); }
+        
+        function switchTab(tab) { ['dash', 'tasks', 'senhas', 'history'].forEach(t => { document.getElementById('view-'+t).classList.add('hidden'); document.getElementById('tab-'+t).classList.remove('tab-active'); }); document.getElementById('view-'+tab).classList.remove('hidden'); document.getElementById('tab-'+tab).classList.add('tab-active'); if(tab === 'senhas') renderSenhas(); if(tab === 'history') renderHistory(); if(tab === 'dash') updateCharts(); if(tab === 'tasks') renderTasksFromStorage(); }
+        
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); selectedOption = null; }
         function toggleStatusFilter(s) { activeStatus = (activeStatus === s) ? null : s; document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected')); if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected'); renderTable(); }
         function toggleDocFilter(d) { activeDoc = (activeDoc === d) ? null : d; document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active')); if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active'); renderTable(); }
-        function renderTable() { const head = document.getElementById('tableHeader'); const body = document.getElementById('tableBody'); const q = document.getElementById('searchInput').value.toLowerCase(); if(!headers.length) return; head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`; const filtered = rawData.filter(row => { if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false; if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc]; if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus); return true; }); body.innerHTML = filtered.map(row => `<tr>${headers.map(h => { const s = getStatus(row[h], row, h); const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-'); return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`; }).join('')}</tr>`).join(''); updateAnalytics(); }
-        function selectOption(option) { selectedOption = option; document.getElementById('option-analise').classList.remove('option-selected'); document.getElementById('option-andamento').classList.remove('option-selected'); document.getElementById('option-data').classList.remove('option-selected'); document.getElementById(`option-${option}`).classList.add('option-selected'); document.getElementById('datePickerContainer').classList.add('hidden'); if (option === 'data') document.getElementById('datePickerContainer').classList.remove('hidden'); }
-        function openEditCell(r, c) { if(c === 'CLIENTE') return; if (currentUser !== 'ADM') { showNotification('Apenas o administrador pode editar!', true); return; } currentEditTarget = { r, c }; selectedOption = null; const valorAtual = rawData[r][c]; let valorExibicao = ''; if (valorAtual instanceof Date) valorExibicao = valorAtual.toLocaleDateString('pt-BR'); else if (valorAtual) valorExibicao = String(valorAtual); else valorExibicao = '<span class="text-slate-300 italic">vazio</span>'; document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`; document.getElementById('modalContent').innerHTML = `<div class="mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label><div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">${valorExibicao}</div></div><div><label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Selecione uma opção</label><div class="grid grid-cols-3 gap-3"><div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">🔍</div><div class="text-xs font-black text-orange-700 uppercase">Análise</div><div class="text-[9px] text-orange-500 mt-1">Insere "ANALISE"</div></div><div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">⚡</div><div class="text-xs font-black text-purple-700 uppercase">Andamento</div><div class="text-[9px] text-purple-500 mt-1">Insere "EM ANDAMENTO"</div></div><div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">📅</div><div class="text-xs font-black text-emerald-700 uppercase">Data</div><div class="text-[9px] text-emerald-500 mt-1">Define uma data</div></div></div></div><div id="datePickerContainer" class="hidden"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Selecione a data</label><input type="date" id="dateValue" class="w-full border border-slate-200 p-3 rounded-xl text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"></div>`; document.getElementById('modalSaveBtn').onclick = saveEdit; document.getElementById('editModal').classList.remove('hidden'); }
-        function renderSenhas() { const q = document.getElementById('searchSenhas').value.toLowerCase(); if (!passwordData.length) return; document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}</tr>`).join(''); }
-        function switchTab(tab) { ['dash', 'tasks', 'senhas', 'history'].forEach(t => { document.getElementById('view-'+t).classList.add('hidden'); document.getElementById('tab-'+t).classList.remove('tab-active'); }); document.getElementById('view-'+tab).classList.remove('hidden'); document.getElementById('tab-'+tab).classList.add('tab-active'); if(tab === 'senhas') renderSenhas(); if(tab === 'history') renderHistory(); if(tab === 'dash') updateCharts(); }
-        function closeModal() { document.getElementById('editModal').classList.add('hidden'); selectedOption = null; }
         function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected')); document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active')); renderTable(); }
         function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); }
 
@@ -665,8 +656,7 @@
             lastSorteioTimestamp = Date.now();
             localStorage.setItem('topline_sorteio', JSON.stringify({ timestamp: lastSorteioTimestamp, tarefas: listas }));
             
-            responsaveis.forEach(r => { const container = document.getElementById(`list-${r}`); document.getElementById(`count-${r}`).innerText = listas[r].length; container.innerHTML = ''; listas[r].forEach(t => { const card = document.createElement('div'); card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 shadow-sm mb-2"; card.onclick = () => openEditCell(t.originalRowIndex, t.documento); card.innerHTML = `<div class="font-black text-slate-800 uppercase flex justify-between">${t.cliente}<svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">${t.documento}</span><span class="text-slate-400 font-mono font-bold">${t.prazo}</span></div>`; container.appendChild(card); }); });
-            
+            renderTasksFromStorage();
             updateCharts();
             updateTimerDisplay();
             showNotification(`Tarefas distribuídas por empresa!`, false, '');
