@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v2.0</title>
+    <title>TopLineHub | Gestão Integrada v2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -99,6 +99,10 @@
         }
         .dashboard-card:hover {
             transform: translateY(-4px);
+        }
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important;
         }
     </style>
 </head>
@@ -404,6 +408,13 @@
             
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
+            
+            // Carregar distribuição salva ao logar
+            setTimeout(() => {
+                if (currentUser) {
+                    carregarDistribuicaoGlobal();
+                }
+            }, 2000);
         }
 
         function logout() {
@@ -416,7 +427,6 @@
         function atualizarBotoesSorteio() {
             const isIngrid = currentUser === 'Ingrid';
             
-            // Atualizar botões na aba de tarefas
             const containerTasks = document.getElementById('botoesSorteioTasks');
             const avisoRestricao = document.getElementById('avisoRestricao');
             
@@ -446,7 +456,7 @@
                 const timeout = setTimeout(() => {
                     cleanup();
                     reject(new Error('Timeout'));
-                }, 15000);
+                }, 30000);
                 
                 function cleanup() {
                     clearTimeout(timeout);
@@ -467,6 +477,106 @@
                 };
                 document.body.appendChild(script);
             });
+        }
+
+        // Função para salvar a distribuição no servidor
+        async function salvarDistribuicaoNoServidor(statusAlvo, distribuicao) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+                const distribuicaoStr = JSON.stringify(distribuicao);
+                
+                const url = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${statusAlvo}&distribuicao=${encodeURIComponent(distribuicaoStr)}&usuario=${currentUser}&callback=${callbackName}&_=${Date.now()}`;
+                
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Timeout'));
+                }, 30000);
+                
+                function cleanup() {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    if (script && script.parentNode) script.parentNode.removeChild(script);
+                }
+                
+                window[callbackName] = function(response) {
+                    cleanup();
+                    if (response && response.success) {
+                        resolve(response);
+                    } else {
+                        reject(new Error(response?.error || 'Erro ao salvar'));
+                    }
+                };
+                
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = () => {
+                    cleanup();
+                    reject(new Error('Erro de rede'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        // Função para carregar a distribuição do servidor (todos os usuários veem o mesmo)
+        async function carregarDistribuicaoGlobal() {
+            try {
+                const data = await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=carregarDistribuicao&_=${Date.now()}`);
+                
+                if (data.success && data.distribuicao) {
+                    const responsaveis = ['Jordan', 'Silene', 'Patricia'];
+                    
+                    responsaveis.forEach(resp => {
+                        const container = document.getElementById(`list-${resp.toLowerCase()}`);
+                        const countSpan = document.getElementById(`count-${resp.toLowerCase()}`);
+                        const tarefas = data.distribuicao[resp] || [];
+                        
+                        if (container && countSpan) {
+                            countSpan.innerText = tarefas.length;
+                            container.innerHTML = '';
+                            
+                            tarefas.forEach(t => {
+                                const card = document.createElement('div');
+                                card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
+                                card.onclick = () => openEditCell(t.rowIndex, t.documento);
+                                card.innerHTML = `
+                                    <div class="font-black text-slate-800 uppercase flex justify-between">
+                                        ${t.cliente}
+                                        <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                    </div>
+                                    <div class="flex justify-between items-center mt-1">
+                                        <span class="text-emerald-600 font-bold">${t.documento}</span>
+                                        <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
+                                    </div>
+                                `;
+                                container.appendChild(card);
+                            });
+                            
+                            tarefasColaboradores[resp] = tarefas;
+                        }
+                    });
+                    
+                    // Mostrar informação do último sorteio
+                    if (data.status && data.data) {
+                        const dataStr = new Date(data.data).toLocaleString('pt-BR');
+                        let infoDiv = document.querySelector('.info-sorteio');
+                        if (!infoDiv) {
+                            infoDiv = document.createElement('div');
+                            infoDiv.className = 'info-sorteio text-center text-[9px] text-slate-400 mt-4 pt-2 border-t';
+                            const tasksCard = document.querySelector('#view-tasks .white-card:first-child');
+                            if (tasksCard) tasksCard.appendChild(infoDiv);
+                        }
+                        const statusNome = data.status === 'vencido' ? 'Vencidas' : (data.status === '30' ? '30 Dias' : (data.status === '60' ? '60 Dias' : (data.status === '90' ? '90 Dias' : data.status)));
+                        infoDiv.innerHTML = `📊 Último sorteio: ${dataStr} - Status: ${statusNome}`;
+                    }
+                    
+                    atualizarDashboardDesempenho();
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Erro ao carregar distribuição:', error);
+                return false;
+            }
         }
 
         async function fetchGoogleSheets(isFirstLoad) {
@@ -685,7 +795,6 @@
             document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
         
-        // Função para atualizar o dashboard de desempenho
         function atualizarDashboardDesempenho() {
             const colaboradores = ['Jordan', 'Silene', 'Patricia'];
             
@@ -705,10 +814,15 @@
                 const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
                 
                 const nomeLower = colab.toLowerCase();
-                document.getElementById(`${nomeLower}-percent`).innerText = `${percentual}%`;
-                document.getElementById(`${nomeLower}-progress`).style.width = `${percentual}%`;
-                document.getElementById(`${nomeLower}-concluidas`).innerText = concluidas;
-                document.getElementById(`${nomeLower}-total`).innerText = total;
+                const percentEl = document.getElementById(`${nomeLower}-percent`);
+                const progressEl = document.getElementById(`${nomeLower}-progress`);
+                const concluidasEl = document.getElementById(`${nomeLower}-concluidas`);
+                const totalEl = document.getElementById(`${nomeLower}-total`);
+                
+                if (percentEl) percentEl.innerText = `${percentual}%`;
+                if (progressEl) progressEl.style.width = `${percentual}%`;
+                if (concluidasEl) concluidasEl.innerText = concluidas;
+                if (totalEl) totalEl.innerText = total;
             });
         }
 
@@ -835,6 +949,7 @@
             document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
             if(tab === 'dash') atualizarDashboardDesempenho();
+            if(tab === 'tasks') carregarDistribuicaoGlobal();
         }
 
         function closeModal() { 
@@ -857,103 +972,83 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); 
         }
 
-        function distribuirTarefas(statusAlvo) {
+        async function distribuirTarefas(statusAlvo) {
             // Verificar se é a Ingrid
             if (currentUser !== 'Ingrid') {
                 showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true);
                 return;
             }
             
-            const responsaveis = ['Jordan', 'Silene', 'Patricia'];
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
             
-            // Resetar listas
-            responsaveis.forEach(r => {
-                document.getElementById(`list-${r.toLowerCase()}`).innerHTML = "";
-                document.getElementById(`count-${r.toLowerCase()}`).innerText = "0";
-                tarefasColaboradores[r] = [];
-            });
-
-            let tarefasPorCliente = new Map();
-            
-            rawData.forEach((row, rowIndex) => {
-                const clienteNome = row.CLIENTE;
-                headers.forEach(col => {
-                    if (col === 'CLIENTE') return;
-                    if (getStatus(row[col], row, col) === statusAlvo) {
-                        if (!tarefasPorCliente.has(clienteNome)) {
-                            tarefasPorCliente.set(clienteNome, []);
+            try {
+                const responsaveis = ['Jordan', 'Silene', 'Patricia'];
+                
+                let tarefasPorCliente = new Map();
+                
+                rawData.forEach((row, rowIndex) => {
+                    const clienteNome = row.CLIENTE;
+                    headers.forEach((col, colIndex) => {
+                        if (col === 'CLIENTE') return;
+                        if (getStatus(row[col], row, col) === statusAlvo) {
+                            if (!tarefasPorCliente.has(clienteNome)) {
+                                tarefasPorCliente.set(clienteNome, []);
+                            }
+                            tarefasPorCliente.get(clienteNome).push({
+                                cliente: clienteNome,
+                                documento: col,
+                                prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : (row[col] || '-'),
+                                rowIndex: rowIndex,
+                                colIndex: colIndex
+                            });
                         }
-                        tarefasPorCliente.get(clienteNome).push({
-                            cliente: clienteNome,
-                            documento: col,
-                            prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
-                            originalRowIndex: rowIndex,
-                            documentoCol: col
-                        });
+                    });
+                });
+
+                if (tarefasPorCliente.size === 0) {
+                    showNotification('Nenhuma tarefa encontrada para este filtro', true);
+                    loadingOverlay.style.display = 'none';
+                    return;
+                }
+
+                let clientesArray = Array.from(tarefasPorCliente.entries());
+                clientesArray.sort((a, b) => b[1].length - a[1].length);
+                
+                let distribuicao = { Jordan: [], Silene: [], Patricia: [] };
+                let cargas = { Jordan: 0, Silene: 0, Patricia: 0 };
+                
+                clientesArray.forEach(([cliente, tarefas]) => {
+                    let menorCarga = 'Jordan';
+                    let menorValor = cargas.Jordan;
+                    
+                    if (cargas.Silene < menorValor) {
+                        menorValor = cargas.Silene;
+                        menorCarga = 'Silene';
                     }
+                    if (cargas.Patricia < menorValor) {
+                        menorValor = cargas.Patricia;
+                        menorCarga = 'Patricia';
+                    }
+                    
+                    distribuicao[menorCarga].push(...tarefas);
+                    cargas[menorCarga] += tarefas.length;
                 });
-            });
-
-            if (tarefasPorCliente.size === 0) {
-                showNotification('Nenhuma tarefa encontrada para este filtro', true);
-                return;
+                
+                // Salvar distribuição no servidor
+                await salvarDistribuicaoNoServidor(statusAlvo, distribuicao);
+                
+                // Recarregar para todos
+                await carregarDistribuicaoGlobal();
+                
+                showNotification(`✅ Distribuição concluída para status: ${statusAlvo}`, false, `${tarefasPorCliente.size} clientes`);
+                
+            } catch (error) {
+                console.error('Erro ao distribuir tarefas:', error);
+                showNotification('Erro ao realizar sorteio. Tente novamente.', true);
+            } finally {
+                loadingOverlay.style.display = 'none';
             }
-
-            let clientesArray = Array.from(tarefasPorCliente.entries());
-            clientesArray.sort((a, b) => b[1].length - a[1].length);
-            
-            let distribuicao = { Jordan: [], Silene: [], Patricia: [] };
-            let cargas = { Jordan: 0, Silene: 0, Patricia: 0 };
-            
-            clientesArray.forEach(([cliente, tarefas]) => {
-                let menorCarga = 'Jordan';
-                let menorValor = cargas.Jordan;
-                
-                if (cargas.Silene < menorValor) {
-                    menorValor = cargas.Silene;
-                    menorCarga = 'Silene';
-                }
-                if (cargas.Patricia < menorValor) {
-                    menorValor = cargas.Patricia;
-                    menorCarga = 'Patricia';
-                }
-                
-                distribuicao[menorCarga].push(...tarefas);
-                cargas[menorCarga] += tarefas.length;
-            });
-            
-            responsaveis.forEach(r => {
-                const container = document.getElementById(`list-${r.toLowerCase()}`);
-                document.getElementById(`count-${r.toLowerCase()}`).innerText = distribuicao[r].length;
-                
-                // Salvar tarefas do colaborador
-                tarefasColaboradores[r] = distribuicao[r].map(t => ({
-                    rowIndex: t.originalRowIndex,
-                    documento: t.documento,
-                    cliente: t.cliente,
-                    prazo: t.prazo
-                }));
-                
-                distribuicao[r].forEach(t => {
-                    const card = document.createElement('div');
-                    card.className = "p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-400 hover:z-10 shadow-sm mb-2 transform";
-                    card.onclick = () => openEditCell(t.originalRowIndex, t.documento);
-                    card.innerHTML = `
-                        <div class="font-black text-slate-800 uppercase flex justify-between">
-                            ${t.cliente}
-                            <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                        </div>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-emerald-600 font-bold">${t.documento}</span>
-                            <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            });
-            
-            atualizarDashboardDesempenho();
-            showNotification(`✅ Distribuição concluída para status: ${statusAlvo}`, false, `${tarefasPorCliente.size} clientes`);
         }
     </script>
 </body>
