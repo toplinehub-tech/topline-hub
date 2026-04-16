@@ -175,30 +175,15 @@
         </header>
 
         <div id="view-dash">
-            <!-- Apenas o resumo crítico e cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div class="white-card p-6 flex items-center justify-between">
                     <div>
                         <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-wider">Resumo Crítico Operacional</h3>
                         <div class="space-y-3">
-                            <div class="flex items-center gap-3">
-                                <span class="w-3 h-3 rounded-full bg-red-400"></span>
-                                <span class="text-xs font-bold text-slate-600 w-24">Vencidos:</span>
-                                <span id="dash-count-vencido" class="text-xs font-black text-slate-800">0</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3 h-3 rounded-full bg-purple-400"></span>
-                                <span class="text-xs font-bold text-slate-600 w-24">Andamento:</span>
-                                <span id="dash-count-andamento" class="text-xs font-black text-slate-800">0</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3 h-3 rounded-full bg-orange-400"></span>
-                                <span class="text-xs font-bold text-slate-600 w-24">Análise:</span>
-                                <span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span>
-                            </div>
-                            <div class="pt-2 border-t mt-2 flex gap-4">
-                                <span class="text-[10px] font-black text-emerald-600 uppercase">Total: <span id="dash-count-total">0</span></span>
-                            </div>
+                            <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-red-400"></span><span class="text-xs font-bold text-slate-600 w-24">Vencidos:</span><span id="dash-count-vencido" class="text-xs font-black text-slate-800">0</span></div>
+                            <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-purple-400"></span><span class="text-xs font-bold text-slate-600 w-24">Andamento:</span><span id="dash-count-andamento" class="text-xs font-black text-slate-800">0</span></div>
+                            <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-orange-400"></span><span class="text-xs font-bold text-slate-600 w-24">Análise:</span><span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span></div>
+                            <div class="pt-2 border-t mt-2 flex gap-4"><span class="text-[10px] font-black text-emerald-600 uppercase">Total: <span id="dash-count-total">0</span></span></div>
                         </div>
                     </div>
                     <div class="relative w-32 h-32">
@@ -298,12 +283,26 @@
         let lastKnownDataHash = ""; 
         let selectedOption = null;
         let currentUser = null;
-        let statusChart = null, responsavelChart = null;
+        let responsavelChart = null;
         let historyLog = [];
         let lastSorteioTimestamp = null;
         let timerInterval = null;
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
+
+        function formatDateToBR(date) {
+            if (!date) return '';
+            if (typeof date === 'string') return date;
+            const d = new Date(date);
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function parseDateFromBR(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.split('/');
+            if (parts.length === 3) return new Date(parts[2], parts[1]-1, parts[0]);
+            return new Date(dateStr);
+        }
 
         function loadSorteioState() {
             const saved = localStorage.getItem('topline_sorteio');
@@ -314,6 +313,7 @@
                     if(data.tarefas) window.tarefasDistribuidas = data.tarefas;
                 } else {
                     localStorage.removeItem('topline_sorteio');
+                    window.tarefasDistribuidas = null;
                 }
             }
             updateTimerDisplay();
@@ -421,7 +421,7 @@
             }
             
             fetchGoogleSheets(true);
-            setInterval(() => fetchGoogleSheets(false), 30000);
+            setInterval(() => fetchGoogleSheets(false), 60000);
             updateButtonsState();
             renderTasksFromStorage();
         }
@@ -467,7 +467,7 @@
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
                 const csvDados = await resDados.text();
                 if (!isFirstLoad && csvDados === lastKnownDataHash) return;
-                Papa.parse(csvDados, { header: true, dynamicTyping: true, skipEmptyLines: true, complete: (results) => { const newData = results.data.map(processRow); if (!isFirstLoad && rawData.length > 0) detectChanges(rawData, newData); rawData = newData; lastKnownDataHash = csvDados; if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS')); renderTable(); updateCharts(); } });
+                Papa.parse(csvDados, { header: true, dynamicTyping: true, skipEmptyLines: true, complete: (results) => { const newData = results.data.map(processRow); rawData = newData; lastKnownDataHash = csvDados; if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS')); renderTable(); updateCharts(); } });
                 if(isFirstLoad) { const resSenhas = await fetch(URL_SENHAS); const csvSenhas = await resSenhas.text(); Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = r.data; } }); }
             } catch (e) { console.error("Erro na sincronização.", e); }
         }
@@ -478,18 +478,13 @@
                 let key = k.trim().toUpperCase();
                 if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL') key = 'CERTIF.DIGITAL';
                 let val = row[k];
-                if(typeof val === 'string' && val.includes('/')) { const p = val.split('/'); if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]); }
+                if(typeof val === 'string' && val.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                    const parts = val.split('/');
+                    val = new Date(parts[2], parts[1]-1, parts[0]);
+                }
                 nr[key] = val;
             });
             return nr;
-        }
-
-        function detectChanges(oldData, newData) {
-            for (let i = 0; i < newData.length; i++) {
-                const oldRow = JSON.stringify(oldData[i]);
-                const newRow = JSON.stringify(newData[i]);
-                if (oldRow !== newRow && oldData[i]?.CLIENTE) { showNotification('Dados atualizados!', false, newData[i].CLIENTE); break; }
-            }
         }
 
         function showNotification(message, isError = false, cliente = '') {
@@ -509,12 +504,12 @@
                 const url = `${URL_SCRIPT_GOOGLE}?${params.toString()}`;
                 window[callbackName] = function(response) {
                     delete window[callbackName];
-                    document.body.removeChild(script);
+                    if (document.body.contains(script)) document.body.removeChild(script);
                     clearTimeout(timeout);
                     if (response && response.success) { addToHistory(cliente, coluna, valorAntigo, valor, tipo); resolve(response); } 
                     else reject(new Error(response?.error || 'Erro desconhecido'));
                 };
-                const timeout = setTimeout(() => { delete window[callbackName]; if (document.body.contains(script)) document.body.removeChild(script); reject(new Error('Timeout')); }, 30000);
+                const timeout = setTimeout(() => { delete window[callbackName]; if (document.body.contains(script)) document.body.removeChild(script); reject(new Error('Timeout')); }, 60000);
                 const script = document.createElement('script');
                 script.src = url;
                 script.onerror = () => { delete window[callbackName]; clearTimeout(timeout); if (document.body.contains(script)) document.body.removeChild(script); reject(new Error('Erro de rede')); };
@@ -526,25 +521,51 @@
             const { r, c } = currentEditTarget;
             let valorParaSalvar = null;
             let tipo = selectedOption;
-            const valorAntigo = rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : (rawData[r][c] || '');
+            const valorAtual = rawData[r][c];
+            let valorAntigo = valorAtual instanceof Date ? formatDateToBR(valorAtual) : (valorAtual || '');
+            
             if (!selectedOption) { showNotification('Selecione uma opção (Análise, Andamento ou Data)', true); return; }
-            if (selectedOption === 'analise') valorParaSalvar = "ANALISE";
-            else if (selectedOption === 'andamento') valorParaSalvar = "EM ANDAMENTO";
-            else if (selectedOption === 'data') { const dataInput = document.getElementById('dateValue').value; if (!dataInput) { showNotification('Selecione uma data', true); return; } valorParaSalvar = dataInput; }
+            
+            if (selectedOption === 'analise') {
+                valorParaSalvar = "ANALISE";
+            } else if (selectedOption === 'andamento') {
+                valorParaSalvar = "EM ANDAMENTO";
+            } else if (selectedOption === 'data') {
+                const dataInput = document.getElementById('dateValue').value;
+                if (!dataInput) { showNotification('Selecione uma data', true); return; }
+                valorParaSalvar = dataInput;
+            }
+            
             if (valorParaSalvar !== null) {
-                if (selectedOption === 'data') { const dataObj = new Date(valorParaSalvar + "T12:00:00"); rawData[r][c] = dataObj; } 
-                else rawData[r][c] = valorParaSalvar;
+                if (selectedOption === 'data') {
+                    const dataObj = parseDateFromBR(valorParaSalvar);
+                    rawData[r][c] = dataObj;
+                } else {
+                    rawData[r][c] = valorParaSalvar;
+                }
                 rawData[r][c + "_DONE"] = false;
                 renderTable();
                 updateCharts();
             }
+            
             closeModal();
+            
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
+            
             const cliente = rawData[r].CLIENTE;
             const coluna = c;
-            try { await enviarParaGoogleSheets(cliente, coluna, selectedOption, valorParaSalvar, valorAntigo); loadingOverlay.style.display = 'none'; showNotification('Atualizado com sucesso!', false, cliente); setTimeout(() => fetchGoogleSheets(false), 2000); } 
-            catch (error) { console.error('Erro:', error); loadingOverlay.style.display = 'none'; showNotification('Erro: ' + error.message, true); }
+            
+            try {
+                await enviarParaGoogleSheets(cliente, coluna, selectedOption, valorParaSalvar, valorAntigo);
+                loadingOverlay.style.display = 'none';
+                showNotification('Atualizado com sucesso!', false, cliente);
+                setTimeout(() => fetchGoogleSheets(false), 3000);
+            } catch (error) {
+                console.error('Erro:', error);
+                loadingOverlay.style.display = 'none';
+                showNotification('Erro: ' + error.message, true);
+            }
         }
 
         function getStatus(val, row, col) {
@@ -553,7 +574,9 @@
             if (strVal === "ANALISE") return 'analise';
             if (row && col && row[col + "_DONE"]) return 'andamento';
             if (!(val instanceof Date)) return null;
-            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const diff = Math.ceil((val - today) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -563,7 +586,15 @@
 
         function updateAnalytics() {
             let c = { vencido: 0, andamento: 0, analise: 0 };
-            rawData.forEach(row => { headers.forEach(col => { if (col === 'CLIENTE') return; const status = getStatus(row[col], row, col); if (status === 'vencido') c.vencido++; if (status === 'andamento') c.andamento++; if (status === 'analise') c.analise++; }); });
+            rawData.forEach(row => {
+                headers.forEach(col => {
+                    if (col === 'CLIENTE') return;
+                    const status = getStatus(row[col], row, col);
+                    if (status === 'vencido') c.vencido++;
+                    if (status === 'andamento') c.andamento++;
+                    if (status === 'analise') c.analise++;
+                });
+            });
             const total = c.vencido + c.andamento + c.analise;
             document.getElementById('dash-count-vencido').innerText = c.vencido;
             document.getElementById('dash-count-andamento').innerText = c.andamento;
@@ -601,13 +632,13 @@
                 if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => { const s = getStatus(row[h], row, h); const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-'); return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`; }).join('')}</tr>`).join('');
+            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => { const s = getStatus(row[h], row, h); const val = row[h] instanceof Date ? formatDateToBR(row[h]) : (row[h] || '-'); return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`; }).join('')}</tr>`).join('');
             updateAnalytics();
         }
 
         function selectOption(option) { selectedOption = option; document.getElementById('option-analise').classList.remove('option-selected'); document.getElementById('option-andamento').classList.remove('option-selected'); document.getElementById('option-data').classList.remove('option-selected'); document.getElementById(`option-${option}`).classList.add('option-selected'); document.getElementById('datePickerContainer').classList.add('hidden'); if (option === 'data') document.getElementById('datePickerContainer').classList.remove('hidden'); }
         
-        function openEditCell(r, c) { if(c === 'CLIENTE') return; if (currentUser !== 'ADM' && currentUser !== 'Jordan' && currentUser !== 'Silene' && currentUser !== 'Ingrid' && currentUser !== 'Patricia') { showNotification('Apenas administradores e funcionários podem editar!', true); return; } currentEditTarget = { r, c }; selectedOption = null; const valorAtual = rawData[r][c]; let valorExibicao = ''; if (valorAtual instanceof Date) valorExibicao = valorAtual.toLocaleDateString('pt-BR'); else if (valorAtual) valorExibicao = String(valorAtual); else valorExibicao = '<span class="text-slate-300 italic">vazio</span>'; document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`; document.getElementById('modalContent').innerHTML = `<div class="mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label><div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">${valorExibicao}</div></div><div><label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Selecione uma opção</label><div class="grid grid-cols-3 gap-3"><div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">🔍</div><div class="text-xs font-black text-orange-700 uppercase">Análise</div><div class="text-[9px] text-orange-500 mt-1">Insere "ANALISE"</div></div><div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">⚡</div><div class="text-xs font-black text-purple-700 uppercase">Andamento</div><div class="text-[9px] text-purple-500 mt-1">Insere "EM ANDAMENTO"</div></div><div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">📅</div><div class="text-xs font-black text-emerald-700 uppercase">Data</div><div class="text-[9px] text-emerald-500 mt-1">Define uma data</div></div></div></div><div id="datePickerContainer" class="hidden"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Selecione a data</label><input type="date" id="dateValue" class="w-full border border-slate-200 p-3 rounded-xl text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"></div>`; document.getElementById('modalSaveBtn').onclick = saveEdit; document.getElementById('editModal').classList.remove('hidden'); }
+        function openEditCell(r, c) { if(c === 'CLIENTE') return; currentEditTarget = { r, c }; selectedOption = null; const valorAtual = rawData[r][c]; let valorExibicao = ''; if (valorAtual instanceof Date) valorExibicao = formatDateToBR(valorAtual); else if (valorAtual) valorExibicao = String(valorAtual); else valorExibicao = '<span class="text-slate-300 italic">vazio</span>'; document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`; document.getElementById('modalContent').innerHTML = `<div class="mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label><div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">${valorExibicao}</div></div><div><label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Selecione uma opção</label><div class="grid grid-cols-3 gap-3"><div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">🔍</div><div class="text-xs font-black text-orange-700 uppercase">Análise</div><div class="text-[9px] text-orange-500 mt-1">Insere "ANALISE"</div></div><div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">⚡</div><div class="text-xs font-black text-purple-700 uppercase">Andamento</div><div class="text-[9px] text-purple-500 mt-1">Insere "EM ANDAMENTO"</div></div><div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 text-center cursor-pointer transition"><div class="text-2xl mb-2">📅</div><div class="text-xs font-black text-emerald-700 uppercase">Data</div><div class="text-[9px] text-emerald-500 mt-1">Define uma data</div></div></div></div><div id="datePickerContainer" class="hidden"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Selecione a data</label><input type="date" id="dateValue" class="w-full border border-slate-200 p-3 rounded-xl text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"></div>`; document.getElementById('modalSaveBtn').onclick = saveEdit; document.getElementById('editModal').classList.remove('hidden'); }
         
         function renderSenhas() { const q = document.getElementById('searchSenhas').value.toLowerCase(); if (!passwordData.length) return; document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `<tr><td class="col-fixed">${p.CLIENTE || '-'}</td><td>${p.CNPJ || '-'}</td><td>${p.CCM || '-'}</td>${["SENHA WEB", "SENHA GOV", "SENHA 156", "SENHA CRCE", "SIGEP"].map(c => `<td><span>${p[c]||'-'}</span></td>`).join('')}</tr>`).join(''); }
         
@@ -617,7 +648,7 @@
         function toggleStatusFilter(s) { activeStatus = (activeStatus === s) ? null : s; document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected')); if(activeStatus) document.getElementById('btn-' + s).classList.add('card-selected'); renderTable(); }
         function toggleDocFilter(d) { activeDoc = (activeDoc === d) ? null : d; document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active')); if(activeDoc) document.getElementById('btn-doc-' + d).classList.add('doc-btn-active'); renderTable(); }
         function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected')); document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active')); renderTable(); }
-        function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base"); XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); }
+        function exportarExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData.map(row => { const newRow = {}; Object.keys(row).forEach(k => { newRow[k] = row[k] instanceof Date ? formatDateToBR(row[k]) : row[k]; }); return newRow; })), "Base"); XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); }
 
         function distribuirTarefas(statusAlvo) {
             if(currentUser !== 'Ingrid') { showNotification('Apenas a Ingrid pode realizar sorteios!', true); return; }
@@ -631,7 +662,7 @@
                 headers.forEach(col => {
                     if (col === 'CLIENTE') return;
                     if (getStatus(row[col], row, col) === statusAlvo) {
-                        tarefasRaw.push({ cliente: row.CLIENTE, documento: col, prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col], originalRowIndex: rowIndex, empresa: row.CLIENTE });
+                        tarefasRaw.push({ cliente: row.CLIENTE, documento: col, prazo: row[col] instanceof Date ? formatDateToBR(row[col]) : row[col], originalRowIndex: rowIndex, empresa: row.CLIENTE });
                     }
                 });
             });
