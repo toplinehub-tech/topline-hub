@@ -100,6 +100,10 @@
             font-family: monospace;
             font-weight: 800;
         }
+        
+        .small-chart {
+            max-height: 200px;
+        }
     </style>
 </head>
 <body>
@@ -172,11 +176,13 @@
         </header>
 
         <div id="view-dash">
-            <!-- Apenas Distribuição por Responsável - removido gráfico de status -->
+            <!-- Apenas Distribuição por Responsável - gráfico pequeno -->
             <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
-                <div class="white-card p-6">
-                    <h3 class="text-[11px] font-black uppercase text-slate-400 mb-4">👥 Distribuição por Responsável</h3>
-                    <canvas id="responsavelChart" width="400" height="300"></canvas>
+                <div class="white-card p-4">
+                    <h3 class="text-[11px] font-black uppercase text-slate-400 mb-2">👥 Distribuição por Responsável</h3>
+                    <div class="small-chart">
+                        <canvas id="responsavelChart" width="400" height="180"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -225,29 +231,6 @@
                         <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                         <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
                     </div>
-                </div>
-            </div>
-
-            <!-- Filtros Avançados -->
-            <div class="white-card p-4 mb-6">
-                <h3 class="text-[10px] font-black uppercase text-slate-400 mb-3">🔍 Filtros Avançados</h3>
-                <div class="flex flex-wrap gap-3">
-                    <select id="filterPeriodo" onchange="applyAdvancedFilters()" class="text-xs border rounded-xl px-3 py-2 bg-white">
-                        <option value="">📅 Todos os períodos</option>
-                        <option value="30">📆 Próximos 30 dias</option>
-                        <option value="60">📆 Próximos 60 dias</option>
-                        <option value="90">📆 Próximos 90 dias</option>
-                        <option value="vencidos">⚠️ Vencidos</option>
-                    </select>
-                    <select id="filterResponsavel" onchange="applyAdvancedFilters()" class="text-xs border rounded-xl px-3 py-2 bg-white">
-                        <option value="">👥 Todos os responsáveis</option>
-                        <option value="Jordan">Jordan</option>
-                        <option value="Silene">Silene</option>
-                        <option value="Ingrid">Ingrid</option>
-                        <option value="Patricia">Patricia</option>
-                    </select>
-                    <input type="text" id="filterCliente" oninput="applyAdvancedFilters()" placeholder="🏢 Nome do cliente..." class="text-xs border rounded-xl px-3 py-2 w-48">
-                    <button onclick="clearAdvancedFilters()" class="btn-mini text-slate-500">🗑️ Limpar filtros</button>
                 </div>
             </div>
 
@@ -391,7 +374,6 @@
             document.getElementById('userName').innerText = userName;
             document.getElementById('userAvatar').innerHTML = userAvatar;
             
-            // Mostrar botão de reset apenas para ADM e Ingrid
             const resetBtn = document.getElementById('resetTimerBtn');
             if (currentUser === 'ADM' || currentUser === 'Ingrid') {
                 resetBtn.classList.remove('hidden');
@@ -402,6 +384,7 @@
             showNotification(`Bem-vindo(a), ${perfil}!`, false, '');
             
             const container = document.getElementById('docButtons');
+            container.innerHTML = '';
             docList.forEach(doc => {
                 const btn = document.createElement('button');
                 btn.className = "btn-mini doc-filter-btn transition";
@@ -413,6 +396,7 @@
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
             updateTimerDisplay();
+            updateTaskDisplay(); // Carregar visualização das tarefas ao logar
         }
 
         function logout() {
@@ -626,37 +610,41 @@
                     showNotification('Selecione uma data', true);
                     return;
                 }
-                valorParaSalvar = dataInput;
+                // Converter para formato DD/MM/YYYY para envio
+                const dataObj = new Date(dataInput + "T12:00:00");
+                valorParaSalvar = dataObj.toLocaleDateString('pt-BR');
+                rawData[r][c] = dataObj;
             }
             
-            if (valorParaSalvar !== null) {
-                if (selectedOption === 'data') {
-                    const dataObj = new Date(valorParaSalvar + "T12:00:00");
-                    rawData[r][c] = dataObj;
-                } else {
-                    rawData[r][c] = valorParaSalvar;
-                }
+            if (valorParaSalvar !== null && selectedOption !== 'data') {
+                rawData[r][c] = valorParaSalvar;
                 rawData[r][c + "_DONE"] = false;
+                renderTable();
+                updateCharts();
+            } else if (selectedOption === 'data') {
                 renderTable();
                 updateCharts();
             }
             
             closeModal();
             
+            // Mostrar loading por apenas 2 segundos
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
+            
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 2000);
             
             const cliente = rawData[r].CLIENTE;
             const coluna = c;
             
             try {
                 await enviarParaGoogleSheets(cliente, coluna, selectedOption, valorParaSalvar, valorAntigo);
-                loadingOverlay.style.display = 'none';
                 showNotification('Atualizado com sucesso!', false, cliente);
                 setTimeout(() => fetchGoogleSheets(false), 2000);
             } catch (error) {
                 console.error('Erro:', error);
-                loadingOverlay.style.display = 'none';
                 showNotification('Erro: ' + error.message, true);
             }
         }
@@ -725,67 +713,18 @@
                         borderRadius: 8
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { font: { size: 10 } } } 
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 9 } } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                }
             });
-        }
-
-        function applyAdvancedFilters() {
-            const periodo = document.getElementById('filterPeriodo').value;
-            const responsavel = document.getElementById('filterResponsavel').value;
-            const cliente = document.getElementById('filterCliente').value.toLowerCase();
-            
-            let filteredData = rawData;
-            
-            if (cliente) {
-                filteredData = filteredData.filter(row => row.CLIENTE?.toLowerCase().includes(cliente));
-            }
-            
-            renderFilteredTable(filteredData);
-        }
-
-        function renderFilteredTable(filteredData) {
-            const body = document.getElementById('tableBody');
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            
-            const finalFiltered = filteredData.filter(row => {
-                if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
-                if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
-                if(activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
-                return true;
-            });
-            
-            body.innerHTML = finalFiltered.map(row => `<tr>${headers.map(h => {
-                const s = getStatus(row[h], row, h);
-                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
-            }).join('')}</tr>`).join('');
-        }
-
-        function clearAdvancedFilters() {
-            document.getElementById('filterPeriodo').value = '';
-            document.getElementById('filterResponsavel').value = '';
-            document.getElementById('filterCliente').value = '';
-            renderTable();
-        }
-
-        function toggleStatusFilter(s) { 
-            activeStatus = (activeStatus === s) ? null : s; 
-            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
-            if(activeStatus) {
-                const selectedBtn = document.getElementById('btn-' + s);
-                if(selectedBtn) selectedBtn.classList.add('card-selected');
-            }
-            renderTable(); 
-        }
-
-        function toggleDocFilter(d) { 
-            activeDoc = (activeDoc === d) ? null : d; 
-            document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
-            if(activeDoc) {
-                const selectedBtn = document.getElementById('btn-doc-' + d);
-                if(selectedBtn) selectedBtn.classList.add('doc-btn-active');
-            }
-            renderTable(); 
         }
 
         function renderTable() {
@@ -802,7 +741,7 @@
             });
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
-                const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+                let val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                 return `<td class="${h === 'CLIENTE' ? 'col-fixed' : (s || '')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
             }).join('')}</tr>`).join('');
             updateAnalytics();
@@ -902,6 +841,7 @@
             if(tab === 'senhas') renderSenhas();
             if(tab === 'history') renderHistory();
             if(tab === 'dash') updateCharts();
+            if(tab === 'tasks') updateTaskDisplay();
         }
 
         function closeModal() { 
@@ -1055,11 +995,6 @@
             const responsaveis = ['jordan', 'silene', 'ingrid'];
             const listas = { jordan: [], silene: [], ingrid: [] };
             
-            responsaveis.forEach(r => {
-                document.getElementById(`list-${r}`).innerHTML = "";
-                document.getElementById(`count-${r}`).innerText = "0";
-            });
-
             // Agrupar tarefas por cliente
             let tarefasPorCliente = {};
             
@@ -1071,7 +1006,8 @@
                 
                 headers.forEach(col => {
                     if (col === 'CLIENTE') return;
-                    if (getStatus(row[col], row, col) === statusAlvo) {
+                    const status = getStatus(row[col], row, col);
+                    if (status === statusAlvo) {
                         tarefasPorCliente[cliente].push({
                             cliente: cliente,
                             documento: col,
@@ -1094,16 +1030,18 @@
             }
 
             // Distribuir por cliente (empresa) - mesma empresa cai para o mesmo funcionário
-            const clientesProcessados = {};
-            let responsavelIndex = 0;
-            
-            for (let cliente in tarefasPorCliente) {
-                const tarefasDoCliente = tarefasPorCliente[cliente];
-                const responsavel = responsaveis[responsavelIndex % responsaveis.length];
-                listas[responsavel].push(...tarefasDoCliente);
-                clientesProcessados[cliente] = responsavel;
-                responsavelIndex++;
+            const clientes = Object.keys(tarefasPorCliente);
+            // Embaralhar os clientes para distribuição aleatória
+            for (let i = clientes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [clientes[i], clientes[j]] = [clientes[j], clientes[i]];
             }
+            
+            clientes.forEach((cliente, index) => {
+                const tarefasDoCliente = tarefasPorCliente[cliente];
+                const responsavel = responsaveis[index % responsaveis.length];
+                listas[responsavel].push(...tarefasDoCliente);
+            });
 
             window.tarefasDistribuidas = listas;
             
@@ -1118,6 +1056,26 @@
             updateCharts();
             updateTimerDisplay();
             showNotification(`Tarefas distribuídas! Próximo sorteio em 9 horas.`, false, '');
+        }
+
+        function toggleStatusFilter(s) { 
+            activeStatus = (activeStatus === s) ? null : s; 
+            document.querySelectorAll('#statusCards button').forEach(btn => btn.classList.remove('card-selected'));
+            if(activeStatus) {
+                const selectedBtn = document.getElementById('btn-' + s);
+                if(selectedBtn) selectedBtn.classList.add('card-selected');
+            }
+            renderTable(); 
+        }
+
+        function toggleDocFilter(d) { 
+            activeDoc = (activeDoc === d) ? null : d; 
+            document.querySelectorAll('.doc-filter-btn').forEach(btn => btn.classList.remove('doc-btn-active'));
+            if(activeDoc) {
+                const selectedBtn = document.getElementById('btn-doc-' + d);
+                if(selectedBtn) selectedBtn.classList.add('doc-btn-active');
+            }
+            renderTable(); 
         }
 
         // Iniciar timer ao carregar
