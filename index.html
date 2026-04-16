@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v2.1</title>
+    <title>TopLineHub | Gestão Integrada v2.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -449,7 +449,7 @@
             }
         }
 
-        // Função auxiliar para JSONP
+        // Função auxiliar para JSONP (apenas para leitura)
         function jsonpRequest(url) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
@@ -479,42 +479,35 @@
             });
         }
 
-        // Função para salvar a distribuição no servidor
+        // Função para salvar a distribuição no servidor usando POST (sem limite de tamanho)
         async function salvarDistribuicaoNoServidor(statusAlvo, distribuicao) {
-            return new Promise((resolve, reject) => {
-                const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-                const distribuicaoStr = JSON.stringify(distribuicao);
+            try {
+                const response = await fetch(URL_SCRIPT_GOOGLE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        acao: 'salvarDistribuicao',
+                        statusAlvo: statusAlvo,
+                        distribuicao: distribuicao,
+                        usuario: currentUser
+                    })
+                });
                 
-                const url = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${statusAlvo}&distribuicao=${encodeURIComponent(distribuicaoStr)}&usuario=${currentUser}&callback=${callbackName}&_=${Date.now()}`;
+                const data = await response.json();
                 
-                const timeout = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('Timeout'));
-                }, 30000);
-                
-                function cleanup() {
-                    clearTimeout(timeout);
-                    delete window[callbackName];
-                    if (script && script.parentNode) script.parentNode.removeChild(script);
+                if (data && data.success) {
+                    console.log('Distribuição salva com sucesso');
+                    return { success: true };
+                } else {
+                    throw new Error(data?.error || 'Erro ao salvar');
                 }
                 
-                window[callbackName] = function(response) {
-                    cleanup();
-                    if (response && response.success) {
-                        resolve(response);
-                    } else {
-                        reject(new Error(response?.error || 'Erro ao salvar'));
-                    }
-                };
-                
-                const script = document.createElement('script');
-                script.src = url;
-                script.onerror = () => {
-                    cleanup();
-                    reject(new Error('Erro de rede'));
-                };
-                document.body.appendChild(script);
-            });
+            } catch (error) {
+                console.error('Erro ao salvar distribuição:', error);
+                throw error;
+            }
         }
 
         // Função para carregar a distribuição do servidor (todos os usuários veem o mesmo)
@@ -1035,7 +1028,7 @@
                     cargas[menorCarga] += tarefas.length;
                 });
                 
-                // Salvar distribuição no servidor
+                // Salvar distribuição no servidor usando POST
                 await salvarDistribuicaoNoServidor(statusAlvo, distribuicao);
                 
                 // Recarregar para todos
