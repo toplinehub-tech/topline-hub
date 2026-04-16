@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v1.9</title>
+    <title>TopLineHub | Gestão Integrada v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -22,6 +22,7 @@
         .vence-90 { background-color: #f0f9ff !important; color: #0369a1 !important; }
         .andamento { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
+        .concluido { background-color: #d1fae5 !important; color: #065f46 !important; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: white; border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: white; border-radius: 12px; border: 1px solid #f1f5f9; }
@@ -88,29 +89,16 @@
             border: 1px solid #e2e8f0;
         }
         
-        /* Estilos do sorteio global */
-        .sorteio-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-        .timer-bar {
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.3);
+        .progress-bar {
+            height: 8px;
             border-radius: 10px;
-            overflow: hidden;
-            margin-top: 10px;
+            transition: width 0.5s ease;
         }
-        .timer-progress {
-            height: 100%;
-            background: #ffd700;
-            transition: width 1s linear;
+        .dashboard-card {
+            transition: transform 0.2s ease;
         }
-        .btn-disabled {
-            opacity: 0.5;
-            cursor: not-allowed !important;
+        .dashboard-card:hover {
+            transform: translateY(-4px);
         }
     </style>
 </head>
@@ -187,23 +175,57 @@
             </header>
 
             <div id="view-dash">
-                <!-- CARD DE SORTEIO GLOBAL - VISÍVEL PARA TODOS -->
-                <div class="sorteio-card white-card p-5 mb-6 text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-[10px] font-black uppercase opacity-80">🎲 SORTEIO GLOBAL</h3>
-                            <p class="text-[9px] opacity-70 mt-1">Tarefa do dia - Todos os funcionários veem o mesmo resultado</p>
+                <!-- DASHBOARD DE DESEMPENHO DOS COLABORADORES -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="white-card dashboard-card p-5 border-t-8 border-blue-500">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="text-[10px] font-black text-blue-600 uppercase tracking-wider">Jordan</h3>
+                                <p class="text-[9px] text-slate-400">Tarefas do dia</p>
+                            </div>
+                            <div class="text-2xl font-black text-blue-600" id="jordan-percent">0%</div>
                         </div>
-                        <div id="sorteioAdminOnly">
-                            <!-- Botões de sorteio só aparecem para a Ingrid -->
+                        <div class="progress-bar bg-blue-100 rounded-full overflow-hidden">
+                            <div id="jordan-progress" class="progress-bar bg-blue-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 text-[9px] text-slate-500">
+                            <span>Concluídas: <strong id="jordan-concluidas">0</strong></span>
+                            <span>Total: <strong id="jordan-total">0</strong></span>
                         </div>
                     </div>
-                    <div class="text-center py-4">
-                        <div class="text-xl font-black" id="tarefaSorteadaGlobal">Nenhum sorteio realizado</div>
-                        <div class="text-[10px] opacity-80 mt-2" id="infoSorteioGlobal">Clique em "Sortear" para iniciar</div>
+                    
+                    <div class="white-card dashboard-card p-5 border-t-8 border-purple-500">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="text-[10px] font-black text-purple-600 uppercase tracking-wider">Silene</h3>
+                                <p class="text-[9px] text-slate-400">Tarefas do dia</p>
+                            </div>
+                            <div class="text-2xl font-black text-purple-600" id="silene-percent">0%</div>
+                        </div>
+                        <div class="progress-bar bg-purple-100 rounded-full overflow-hidden">
+                            <div id="silene-progress" class="progress-bar bg-purple-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 text-[9px] text-slate-500">
+                            <span>Concluídas: <strong id="silene-concluidas">0</strong></span>
+                            <span>Total: <strong id="silene-total">0</strong></span>
+                        </div>
                     </div>
-                    <div class="timer-bar" id="timerBar" style="display: none;">
-                        <div class="timer-progress" id="timerProgress" style="width: 0%;"></div>
+                    
+                    <div class="white-card dashboard-card p-5 border-t-8 border-pink-500">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="text-[10px] font-black text-pink-600 uppercase tracking-wider">Patricia</h3>
+                                <p class="text-[9px] text-slate-400">Tarefas do dia</p>
+                            </div>
+                            <div class="text-2xl font-black text-pink-600" id="patricia-percent">0%</div>
+                        </div>
+                        <div class="progress-bar bg-pink-100 rounded-full overflow-hidden">
+                            <div id="patricia-progress" class="progress-bar bg-pink-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 text-[9px] text-slate-500">
+                            <span>Concluídas: <strong id="patricia-concluidas">0</strong></span>
+                            <span>Total: <strong id="patricia-total">0</strong></span>
+                        </div>
                     </div>
                 </div>
                 
@@ -228,7 +250,7 @@
                                     <span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span>
                                 </div>
                                 <div class="pt-2 border-t mt-2 flex gap-4">
-                                    <span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos item: <span id="dash-count-total">0</span></span>
+                                    <span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos itens: <span id="dash-count-total">0</span></span>
                                 </div>
                             </div>
                         </div>
@@ -245,9 +267,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="white-card p-6 bg-emerald-50/30 flex flex-col justify-center border-emerald-100">
-                        <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">TopLine Hub Operacional</h3>
-                        <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Monitoramento de certidões. Gráfico consolida volumes críticos.</p>
+                    <div class="white-card p-6 bg-gradient-to-br from-emerald-50 to-teal-50 flex flex-col justify-center border-emerald-100">
+                        <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">Desempenho do Dia</h3>
+                        <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Acompanhe a produtividade da equipe em tempo real.</p>
                         <div class="mt-4 flex gap-2">
                             <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
                             <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
@@ -349,7 +371,13 @@
         let lastKnownDataHash = ""; 
         let selectedOption = null;
         let currentUser = "";
-        let intervalSorteio = null;
+        
+        // Controle de tarefas por colaborador
+        let tarefasColaboradores = {
+            Jordan: [],
+            Silene: [],
+            Patricia: []
+        };
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -376,15 +404,9 @@
             
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
-            
-            // Iniciar verificação do sorteio
-            verificarSorteioGlobal();
-            if (intervalSorteio) clearInterval(intervalSorteio);
-            intervalSorteio = setInterval(verificarSorteioGlobal, 30000);
         }
 
         function logout() {
-            if (intervalSorteio) clearInterval(intervalSorteio);
             currentUser = "";
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('login-screen').style.display = 'flex';
@@ -400,10 +422,10 @@
             
             if (isIngrid) {
                 containerTasks.innerHTML = `
-                    <button onclick="realizarSorteioGlobal('vencido')" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
-                    <button onclick="realizarSorteioGlobal('30')" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
-                    <button onclick="realizarSorteioGlobal('60')" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
-                    <button onclick="realizarSorteioGlobal('90')" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
+                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
+                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
+                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
+                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
                 `;
                 avisoRestricao.classList.add('hidden');
             } else {
@@ -414,22 +436,6 @@
                     <button class="btn-mini border-sky-200 text-sky-700 btn-disabled" disabled>🔒 Sortear 90 D</button>
                 `;
                 avisoRestricao.classList.remove('hidden');
-            }
-            
-            // Atualizar card no painel
-            const containerAdmin = document.getElementById('sorteioAdminOnly');
-            if (isIngrid) {
-                containerAdmin.innerHTML = `
-                    <button onclick="realizarSorteioGlobal()" id="btnSortearGlobal" class="bg-white/20 backdrop-blur px-4 py-2 rounded-full text-xs font-bold hover:bg-white/30 transition">
-                        🎲 NOVO SORTEIO
-                    </button>
-                `;
-            } else {
-                containerAdmin.innerHTML = `
-                    <button class="bg-white/20 backdrop-blur px-4 py-2 rounded-full text-xs font-bold opacity-50 cursor-not-allowed" disabled>
-                        🔒 SORTEIO BLOQUEADO
-                    </button>
-                `;
             }
         }
 
@@ -463,75 +469,6 @@
             });
         }
 
-        // Verificar sorteio atual (todos veem)
-        async function verificarSorteioGlobal() {
-            try {
-                const data = await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=verSorteio&_=${Date.now()}`);
-                
-                if (data.success && data.tem_sorteio) {
-                    document.getElementById('tarefaSorteadaGlobal').innerHTML = data.tarefa_atual;
-                    
-                    if (data.ativo) {
-                        document.getElementById('infoSorteioGlobal').innerHTML = `⏰ Próximo sorteio em: ${data.tempo_restante_texto}`;
-                        document.getElementById('timerBar').style.display = 'block';
-                        if (data.horas_restantes) {
-                            const porcentagem = (data.horas_restantes / 8) * 100;
-                            document.getElementById('timerProgress').style.width = `${porcentagem}%`;
-                        }
-                    } else {
-                        document.getElementById('infoSorteioGlobal').innerHTML = '🎯 Sorteio disponível! Apenas Ingrid pode sortear nova tarefa.';
-                        document.getElementById('timerBar').style.display = 'none';
-                    }
-                } else {
-                    document.getElementById('tarefaSorteadaGlobal').innerHTML = 'Nenhum sorteio realizado';
-                    document.getElementById('infoSorteioGlobal').innerHTML = 'Aguardando Ingrid realizar o primeiro sorteio';
-                    document.getElementById('timerBar').style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Erro ao verificar sorteio:', error);
-            }
-        }
-
-        // Realizar sorteio global (apenas Ingrid pode chamar)
-        async function realizarSorteioGlobal(tipo = null) {
-            // Verificar se é a Ingrid
-            if (currentUser !== 'Ingrid') {
-                showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true);
-                return;
-            }
-            
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.style.display = 'flex';
-            
-            try {
-                let url = `${URL_SCRIPT_GOOGLE}?acao=sortear&_=${Date.now()}`;
-                if (tipo) {
-                    url += `&tipo=${tipo}`;
-                }
-                
-                const data = await jsonpRequest(url);
-                
-                if (data.success) {
-                    showNotification(`✅ Sorteio realizado! Tarefa: ${data.tarefa_sorteada}`, false, 'Sorteio Global');
-                    await verificarSorteioGlobal();
-                    // Atualizar distribuição de tarefas se necessário
-                    if (tipo) {
-                        distribuirTarefas(tipo);
-                    }
-                } else {
-                    showNotification(`❌ ${data.error || 'Erro no sorteio'}`, true);
-                    if (data.horas_restantes) {
-                        showNotification(`Próximo sorteio disponível em: ${data.horas_restantes} horas`, true);
-                    }
-                }
-            } catch (error) {
-                console.error('Erro ao sortear:', error);
-                showNotification('Erro ao realizar sorteio. Tente novamente.', true);
-            } finally {
-                loadingOverlay.style.display = 'none';
-            }
-        }
-
         async function fetchGoogleSheets(isFirstLoad) {
             try {
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
@@ -549,6 +486,7 @@
                         lastKnownDataHash = csvDados;
                         if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
+                        atualizarDashboardDesempenho();
                     }
                 });
 
@@ -697,6 +635,7 @@
                 loadingOverlay.style.display = 'none';
                 showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
                 setTimeout(() => fetchGoogleSheets(false), 2000);
+                atualizarDashboardDesempenho();
             } catch (error) {
                 console.error('Erro ao enviar:', error);
                 loadingOverlay.style.display = 'none';
@@ -708,7 +647,7 @@
             const strVal = String(val || "").toUpperCase().trim();
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
-            if (row && col && row[col + "_DONE"]) return 'andamento';
+            if (row && col && row[col + "_DONE"]) return 'concluido';
             if (!(val instanceof Date)) return null;
             const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
             if (diff < 0) return 'vencido';
@@ -744,6 +683,33 @@
             
             document.getElementById('dash-percent').innerText = total > 0 ? Math.round(((total-c.vencido)/total)*100)+"%" : "100%";
             document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
+        }
+        
+        // Função para atualizar o dashboard de desempenho
+        function atualizarDashboardDesempenho() {
+            const colaboradores = ['Jordan', 'Silene', 'Patricia'];
+            
+            colaboradores.forEach(colab => {
+                const tarefasColab = tarefasColaboradores[colab] || [];
+                const total = tarefasColab.length;
+                let concluidas = 0;
+                
+                tarefasColab.forEach(tarefa => {
+                    const linha = rawData[tarefa.rowIndex];
+                    const valor = linha ? linha[tarefa.documento] : null;
+                    if (valor === "CONCLUIDO" || valor === "EM ANDAMENTO") {
+                        concluidas++;
+                    }
+                });
+                
+                const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+                
+                const nomeLower = colab.toLowerCase();
+                document.getElementById(`${nomeLower}-percent`).innerText = `${percentual}%`;
+                document.getElementById(`${nomeLower}-progress`).style.width = `${percentual}%`;
+                document.getElementById(`${nomeLower}-concluidas`).innerText = concluidas;
+                document.getElementById(`${nomeLower}-total`).innerText = total;
+            });
         }
 
         function toggleStatusFilter(s) { 
@@ -868,6 +834,7 @@
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             if(tab === 'senhas') renderSenhas();
+            if(tab === 'dash') atualizarDashboardDesempenho();
         }
 
         function closeModal() { 
@@ -891,11 +858,19 @@
         }
 
         function distribuirTarefas(statusAlvo) {
-            const responsaveis = ['jordan', 'silene', 'patricia'];
+            // Verificar se é a Ingrid
+            if (currentUser !== 'Ingrid') {
+                showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true);
+                return;
+            }
             
+            const responsaveis = ['Jordan', 'Silene', 'Patricia'];
+            
+            // Resetar listas
             responsaveis.forEach(r => {
-                document.getElementById(`list-${r}`).innerHTML = "";
-                document.getElementById(`count-${r}`).innerText = "0";
+                document.getElementById(`list-${r.toLowerCase()}`).innerHTML = "";
+                document.getElementById(`count-${r.toLowerCase()}`).innerText = "0";
+                tarefasColaboradores[r] = [];
             });
 
             let tarefasPorCliente = new Map();
@@ -912,7 +887,8 @@
                             cliente: clienteNome,
                             documento: col,
                             prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : row[col],
-                            originalRowIndex: rowIndex 
+                            originalRowIndex: rowIndex,
+                            documentoCol: col
                         });
                     }
                 });
@@ -926,20 +902,20 @@
             let clientesArray = Array.from(tarefasPorCliente.entries());
             clientesArray.sort((a, b) => b[1].length - a[1].length);
             
-            let distribuicao = { jordan: [], silene: [], patricia: [] };
-            let cargas = { jordan: 0, silene: 0, patricia: 0 };
+            let distribuicao = { Jordan: [], Silene: [], Patricia: [] };
+            let cargas = { Jordan: 0, Silene: 0, Patricia: 0 };
             
             clientesArray.forEach(([cliente, tarefas]) => {
-                let menorCarga = 'jordan';
-                let menorValor = cargas.jordan;
+                let menorCarga = 'Jordan';
+                let menorValor = cargas.Jordan;
                 
-                if (cargas.silene < menorValor) {
-                    menorValor = cargas.silene;
-                    menorCarga = 'silene';
+                if (cargas.Silene < menorValor) {
+                    menorValor = cargas.Silene;
+                    menorCarga = 'Silene';
                 }
-                if (cargas.patricia < menorValor) {
-                    menorValor = cargas.patricia;
-                    menorCarga = 'patricia';
+                if (cargas.Patricia < menorValor) {
+                    menorValor = cargas.Patricia;
+                    menorCarga = 'Patricia';
                 }
                 
                 distribuicao[menorCarga].push(...tarefas);
@@ -947,8 +923,16 @@
             });
             
             responsaveis.forEach(r => {
-                const container = document.getElementById(`list-${r}`);
-                document.getElementById(`count-${r}`).innerText = distribuicao[r].length;
+                const container = document.getElementById(`list-${r.toLowerCase()}`);
+                document.getElementById(`count-${r.toLowerCase()}`).innerText = distribuicao[r].length;
+                
+                // Salvar tarefas do colaborador
+                tarefasColaboradores[r] = distribuicao[r].map(t => ({
+                    rowIndex: t.originalRowIndex,
+                    documento: t.documento,
+                    cliente: t.cliente,
+                    prazo: t.prazo
+                }));
                 
                 distribuicao[r].forEach(t => {
                     const card = document.createElement('div');
@@ -968,7 +952,8 @@
                 });
             });
             
-            showNotification(`Distribuição concluída para status: ${statusAlvo}`, false, `${tarefasPorCliente.size} clientes`);
+            atualizarDashboardDesempenho();
+            showNotification(`✅ Distribuição concluída para status: ${statusAlvo}`, false, `${tarefasPorCliente.size} clientes`);
         }
     </script>
 </body>
