@@ -813,7 +813,11 @@
             if (strVal === "ANALISE") return 'analise';
             if (row && col && row[col + "_DONE"]) return 'concluido';
             if (!(val instanceof Date)) return null;
-            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const dataVal = new Date(val);
+            dataVal.setHours(0, 0, 0, 0);
+            const diff = Math.ceil((dataVal - hoje) / 86400000);
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -900,7 +904,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            head.innerHTML = `<table>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -1037,57 +1041,87 @@
             loadingOverlay.style.display = 'flex';
             
             try {
-                let tarefasPorCliente = new Map();
+                // Mapear empresas com seus documentos vencidos
+                const empresasComTarefas = new Map();
                 
-                rawData.forEach((row, rowIndex) => {
-                    const clienteNome = row.CLIENTE;
-                    headers.forEach((col) => {
-                        if (col === 'CLIENTE') return;
-                        if (getStatus(row[col], row, col) === statusAlvo) {
-                            if (!tarefasPorCliente.has(clienteNome)) {
-                                tarefasPorCliente.set(clienteNome, []);
-                            }
-                            tarefasPorCliente.get(clienteNome).push({
+                for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
+                    const row = rawData[rowIndex];
+                    if (!row || !row.CLIENTE) continue;
+                    
+                    const clienteNome = String(row.CLIENTE).trim();
+                    if (!clienteNome) continue;
+                    
+                    const tarefasDaEmpresa = [];
+                    
+                    for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+                        const col = headers[colIndex];
+                        if (col === 'CLIENTE') continue;
+                        
+                        const valor = row[col];
+                        const status = getStatus(valor, row, col);
+                        
+                        if (status === statusAlvo) {
+                            tarefasDaEmpresa.push({
                                 cliente: clienteNome,
                                 documento: col,
-                                prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : (row[col] || '-'),
+                                prazo: valor instanceof Date ? valor.toLocaleDateString('pt-BR') : (valor || '-'),
                                 rowIndex: rowIndex
                             });
                         }
-                    });
-                });
+                    }
+                    
+                    if (tarefasDaEmpresa.length > 0) {
+                        empresasComTarefas.set(clienteNome, tarefasDaEmpresa);
+                    }
+                }
 
-                if (tarefasPorCliente.size === 0) {
-                    showNotification('Nenhuma tarefa encontrada para este filtro', true);
+                if (empresasComTarefas.size === 0) {
+                    const statusNomes = {
+                        'vencido': 'Vencidas',
+                        '30': '30 Dias',
+                        '60': '60 Dias',
+                        '90': '90 Dias'
+                    };
+                    showNotification(`⚠️ Nenhuma tarefa encontrada para o status: ${statusNomes[statusAlvo] || statusAlvo}`, true);
                     loadingOverlay.style.display = 'none';
                     return;
                 }
 
-                let clientesArray = Array.from(tarefasPorCliente.entries());
-                clientesArray.sort((a, b) => b[1].length - a[1].length);
+                // Converter para array e ordenar por quantidade de tarefas
+                let empresasArray = Array.from(empresasComTarefas.entries());
+                empresasArray.sort((a, b) => b[1].length - a[1].length);
                 
-                let novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
-                let cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
+                // Distribuir empresas entre os colaboradores
+                const novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
+                const cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
+                const colaboradores = ['Jordan', 'Sirlene', 'Ingrid'];
                 
-                clientesArray.forEach(([cliente, tarefas]) => {
-                    let menorCarga = 'Jordan';
-                    let menorValor = cargas.Jordan;
+                // Para cada empresa, atribuir todas as suas tarefas ao mesmo colaborador
+                for (const [empresa, tarefas] of empresasArray) {
+                    // Encontrar colaborador com menor carga
+                    let colaboradorEscolhido = 'Jordan';
+                    let menorCarga = cargas.Jordan;
                     
-                    if (cargas.Sirlene < menorValor) {
-                        menorValor = cargas.Sirlene;
-                        menorCarga = 'Sirlene';
+                    if (cargas.Sirlene < menorCarga) {
+                        menorCarga = cargas.Sirlene;
+                        colaboradorEscolhido = 'Sirlene';
                     }
-                    if (cargas.Ingrid < menorValor) {
-                        menorValor = cargas.Ingrid;
-                        menorCarga = 'Ingrid';
+                    if (cargas.Ingrid < menorCarga) {
+                        menorCarga = cargas.Ingrid;
+                        colaboradorEscolhido = 'Ingrid';
                     }
                     
-                    novaDistribuicao[menorCarga].push(...tarefas);
-                    cargas[menorCarga] += tarefas.length;
-                });
+                    // Adicionar todas as tarefas da empresa ao colaborador escolhido
+                    novaDistribuicao[colaboradorEscolhido].push(...tarefas);
+                    cargas[colaboradorEscolhido] += tarefas.length;
+                }
                 
+                // Salvar distribuição
                 distribuicaoAtual = novaDistribuicao;
                 await salvarDistribuicaoNoServidor(statusAlvo);
+                
+                // Recarregar para garantir sincronia
+                await carregarDistribuicaoGlobal();
                 renderizarTarefas();
                 atualizarDashboardDesempenho();
                 
@@ -1097,12 +1131,12 @@
                     '60': '60 Dias',
                     '90': '90 Dias'
                 };
-                showNotification(`✅ Distribuição concluída! ${tarefasPorCliente.size} clientes para ${statusNomes[statusAlvo] || statusAlvo}`, false, 
-                    `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length}`);
+                showNotification(`✅ Distribuição concluída! ${empresasComTarefas.size} empresas para ${statusNomes[statusAlvo] || statusAlvo}`, false, 
+                    `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
                 
             } catch (error) {
                 console.error('Erro ao distribuir tarefas:', error);
-                showNotification('Erro ao realizar sorteio. Tente novamente.', true);
+                showNotification('Erro ao realizar sorteio: ' + error.message, true);
             } finally {
                 loadingOverlay.style.display = 'none';
             }
@@ -1129,6 +1163,20 @@
             });
             
             console.log('Status counts:', stats);
+            
+            // Mostrar empresas com vencidos
+            const empresasVencidas = new Set();
+            rawData.forEach(row => {
+                headers.forEach(col => {
+                    if (col === 'CLIENTE') return;
+                    const status = getStatus(row[col], row, col);
+                    if (status === 'vencido') {
+                        empresasVencidas.add(row.CLIENTE);
+                    }
+                });
+            });
+            console.log('Empresas com documentos vencidos:', empresasVencidas.size);
+            
             return stats;
         }
     </script>
