@@ -112,10 +112,6 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .task-assigned-jordan { border-left: 4px solid #3b82f6; background-color: #eff6ff; }
-        .task-assigned-ingrid { border-left: 4px solid #ec4899; background-color: #fdf2f8; }
-        .task-assigned-sirlene { border-left: 4px solid #8b5cf6; background-color: #f5f3ff; }
-        .task-available { border-left: 4px solid #cbd5e1; background-color: white; }
     </style>
 </head>
 <body>
@@ -380,32 +376,6 @@
         </div>
     </div>
 
-    <div id="assignModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
-            <h4 id="assignModalTitle" class="text-xs font-black text-slate-800 uppercase mb-6 text-center border-b pb-4">Atribuir Tarefa</h4>
-            <div id="assignModalContent" class="space-y-6">
-                <p class="text-sm text-slate-600">Selecione o funcionário para esta tarefa:</p>
-                <div class="grid grid-cols-3 gap-3">
-                    <button onclick="atribuirTarefa('Jordan')" class="p-3 bg-blue-50 border-2 border-blue-200 rounded-xl text-center hover:bg-blue-100 transition">
-                        <div class="text-lg mb-1">👤</div>
-                        <div class="text-xs font-bold text-blue-700">Jordan</div>
-                    </button>
-                    <button onclick="atribuirTarefa('Sirlene')" class="p-3 bg-purple-50 border-2 border-purple-200 rounded-xl text-center hover:bg-purple-100 transition">
-                        <div class="text-lg mb-1">👤</div>
-                        <div class="text-xs font-bold text-purple-700">Sirlene</div>
-                    </button>
-                    <button onclick="atribuirTarefa('Ingrid')" class="p-3 bg-pink-50 border-2 border-pink-200 rounded-xl text-center hover:bg-pink-100 transition">
-                        <div class="text-lg mb-1">👤</div>
-                        <div class="text-xs font-bold text-pink-700">Ingrid</div>
-                    </button>
-                </div>
-            </div>
-            <div class="flex gap-3 mt-8">
-                <button onclick="closeAssignModal()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-200 transition">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
         const URL_DADOS_PRINCIPAIS = BASE_URL + "&gid=0";
@@ -418,9 +388,8 @@
         let lastKnownDataHash = ""; 
         let selectedOption = null;
         let currentUser = "";
-        let pendingAssignTask = null;
         
-        let tarefasColaboradores = {
+        let distribuicaoAtual = {
             Jordan: [],
             Sirlene: [],
             Ingrid: []
@@ -449,12 +418,11 @@
             atualizarBotoesSorteio();
             
             fetchGoogleSheets(true);
-            setInterval(() => fetchGoogleSheets(false), 30000);
+            setInterval(() => fetchGoogleSheets(false), 60000);
+            setInterval(() => carregarDistribuicaoGlobal(), 30000);
             
             setTimeout(() => {
-                if (currentUser) {
-                    carregarDistribuicaoGlobal();
-                }
+                carregarDistribuicaoGlobal();
             }, 2000);
         }
 
@@ -492,13 +460,13 @@
             }
         }
 
-        function jsonpRequest(url) {
+        function jsonpRequest(url, timeoutMs = 30000) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
                 const timeout = setTimeout(() => {
                     cleanup();
                     reject(new Error('Timeout'));
-                }, 30000);
+                }, timeoutMs);
                 
                 function cleanup() {
                     clearTimeout(timeout);
@@ -521,62 +489,38 @@
             });
         }
 
-        async function salvarDistribuicaoNoServidor(statusAlvo, distribuicao) {
-            return new Promise((resolve, reject) => {
-                const distribuicaoSimplificada = {
-                    Jordan: distribuicao.Jordan.map(t => ({ cliente: t.cliente, documento: t.documento, prazo: t.prazo, rowIndex: t.rowIndex })),
-                    Sirlene: distribuicao.Sirlene.map(t => ({ cliente: t.cliente, documento: t.documento, prazo: t.prazo, rowIndex: t.rowIndex })),
-                    Ingrid: distribuicao.Ingrid.map(t => ({ cliente: t.cliente, documento: t.documento, prazo: t.prazo, rowIndex: t.rowIndex }))
-                };
-                
-                const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-                const distribuicaoStr = JSON.stringify(distribuicaoSimplificada);
-                
-                const url = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${statusAlvo}&distribuicao=${encodeURIComponent(distribuicaoStr)}&usuario=${currentUser}&callback=${callbackName}&_=${Date.now()}`;
-                
-                if (url.length > 1900) {
-                    const distribuicaoMuitoCompacta = {
-                        Jordan: distribuicao.Jordan.slice(0, 25).map(t => ({ cliente: t.cliente, documento: t.documento })),
-                        Sirlene: distribuicao.Sirlene.slice(0, 25).map(t => ({ cliente: t.cliente, documento: t.documento })),
-                        Ingrid: distribuicao.Ingrid.slice(0, 25).map(t => ({ cliente: t.cliente, documento: t.documento }))
-                    };
-                    const distribuicaoStr2 = JSON.stringify(distribuicaoMuitoCompacta);
-                    const url2 = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${statusAlvo}&distribuicao=${encodeURIComponent(distribuicaoStr2)}&usuario=${currentUser}&callback=${callbackName}&_=${Date.now()}`;
-                    executarJsonpSalvar(url2, callbackName, resolve, reject);
-                } else {
-                    executarJsonpSalvar(url, callbackName, resolve, reject);
-                }
-            });
-        }
-        
-        function executarJsonpSalvar(url, callbackName, resolve, reject) {
-            const timeout = setTimeout(() => {
-                cleanup();
-                reject(new Error('Timeout - O servidor não respondeu'));
-            }, 30000);
+        async function salvarDistribuicaoNoServidor(statusAlvo) {
+            const dadosSimplificados = {
+                Jordan: distribuicaoAtual.Jordan.map(t => ({ 
+                    cliente: t.cliente, 
+                    documento: t.documento, 
+                    prazo: t.prazo, 
+                    rowIndex: t.rowIndex 
+                })),
+                Sirlene: distribuicaoAtual.Sirlene.map(t => ({ 
+                    cliente: t.cliente, 
+                    documento: t.documento, 
+                    prazo: t.prazo, 
+                    rowIndex: t.rowIndex 
+                })),
+                Ingrid: distribuicaoAtual.Ingrid.map(t => ({ 
+                    cliente: t.cliente, 
+                    documento: t.documento, 
+                    prazo: t.prazo, 
+                    rowIndex: t.rowIndex 
+                }))
+            };
             
-            function cleanup() {
-                clearTimeout(timeout);
-                delete window[callbackName];
-                if (script && script.parentNode) script.parentNode.removeChild(script);
+            const dadosStr = JSON.stringify(dadosSimplificados);
+            const url = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${encodeURIComponent(statusAlvo)}&distribuicao=${encodeURIComponent(dadosStr)}&usuario=${currentUser}`;
+            
+            try {
+                const response = await jsonpRequest(url, 60000);
+                return response;
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                throw error;
             }
-            
-            window[callbackName] = function(response) {
-                cleanup();
-                if (response && response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response?.error || 'Erro ao salvar distribuição'));
-                }
-            };
-            
-            const script = document.createElement('script');
-            script.src = url;
-            script.onerror = () => {
-                cleanup();
-                reject(new Error('Erro de rede - Não foi possível conectar ao servidor'));
-            };
-            document.body.appendChild(script);
         }
 
         async function carregarDistribuicaoGlobal() {
@@ -584,46 +528,9 @@
                 const data = await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=carregarDistribuicao&_=${Date.now()}`);
                 
                 if (data.success && data.distribuicao) {
-                    const responsaveis = ['Jordan', 'Sirlene', 'Ingrid'];
-                    
-                    responsaveis.forEach(resp => {
-                        const container = document.getElementById(`list-${resp.toLowerCase()}`);
-                        const countSpan = document.getElementById(`count-${resp.toLowerCase()}`);
-                        const tarefas = data.distribuicao[resp] || [];
-                        
-                        if (container && countSpan) {
-                            countSpan.innerText = tarefas.length;
-                            container.innerHTML = '';
-                            
-                            tarefas.forEach(t => {
-                                const card = document.createElement('div');
-                                const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
-                                const isConcluida = statusTarefa === 'concluido';
-                                
-                                card.className = `p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm task-card ${isConcluida ? 'opacity-50' : ''}`;
-                                card.onclick = () => {
-                                    if (!isConcluida) {
-                                        openEditCell(t.rowIndex, t.documento);
-                                    } else {
-                                        showNotification('Esta tarefa já foi concluída!', true);
-                                    }
-                                };
-                                card.innerHTML = `
-                                    <div class="font-black text-slate-800 uppercase flex justify-between">
-                                        ${t.cliente}
-                                        ${isConcluida ? '<span class="text-emerald-500 text-[8px]">✓ CONCLUÍDA</span>' : ''}
-                                    </div>
-                                    <div class="flex justify-between items-center mt-1">
-                                        <span class="text-emerald-600 font-bold">${t.documento}</span>
-                                        <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
-                                    </div>
-                                `;
-                                container.appendChild(card);
-                            });
-                            
-                            tarefasColaboradores[resp] = tarefas;
-                        }
-                    });
+                    distribuicaoAtual = data.distribuicao;
+                    renderizarTarefas();
+                    atualizarDashboardDesempenho();
                     
                     if (data.status && data.data) {
                         const dataStr = new Date(data.data).toLocaleString('pt-BR');
@@ -637,8 +544,6 @@
                         const statusNome = data.status === 'vencido' ? 'Vencidas' : (data.status === '30' ? '30 Dias' : (data.status === '60' ? '60 Dias' : (data.status === '90' ? '90 Dias' : data.status)));
                         infoDiv.innerHTML = `📊 Último sorteio: ${dataStr} - Status: ${statusNome}`;
                     }
-                    
-                    atualizarDashboardDesempenho();
                     return true;
                 }
                 return false;
@@ -646,6 +551,47 @@
                 console.error('Erro ao carregar distribuição:', error);
                 return false;
             }
+        }
+        
+        function renderizarTarefas() {
+            const responsaveis = ['Jordan', 'Sirlene', 'Ingrid'];
+            
+            responsaveis.forEach(resp => {
+                const container = document.getElementById(`list-${resp.toLowerCase()}`);
+                const countSpan = document.getElementById(`count-${resp.toLowerCase()}`);
+                const tarefas = distribuicaoAtual[resp] || [];
+                
+                if (container && countSpan) {
+                    countSpan.innerText = tarefas.length;
+                    container.innerHTML = '';
+                    
+                    tarefas.forEach(t => {
+                        const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
+                        const isConcluida = statusTarefa === 'concluido';
+                        
+                        const card = document.createElement('div');
+                        card.className = `p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm ${isConcluida ? 'opacity-50' : ''}`;
+                        card.onclick = () => {
+                            if (!isConcluida) {
+                                openEditCell(t.rowIndex, t.documento);
+                            } else {
+                                showNotification('Esta tarefa já foi concluída!', true);
+                            }
+                        };
+                        card.innerHTML = `
+                            <div class="font-black text-slate-800 uppercase flex justify-between">
+                                ${t.cliente}
+                                ${isConcluida ? '<span class="text-emerald-500 text-[8px]">✓ CONCLUÍDA</span>' : ''}
+                            </div>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-emerald-600 font-bold">${t.documento}</span>
+                                <span class="text-slate-400 font-mono font-bold">${t.prazo}</span>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+            });
         }
         
         function obterStatusTarefa(rowIndex, documento) {
@@ -671,7 +617,9 @@
             
             try {
                 await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=limparDistribuicao&_=${Date.now()}`);
-                await carregarDistribuicaoGlobal();
+                distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
+                renderizarTarefas();
+                atualizarDashboardDesempenho();
                 showNotification('✅ Distribuição resetada com sucesso!', false, 'Todas as tarefas foram removidas');
             } catch (error) {
                 console.error('Erro ao resetar:', error);
@@ -698,6 +646,7 @@
                         lastKnownDataHash = csvDados;
                         if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable();
+                        renderizarTarefas();
                         atualizarDashboardDesempenho();
                     }
                 });
@@ -772,7 +721,7 @@
                 
                 window[callbackName] = function(response) {
                     delete window[callbackName];
-                    document.body.removeChild(script);
+                    if (script && script.parentNode) document.body.removeChild(script);
                     clearTimeout(timeout);
                     
                     if (response && response.success) {
@@ -784,7 +733,7 @@
                 
                 const timeout = setTimeout(() => {
                     delete window[callbackName];
-                    if (document.body.contains(script)) document.body.removeChild(script);
+                    if (script && document.body.contains(script)) document.body.removeChild(script);
                     reject(new Error('Timeout - O Google Sheets não respondeu'));
                 }, 30000);
                 
@@ -843,14 +792,14 @@
             const coluna = c;
             
             try {
-                const resultado = await enviarParaGoogleSheets(cliente, coluna, tipo, valorParaSalvar);
+                await enviarParaGoogleSheets(cliente, coluna, tipo, valorParaSalvar);
                 loadingOverlay.style.display = 'none';
                 showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
                 setTimeout(() => {
                     fetchGoogleSheets(false);
-                    carregarDistribuicaoGlobal();
+                    renderizarTarefas();
+                    atualizarDashboardDesempenho();
                 }, 2000);
-                atualizarDashboardDesempenho();
             } catch (error) {
                 console.error('Erro ao enviar:', error);
                 loadingOverlay.style.display = 'none';
@@ -904,7 +853,7 @@
             const colaboradores = ['Jordan', 'Sirlene', 'Ingrid'];
             
             colaboradores.forEach(colab => {
-                const tarefasColab = tarefasColaboradores[colab] || [];
+                const tarefasColab = distribuicaoAtual[colab] || [];
                 const total = tarefasColab.length;
                 let concluidas = 0;
                 
@@ -1063,11 +1012,6 @@
             selectedOption = null;
         }
         
-        function closeAssignModal() {
-            document.getElementById('assignModal').classList.add('hidden');
-            pendingAssignTask = null;
-        }
-        
         function resetAllFilters() { 
             activeDoc = null; 
             activeStatus = null; 
@@ -1097,7 +1041,7 @@
                 
                 rawData.forEach((row, rowIndex) => {
                     const clienteNome = row.CLIENTE;
-                    headers.forEach((col, colIndex) => {
+                    headers.forEach((col) => {
                         if (col === 'CLIENTE') return;
                         if (getStatus(row[col], row, col) === statusAlvo) {
                             if (!tarefasPorCliente.has(clienteNome)) {
@@ -1107,8 +1051,7 @@
                                 cliente: clienteNome,
                                 documento: col,
                                 prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : (row[col] || '-'),
-                                rowIndex: rowIndex,
-                                colIndex: colIndex
+                                rowIndex: rowIndex
                             });
                         }
                     });
@@ -1123,7 +1066,7 @@
                 let clientesArray = Array.from(tarefasPorCliente.entries());
                 clientesArray.sort((a, b) => b[1].length - a[1].length);
                 
-                let distribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
+                let novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
                 let cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
                 
                 clientesArray.forEach(([cliente, tarefas]) => {
@@ -1139,12 +1082,14 @@
                         menorCarga = 'Ingrid';
                     }
                     
-                    distribuicao[menorCarga].push(...tarefas);
+                    novaDistribuicao[menorCarga].push(...tarefas);
                     cargas[menorCarga] += tarefas.length;
                 });
                 
-                await salvarDistribuicaoNoServidor(statusAlvo, distribuicao);
-                await carregarDistribuicaoGlobal();
+                distribuicaoAtual = novaDistribuicao;
+                await salvarDistribuicaoNoServidor(statusAlvo);
+                renderizarTarefas();
+                atualizarDashboardDesempenho();
                 
                 const statusNomes = {
                     'vencido': 'Vencidas',
@@ -1153,7 +1098,7 @@
                     '90': '90 Dias'
                 };
                 showNotification(`✅ Distribuição concluída! ${tarefasPorCliente.size} clientes para ${statusNomes[statusAlvo] || statusAlvo}`, false, 
-                    `J:${distribuicao.Jordan.length} | S:${distribuicao.Sirlene.length} | I:${distribuicao.Ingrid.length}`);
+                    `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length}`);
                 
             } catch (error) {
                 console.error('Erro ao distribuir tarefas:', error);
