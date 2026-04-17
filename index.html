@@ -489,67 +489,174 @@
             });
         }
 
+        // FUNÇÃO SALVAR DISTRIBUIÇÃO - VERSÃO OTIMIZADA COM DADOS COMPACTADOS
         async function salvarDistribuicaoNoServidor(statusAlvo) {
-            const dadosSimplificados = {
-                Jordan: distribuicaoAtual.Jordan.map(t => ({ 
-                    cliente: t.cliente, 
-                    documento: t.documento, 
-                    prazo: t.prazo, 
-                    rowIndex: t.rowIndex 
-                })),
-                Sirlene: distribuicaoAtual.Sirlene.map(t => ({ 
-                    cliente: t.cliente, 
-                    documento: t.documento, 
-                    prazo: t.prazo, 
-                    rowIndex: t.rowIndex 
-                })),
-                Ingrid: distribuicaoAtual.Ingrid.map(t => ({ 
-                    cliente: t.cliente, 
-                    documento: t.documento, 
-                    prazo: t.prazo, 
-                    rowIndex: t.rowIndex 
-                }))
-            };
-            
-            const dadosStr = JSON.stringify(dadosSimplificados);
-            const url = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${encodeURIComponent(statusAlvo)}&distribuicao=${encodeURIComponent(dadosStr)}&usuario=${currentUser}`;
-            
-            try {
-                const response = await jsonpRequest(url, 60000);
-                return response;
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                throw error;
-            }
+            return new Promise((resolve, reject) => {
+                // Compactar dados para evitar URL longa
+                const dadosCompactos = {
+                    s: statusAlvo,
+                    u: currentUser,
+                    d: {
+                        J: distribuicaoAtual.Jordan.map(t => `${t.cliente}|${t.documento}|${t.rowIndex}`),
+                        S: distribuicaoAtual.Sirlene.map(t => `${t.cliente}|${t.documento}|${t.rowIndex}`),
+                        I: distribuicaoAtual.Ingrid.map(t => `${t.cliente}|${t.documento}|${t.rowIndex}`)
+                    }
+                };
+                
+                const dadosStr = JSON.stringify(dadosCompactos);
+                
+                // Usar iframe para POST (evita CORS e limite de URL)
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.name = 'hidden_frame_' + Date.now();
+                document.body.appendChild(iframe);
+                
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = URL_SCRIPT_GOOGLE;
+                form.target = iframe.name;
+                form.style.display = 'none';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'data';
+                input.value = dadosStr;
+                form.appendChild(input);
+                
+                const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+                const callbackInput = document.createElement('input');
+                callbackInput.type = 'hidden';
+                callbackInput.name = 'callback';
+                callbackInput.value = callbackName;
+                form.appendChild(callbackInput);
+                
+                const acaoInput = document.createElement('input');
+                acaoInput.type = 'hidden';
+                acaoInput.name = 'acao';
+                acaoInput.value = 'salvarDistribuicao';
+                form.appendChild(acaoInput);
+                
+                document.body.appendChild(form);
+                
+                const timeout = setTimeout(() => {
+                    document.body.removeChild(form);
+                    document.body.removeChild(iframe);
+                    reject(new Error('Timeout ao salvar'));
+                }, 60000);
+                
+                window[callbackName] = function(response) {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    document.body.removeChild(form);
+                    setTimeout(() => {
+                        if (document.body.contains(iframe)) document.body.removeChild(iframe);
+                    }, 1000);
+                    
+                    if (response && response.success) {
+                        resolve(response);
+                    } else {
+                        reject(new Error(response?.error || 'Erro ao salvar'));
+                    }
+                };
+                
+                form.submit();
+            });
         }
 
+        // FUNÇÃO CARREGAR DISTRIBUIÇÃO - COM FALLBACK
         async function carregarDistribuicaoGlobal() {
             try {
-                const data = await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=carregarDistribuicao&_=${Date.now()}`);
+                // Tentar fetch primeiro
+                const response = await fetch(`${URL_SCRIPT_GOOGLE}?acao=carregarDistribuicao&_=${Date.now()}`);
+                const data = await response.json();
                 
                 if (data.success && data.distribuicao) {
-                    distribuicaoAtual = data.distribuicao;
-                    renderizarTarefas();
-                    atualizarDashboardDesempenho();
-                    
-                    if (data.status && data.data) {
-                        const dataStr = new Date(data.data).toLocaleString('pt-BR');
-                        let infoDiv = document.querySelector('.info-sorteio');
-                        if (!infoDiv) {
-                            infoDiv = document.createElement('div');
-                            infoDiv.className = 'info-sorteio text-center text-[9px] text-slate-400 mt-4 pt-2 border-t';
-                            const tasksCard = document.querySelector('#view-tasks .white-card:first-child');
-                            if (tasksCard) tasksCard.appendChild(infoDiv);
-                        }
-                        const statusNome = data.status === 'vencido' ? 'Vencidas' : (data.status === '30' ? '30 Dias' : (data.status === '60' ? '60 Dias' : (data.status === '90' ? '90 Dias' : data.status)));
-                        infoDiv.innerHTML = `📊 Último sorteio: ${dataStr} - Status: ${statusNome}`;
-                    }
+                    processarDistribuicaoCarregada(data);
                     return true;
                 }
                 return false;
             } catch (error) {
-                console.error('Erro ao carregar distribuição:', error);
+                console.error('Fetch falhou, tentando JSONP:', error);
+                try {
+                    const data = await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=carregarDistribuicao&_=${Date.now()}`);
+                    if (data.success && data.distribuicao) {
+                        processarDistribuicaoCarregada(data);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('JSONP também falhou:', e);
+                }
                 return false;
+            }
+        }
+        
+        function processarDistribuicaoCarregada(data) {
+            const distribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
+            
+            // Formato compacto (J, S, I)
+            if (data.distribuicao.J) {
+                data.distribuicao.J.forEach(item => {
+                    const parts = item.split('|');
+                    distribuicao.Jordan.push({
+                        cliente: parts[0],
+                        documento: parts[1],
+                        rowIndex: parseInt(parts[2]),
+                        prazo: ''
+                    });
+                });
+                data.distribuicao.S.forEach(item => {
+                    const parts = item.split('|');
+                    distribuicao.Sirlene.push({
+                        cliente: parts[0],
+                        documento: parts[1],
+                        rowIndex: parseInt(parts[2]),
+                        prazo: ''
+                    });
+                });
+                data.distribuicao.I.forEach(item => {
+                    const parts = item.split('|');
+                    distribuicao.Ingrid.push({
+                        cliente: parts[0],
+                        documento: parts[1],
+                        rowIndex: parseInt(parts[2]),
+                        prazo: ''
+                    });
+                });
+            } else {
+                // Formato normal
+                distribuicao.Jordan = data.distribuicao.Jordan || [];
+                distribuicao.Sirlene = data.distribuicao.Sirlene || [];
+                distribuicao.Ingrid = data.distribuicao.Ingrid || [];
+            }
+            
+            // Preencher prazos
+            for (const resp of ['Jordan', 'Sirlene', 'Ingrid']) {
+                for (const t of distribuicao[resp]) {
+                    const linha = rawData[t.rowIndex];
+                    if (linha && linha[t.documento]) {
+                        const valor = linha[t.documento];
+                        t.prazo = valor instanceof Date ? valor.toLocaleDateString('pt-BR') : String(valor);
+                    } else {
+                        t.prazo = '-';
+                    }
+                }
+            }
+            
+            distribuicaoAtual = distribuicao;
+            renderizarTarefas();
+            atualizarDashboardDesempenho();
+            
+            if (data.status && data.data) {
+                const dataStr = new Date(data.data).toLocaleString('pt-BR');
+                let infoDiv = document.querySelector('.info-sorteio');
+                if (!infoDiv) {
+                    infoDiv = document.createElement('div');
+                    infoDiv.className = 'info-sorteio text-center text-[9px] text-slate-400 mt-4 pt-2 border-t';
+                    const tasksCard = document.querySelector('#view-tasks .white-card:first-child');
+                    if (tasksCard) tasksCard.appendChild(infoDiv);
+                }
+                const statusNome = data.status === 'vencido' ? 'Vencidas' : (data.status === '30' ? '30 Dias' : (data.status === '60' ? '60 Dias' : (data.status === '90' ? '90 Dias' : data.status)));
+                infoDiv.innerHTML = `📊 Último sorteio: ${dataStr} - Status: ${statusNome}`;
             }
         }
         
@@ -616,7 +723,7 @@
             loadingOverlay.style.display = 'flex';
             
             try {
-                await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=limparDistribuicao&_=${Date.now()}`);
+                await fetch(`${URL_SCRIPT_GOOGLE}?acao=limparDistribuicao&_=${Date.now()}`);
                 distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
                 renderizarTarefas();
                 atualizarDashboardDesempenho();
@@ -904,7 +1011,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<table>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</table>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -1094,7 +1201,6 @@
                 // Distribuir empresas entre os colaboradores
                 const novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
                 const cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
-                const colaboradores = ['Jordan', 'Sirlene', 'Ingrid'];
                 
                 // Para cada empresa, atribuir todas as suas tarefas ao mesmo colaborador
                 for (const [empresa, tarefas] of empresasArray) {
