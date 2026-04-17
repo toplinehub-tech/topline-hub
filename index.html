@@ -179,7 +179,6 @@
             </header>
 
             <div id="view-dash">
-                <!-- DASHBOARD DE DESEMPENHO DOS COLABORADORES -->
                 <div class="grid grid-cols-3 gap-4 mb-6">
                     <div class="white-card dashboard-card p-5 border-t-8 border-blue-500">
                         <div class="flex justify-between items-start mb-3">
@@ -315,9 +314,7 @@
 
             <div id="view-tasks" class="hidden">
                 <div class="white-card p-4 mb-8">
-                    <div class="flex gap-3 justify-center flex-wrap" id="botoesSorteioTasks">
-                        <!-- Botões de sorteio que só aparecem para a Ingrid -->
-                    </div>
+                    <div class="flex gap-3 justify-center flex-wrap" id="botoesSorteioTasks"></div>
                     <div id="avisoRestricao" class="text-center text-xs text-slate-400 mt-3 hidden">
                         ⚠️ Apenas a Ingrid pode realizar novos sorteios
                     </div>
@@ -376,7 +373,6 @@
         let selectedOption = null;
         let currentUser = "";
         
-        // Controle de tarefas por colaborador
         let tarefasColaboradores = {
             Jordan: [],
             Silene: [],
@@ -391,7 +387,8 @@
             docList.forEach(doc => {
                 const btn = document.createElement('button');
                 btn.className = "btn-mini doc-filter-btn";
-                btn.id = "btn-doc-" + doc; btn.innerText = doc;
+                btn.id = "btn-doc-" + doc; 
+                btn.innerText = doc;
                 btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
                 container.appendChild(btn);
             });
@@ -403,13 +400,11 @@
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
             
-            // Mostrar/esconder botões de sorteio baseado no usuário
             atualizarBotoesSorteio();
             
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 30000);
             
-            // Carregar distribuição salva ao logar
             setTimeout(() => {
                 if (currentUser) {
                     carregarDistribuicaoGlobal();
@@ -423,10 +418,8 @@
             document.getElementById('login-screen').style.display = 'flex';
         }
         
-        // Função para mostrar/esconder botões de sorteio baseado no usuário
         function atualizarBotoesSorteio() {
             const isIngrid = currentUser === 'Ingrid';
-            
             const containerTasks = document.getElementById('botoesSorteioTasks');
             const avisoRestricao = document.getElementById('avisoRestricao');
             
@@ -449,7 +442,6 @@
             }
         }
 
-        // Função auxiliar para JSONP
         function jsonpRequest(url) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
@@ -479,10 +471,8 @@
             });
         }
 
-        // Função para salvar a distribuição usando JSONP com compressão (evita limite de URL)
         async function salvarDistribuicaoNoServidor(statusAlvo, distribuicao) {
             return new Promise((resolve, reject) => {
-                // Limitar a quantidade de dados para evitar estouro de URL
                 const distribuicaoCompacta = {
                     Jordan: distribuicao.Jordan.slice(0, 50),
                     Silene: distribuicao.Silene.slice(0, 50),
@@ -494,9 +484,7 @@
                 
                 const url = `${URL_SCRIPT_GOOGLE}?acao=salvarDistribuicao&statusAlvo=${statusAlvo}&distribuicao=${encodeURIComponent(distribuicaoStr)}&usuario=${currentUser}&callback=${callbackName}&_=${Date.now()}`;
                 
-                // Verificar tamanho da URL (limite ~2000 caracteres)
                 if (url.length > 1900) {
-                    console.warn('URL muito longa, reduzindo ainda mais os dados');
                     const distribuicaoMuitoCompacta = {
                         Jordan: distribuicao.Jordan.slice(0, 25),
                         Silene: distribuicao.Silene.slice(0, 25),
@@ -541,7 +529,6 @@
             document.body.appendChild(script);
         }
 
-        // Função para carregar a distribuição do servidor (todos os usuários veem o mesmo)
         async function carregarDistribuicaoGlobal() {
             try {
                 const data = await jsonpRequest(`${URL_SCRIPT_GOOGLE}?acao=carregarDistribuicao&_=${Date.now()}`);
@@ -579,7 +566,6 @@
                         }
                     });
                     
-                    // Mostrar informação do último sorteio
                     if (data.status && data.data) {
                         const dataStr = new Date(data.data).toLocaleString('pt-BR');
                         let infoDiv = document.querySelector('.info-sorteio');
@@ -603,6 +589,68 @@
             }
         }
 
+        // FUNÇÃO CORRIGIDA - Processa as linhas ignorando colunas vazias e ID
+        function processRow(row) {
+            const nr = {};
+            let primeiroValorValido = null;
+            let chavePrimeiroValor = null;
+            
+            // Primeiro, identificar todas as colunas com dados
+            const colunasValidas = [];
+            
+            Object.keys(row).forEach(k => {
+                const key = k ? k.trim() : "";
+                let val = row[k];
+                
+                // Pular colunas sem título ou com título vazio/inválido
+                if (!key || key === "" || key === "_" || key === "undefined" || key === "null") {
+                    return;
+                }
+                
+                // Pular coluna ID explicitamente
+                if (key.toUpperCase() === "ID" || key.toUpperCase() === "Nº" || key === "Número") {
+                    return;
+                }
+                
+                // Verificar se tem dados válidos
+                const temDados = val !== null && val !== undefined && String(val).trim() !== "";
+                
+                if (temDados) {
+                    colunasValidas.push({ key: key.toUpperCase(), val: val, originalKey: k });
+                    
+                    if (!primeiroValorValido) {
+                        primeiroValorValido = val;
+                        chavePrimeiroValor = key;
+                    }
+                }
+            });
+            
+            // Processar apenas colunas válidas
+            colunasValidas.forEach(({ key, val }) => {
+                // Tratamento especial para datas
+                let processedVal = val;
+                if (typeof val === 'string' && val.includes('/')) {
+                    const parts = val.split('/');
+                    if (parts.length === 3 && parts[2].length === 4) {
+                        const date = new Date(parts[2], parts[1]-1, parts[0]);
+                        if (!isNaN(date.getTime())) {
+                            processedVal = date;
+                        }
+                    }
+                }
+                nr[key] = processedVal;
+            });
+            
+            // Garantir que existe um campo CLIENTE
+            if (!nr.CLIENTE && primeiroValorValido) {
+                nr.CLIENTE = String(primeiroValorValido).trim();
+            }
+            
+            // Verificar se a linha tem dados mínimos
+            const temDadosMinimos = nr.CLIENTE && Object.keys(nr).length > 0;
+            return temDadosMinimos ? nr : null;
+        }
+
         async function fetchGoogleSheets(isFirstLoad) {
             try {
                 const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
@@ -610,15 +658,27 @@
                 if (!isFirstLoad && csvDados === lastKnownDataHash) return;
                 
                 Papa.parse(csvDados, {
-                    header: true, dynamicTyping: true, skipEmptyLines: true,
+                    header: true, 
+                    dynamicTyping: true, 
+                    skipEmptyLines: true,
                     complete: (results) => {
-                        const newData = results.data.map(processRow);
+                        const newData = [];
+                        for (let i = 0; i < results.data.length; i++) {
+                            const processed = processRow(results.data[i]);
+                            if (processed) {
+                                newData.push(processed);
+                            }
+                        }
+                        
                         if (!isFirstLoad && rawData.length > 0) {
                             detectChanges(rawData, newData);
                         }
                         rawData = newData;
                         lastKnownDataHash = csvDados;
-                        if(rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
+                        
+                        if(rawData.length > 0) {
+                            headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && h !== '');
+                        }
                         renderTable();
                         atualizarDashboardDesempenho();
                     }
@@ -630,21 +690,6 @@
                     Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = r.data; } });
                 }
             } catch (e) { console.error("Erro na sincronização.", e); }
-        }
-
-        function processRow(row) {
-            const nr = {};
-            Object.keys(row).forEach(k => {
-                let key = k.trim().toUpperCase();
-                if(key === 'CRCE_1' || key === 'CERTIF.DIGITAL') key = 'CERTIF.DIGITAL';
-                let val = row[k];
-                if(typeof val === 'string' && val.includes('/')) {
-                    const p = val.split('/');
-                    if(p.length === 3) val = new Date(p[2], p[1]-1, p[0]);
-                }
-                nr[key] = val;
-            });
-            return nr;
         }
 
         function detectChanges(oldData, newData) {
@@ -694,7 +739,7 @@
                 
                 window[callbackName] = function(response) {
                     delete window[callbackName];
-                    document.body.removeChild(script);
+                    if (script && script.parentNode) document.body.removeChild(script);
                     clearTimeout(timeout);
                     
                     if (response && response.success) {
@@ -706,7 +751,7 @@
                 
                 const timeout = setTimeout(() => {
                     delete window[callbackName];
-                    if (document.body.contains(script)) document.body.removeChild(script);
+                    if (script && document.body.contains(script)) document.body.removeChild(script);
                     reject(new Error('Timeout - O Google Sheets não respondeu'));
                 }, 30000);
                 
@@ -765,7 +810,7 @@
             const coluna = c;
             
             try {
-                const resultado = await enviarParaGoogleSheets(cliente, coluna, tipo, valorParaSalvar);
+                await enviarParaGoogleSheets(cliente, coluna, tipo, valorParaSalvar);
                 loadingOverlay.style.display = 'none';
                 showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
                 setTimeout(() => fetchGoogleSheets(false), 2000);
@@ -777,13 +822,34 @@
             }
         }
 
+        // FUNÇÃO CORRIGIDA - getStatus mais robusta
         function getStatus(val, row, col) {
+            // Verificar se está concluído
+            if (row && col && row[col + "_DONE"] === true) {
+                return 'concluido';
+            }
+            
             const strVal = String(val || "").toUpperCase().trim();
-            if (strVal === "EM ANDAMENTO") return 'andamento';
-            if (strVal === "ANALISE") return 'analise';
-            if (row && col && row[col + "_DONE"]) return 'concluido';
-            if (!(val instanceof Date)) return null;
-            const diff = Math.ceil((val - new Date().setHours(0,0,0,0)) / 86400000);
+            
+            // Verificar status de texto
+            if (strVal === "EM ANDAMENTO" || strVal === "ANDAMENTO") return 'andamento';
+            if (strVal === "ANALISE" || strVal === "ANÁLISE") return 'analise';
+            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO") return 'concluido';
+            
+            // Verificar se é data válida
+            if (!(val instanceof Date) || isNaN(val.getTime())) {
+                return null;
+            }
+            
+            // Calcular diferença em dias
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const dataVal = new Date(val);
+            dataVal.setHours(0, 0, 0, 0);
+            
+            const diff = Math.ceil((dataVal - hoje) / 86400000);
+            
+            // Classificação por prazo
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -830,7 +896,8 @@
                 tarefasColab.forEach(tarefa => {
                     const linha = rawData[tarefa.rowIndex];
                     const valor = linha ? linha[tarefa.documento] : null;
-                    if (valor === "CONCLUIDO" || valor === "EM ANDAMENTO") {
+                    const strValor = String(valor || "").toUpperCase();
+                    if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "EM ANDAMENTO") {
                         concluidas++;
                     }
                 });
@@ -869,7 +936,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<td>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</table>`;
+            head.innerHTML = `<td>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -996,8 +1063,8 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); 
         }
 
+        // FUNÇÃO CORRIGIDA - distribuirTarefas funcionando para todos os status
         async function distribuirTarefas(statusAlvo) {
-            // Verificar se é a Ingrid
             if (currentUser !== 'Ingrid') {
                 showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true);
                 return;
@@ -1007,40 +1074,60 @@
             loadingOverlay.style.display = 'flex';
             
             try {
-                const responsaveis = ['Jordan', 'Silene', 'Patricia'];
+                const tarefasEncontradas = [];
                 
-                let tarefasPorCliente = new Map();
-                
-                rawData.forEach((row, rowIndex) => {
-                    const clienteNome = row.CLIENTE;
-                    headers.forEach((col, colIndex) => {
-                        if (col === 'CLIENTE') return;
-                        if (getStatus(row[col], row, col) === statusAlvo) {
-                            if (!tarefasPorCliente.has(clienteNome)) {
-                                tarefasPorCliente.set(clienteNome, []);
-                            }
-                            tarefasPorCliente.get(clienteNome).push({
+                for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
+                    const row = rawData[rowIndex];
+                    if (!row || !row.CLIENTE) continue;
+                    
+                    const clienteNome = String(row.CLIENTE).trim();
+                    if (!clienteNome) continue;
+                    
+                    for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+                        const col = headers[colIndex];
+                        if (col === 'CLIENTE') continue;
+                        
+                        const valor = row[col];
+                        const status = getStatus(valor, row, col);
+                        
+                        if (status === statusAlvo) {
+                            tarefasEncontradas.push({
                                 cliente: clienteNome,
                                 documento: col,
-                                prazo: row[col] instanceof Date ? row[col].toLocaleDateString('pt-BR') : (row[col] || '-'),
+                                prazo: valor instanceof Date ? valor.toLocaleDateString('pt-BR') : (valor || '-'),
                                 rowIndex: rowIndex,
                                 colIndex: colIndex
                             });
                         }
-                    });
-                });
+                    }
+                }
 
-                if (tarefasPorCliente.size === 0) {
-                    showNotification('Nenhuma tarefa encontrada para este filtro', true);
+                if (tarefasEncontradas.length === 0) {
+                    const statusNomes = {
+                        'vencido': 'Vencidas',
+                        '30': '30 Dias',
+                        '60': '60 Dias',
+                        '90': '90 Dias'
+                    };
+                    showNotification(`Nenhuma tarefa encontrada para o status: ${statusNomes[statusAlvo] || statusAlvo}`, true);
                     loadingOverlay.style.display = 'none';
                     return;
                 }
 
-                let clientesArray = Array.from(tarefasPorCliente.entries());
+                // Agrupar por cliente
+                const tarefasPorCliente = new Map();
+                tarefasEncontradas.forEach(tarefa => {
+                    if (!tarefasPorCliente.has(tarefa.cliente)) {
+                        tarefasPorCliente.set(tarefa.cliente, []);
+                    }
+                    tarefasPorCliente.get(tarefa.cliente).push(tarefa);
+                });
+
+                const clientesArray = Array.from(tarefasPorCliente.entries());
                 clientesArray.sort((a, b) => b[1].length - a[1].length);
                 
-                let distribuicao = { Jordan: [], Silene: [], Patricia: [] };
-                let cargas = { Jordan: 0, Silene: 0, Patricia: 0 };
+                const distribuicao = { Jordan: [], Silene: [], Patricia: [] };
+                const cargas = { Jordan: 0, Silene: 0, Patricia: 0 };
                 
                 clientesArray.forEach(([cliente, tarefas]) => {
                     let menorCarga = 'Jordan';
@@ -1059,20 +1146,49 @@
                     cargas[menorCarga] += tarefas.length;
                 });
                 
-                // Salvar distribuição no servidor usando JSONP com compressão
                 await salvarDistribuicaoNoServidor(statusAlvo, distribuicao);
-                
-                // Recarregar para todos
                 await carregarDistribuicaoGlobal();
                 
-                showNotification(`✅ Distribuição concluída para status: ${statusAlvo}`, false, `${tarefasPorCliente.size} clientes`);
+                const statusNomes = {
+                    'vencido': 'Vencidas',
+                    '30': '30 Dias',
+                    '60': '60 Dias',
+                    '90': '90 Dias'
+                };
+                showNotification(`✅ Distribuição concluída! ${tarefasEncontradas.length} tarefas para ${statusNomes[statusAlvo] || statusAlvo}`, false, 
+                    `J:${distribuicao.Jordan.length} | S:${distribuicao.Silene.length} | P:${distribuicao.Patricia.length}`);
                 
             } catch (error) {
                 console.error('Erro ao distribuir tarefas:', error);
-                showNotification('Erro ao realizar sorteio. Tente novamente.', true);
+                showNotification('Erro ao realizar sorteio: ' + error.message, true);
             } finally {
                 loadingOverlay.style.display = 'none';
             }
+        }
+        
+        // Função de debug para verificar os dados
+        function debugData() {
+            console.log('=== DEBUG DATABASE ===');
+            console.log('Headers:', headers);
+            console.log('Total rows:', rawData.length);
+            if (rawData.length > 0) {
+                console.log('Sample row:', rawData[0]);
+            }
+            
+            const stats = { vencido: 0, '30': 0, '60': 0, '90': 0, andamento: 0, analise: 0 };
+            
+            rawData.forEach(row => {
+                headers.forEach(col => {
+                    if (col === 'CLIENTE') return;
+                    const status = getStatus(row[col], row, col);
+                    if (status && stats[status] !== undefined) {
+                        stats[status]++;
+                    }
+                });
+            });
+            
+            console.log('Status counts:', stats);
+            return stats;
         }
     </script>
 </body>
