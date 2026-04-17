@@ -589,45 +589,38 @@
             }
         }
 
-        // FUNÇÃO CORRIGIDA - Processa as linhas ignorando colunas vazias e ID
+        // FUNÇÃO CORRIGIDA - Processa corretamente as colunas da planilha
         function processRow(row) {
             const nr = {};
-            let primeiroValorValido = null;
-            let chavePrimeiroValor = null;
             
-            // Primeiro, identificar todas as colunas com dados
-            const colunasValidas = [];
+            // Mapeamento correto das colunas
+            // A planilha tem: Coluna A = ID, Coluna B = CLIENTE, Coluna C em diante = documentos
+            const keys = Object.keys(row);
             
-            Object.keys(row).forEach(k => {
-                const key = k ? k.trim() : "";
-                let val = row[k];
+            for (let i = 0; i < keys.length; i++) {
+                const originalKey = keys[i];
+                let key = originalKey ? originalKey.trim() : "";
+                let val = row[originalKey];
                 
-                // Pular colunas sem título ou com título vazio/inválido
-                if (!key || key === "" || key === "_" || key === "undefined" || key === "null") {
-                    return;
+                // Pular colunas vazias
+                if (!key || key === "" || key === "_") {
+                    continue;
                 }
                 
-                // Pular coluna ID explicitamente
-                if (key.toUpperCase() === "ID" || key.toUpperCase() === "Nº" || key === "Número") {
-                    return;
+                // Normalizar o nome da coluna
+                let normalizedKey = key.toUpperCase();
+                
+                // Se for a primeira coluna (ID), ignorar completamente
+                if (i === 0 || normalizedKey === "ID" || normalizedKey === "ID_") {
+                    continue;
                 }
                 
-                // Verificar se tem dados válidos
-                const temDados = val !== null && val !== undefined && String(val).trim() !== "";
-                
-                if (temDados) {
-                    colunasValidas.push({ key: key.toUpperCase(), val: val, originalKey: k });
-                    
-                    if (!primeiroValorValido) {
-                        primeiroValorValido = val;
-                        chavePrimeiroValor = key;
-                    }
+                // Se for a segunda coluna, deve ser CLIENTE
+                if (i === 1 || normalizedKey === "CLIENTE" || normalizedKey === "CLIENT") {
+                    normalizedKey = "CLIENTE";
                 }
-            });
-            
-            // Processar apenas colunas válidas
-            colunasValidas.forEach(({ key, val }) => {
-                // Tratamento especial para datas
+                
+                // Processar datas
                 let processedVal = val;
                 if (typeof val === 'string' && val.includes('/')) {
                     const parts = val.split('/');
@@ -638,17 +631,32 @@
                         }
                     }
                 }
-                nr[key] = processedVal;
-            });
-            
-            // Garantir que existe um campo CLIENTE
-            if (!nr.CLIENTE && primeiroValorValido) {
-                nr.CLIENTE = String(primeiroValorValido).trim();
+                
+                // Se for string vazia ou null, manter como está
+                if (processedVal === null || processedVal === undefined) {
+                    processedVal = "";
+                }
+                
+                nr[normalizedKey] = processedVal;
             }
             
-            // Verificar se a linha tem dados mínimos
-            const temDadosMinimos = nr.CLIENTE && Object.keys(nr).length > 0;
-            return temDadosMinimos ? nr : null;
+            // Garantir que CLIENTE existe
+            if (!nr.CLIENTE || nr.CLIENTE === "") {
+                // Tentar encontrar qualquer coluna que pareça ser cliente
+                for (const k in nr) {
+                    if (k !== "CLIENTE" && nr[k] && typeof nr[k] === 'string' && nr[k].trim() !== "") {
+                        nr.CLIENTE = nr[k];
+                        break;
+                    }
+                }
+            }
+            
+            // Se ainda não tem CLIENTE, pular esta linha
+            if (!nr.CLIENTE || nr.CLIENTE === "") {
+                return null;
+            }
+            
+            return nr;
         }
 
         async function fetchGoogleSheets(isFirstLoad) {
@@ -665,7 +673,7 @@
                         const newData = [];
                         for (let i = 0; i < results.data.length; i++) {
                             const processed = processRow(results.data[i]);
-                            if (processed) {
+                            if (processed && processed.CLIENTE && processed.CLIENTE !== "") {
                                 newData.push(processed);
                             }
                         }
@@ -677,10 +685,20 @@
                         lastKnownDataHash = csvDados;
                         
                         if(rawData.length > 0) {
-                            headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS') && h !== '');
+                            // Pegar headers, excluindo campos de controle
+                            headers = Object.keys(rawData[0]).filter(h => 
+                                !h.endsWith('_DONE') && 
+                                !h.endsWith('_OBS') && 
+                                h !== '' &&
+                                h !== 'ID'
+                            );
                         }
                         renderTable();
                         atualizarDashboardDesempenho();
+                        
+                        // Debug: mostrar os headers carregados
+                        console.log('Headers carregados:', headers);
+                        console.log('Primeira linha:', rawData[0]);
                     }
                 });
 
@@ -822,26 +840,21 @@
             }
         }
 
-        // FUNÇÃO CORRIGIDA - getStatus mais robusta
         function getStatus(val, row, col) {
-            // Verificar se está concluído
             if (row && col && row[col + "_DONE"] === true) {
                 return 'concluido';
             }
             
             const strVal = String(val || "").toUpperCase().trim();
             
-            // Verificar status de texto
             if (strVal === "EM ANDAMENTO" || strVal === "ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE" || strVal === "ANÁLISE") return 'analise';
             if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO") return 'concluido';
             
-            // Verificar se é data válida
             if (!(val instanceof Date) || isNaN(val.getTime())) {
                 return null;
             }
             
-            // Calcular diferença em dias
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
             const dataVal = new Date(val);
@@ -849,7 +862,6 @@
             
             const diff = Math.ceil((dataVal - hoje) / 86400000);
             
-            // Classificação por prazo
             if (diff < 0) return 'vencido';
             if (diff <= 30) return '30';
             if (diff <= 60) return '60';
@@ -936,7 +948,7 @@
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if(!headers.length) return;
-            head.innerHTML = `<td>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
             const filtered = rawData.filter(row => {
                 if(!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if(activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
@@ -1063,7 +1075,6 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`); 
         }
 
-        // FUNÇÃO CORRIGIDA - distribuirTarefas funcionando para todos os status
         async function distribuirTarefas(statusAlvo) {
             if (currentUser !== 'Ingrid') {
                 showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true);
@@ -1114,7 +1125,6 @@
                     return;
                 }
 
-                // Agrupar por cliente
                 const tarefasPorCliente = new Map();
                 tarefasEncontradas.forEach(tarefa => {
                     if (!tarefasPorCliente.has(tarefa.cliente)) {
@@ -1166,7 +1176,6 @@
             }
         }
         
-        // Função de debug para verificar os dados
         function debugData() {
             console.log('=== DEBUG DATABASE ===');
             console.log('Headers:', headers);
