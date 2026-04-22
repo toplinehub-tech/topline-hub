@@ -953,17 +953,20 @@
         // ============================================
         async function registrarLog(acao, cliente, documento, detalhes, valorAnterior = null, valorNovo = null) {
             try {
-                await supabaseClient.from('logs_sistema').insert([{
+                const { error } = await supabaseClient.from('logs_sistema').insert([{
                     usuario: currentUser || 'Sistema',
-                    acao: acao,
+                    acao: acao || 'Ação desconhecida',
                     cliente: cliente || null,
                     documento: documento || null,
                     valor_antigo: valorAnterior || null,
                     valor_novo: valorNovo || null,
                     detalhes: detalhes || null
                 }]);
+                if (error) {
+                    console.error('Erro ao registrar log:', error);
+                }
             } catch(e) {
-                console.warn('Erro ao registrar log:', e);
+                console.error('Erro ao registrar log:', e);
             }
         }
 
@@ -972,16 +975,14 @@
             if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
             try {
-                const { data, error } = await supabaseClient
-                    .from('logs_sistema')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(500);
-                if (error) throw error;
+                const { data, error } = await supabaseClient.from('logs_sistema').select('*').order('created_at', { ascending: false }).limit(500);
+                if (error) { console.error('Erro SQL:', error); throw error; }
                 logsData = data || [];
+                console.log('Logs carregados:', logsData.length, 'registros');
                 renderizarLogs(logsData);
             } catch(e) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Erro ao carregar logs: ${e.message}</td></tr>`;
+                console.error('Erro ao carregar logs:', e);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
             }
         }
 
@@ -1027,17 +1028,21 @@
         // HISTÓRICO DE OBSERVAÇÕES
         // ============================================
         async function salvarObservacao(cliente, documento, observacao, statusNovo) {
-            if (!observacao || !observacao.trim()) return;
             try {
-                await supabaseClient.from('historico_observacoes').insert([{
-                    cliente: cliente,
-                    documento: documento,
-                    observacao: observacao.trim(),
+                const obsText = observacao && observacao.trim() ? observacao.trim() : `Alterado para ${statusNovo || 'sem status'}`;
+                const { error } = await supabaseClient.from('historico_observacoes').insert([{
+                    cliente: cliente || 'N/A',
+                    documento: documento || 'N/A',
+                    observacao: obsText,
                     status_novo: statusNovo || null,
-                    usuario: currentUser
+                    usuario: currentUser || 'Sistema'
                 }]);
+                if (error) {
+                    console.error('Erro ao salvar observação:', error);
+                    throw error;
+                }
             } catch(e) {
-                console.warn('Erro ao salvar observação:', e);
+                console.error('Erro ao salvar observação no histórico:', e);
             }
         }
 
@@ -1046,16 +1051,14 @@
             if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
             try {
-                const { data, error } = await supabaseClient
-                    .from('historico_observacoes')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(500);
-                if (error) throw error;
+                const { data, error } = await supabaseClient.from('historico_observacoes').select('*').order('created_at', { ascending: false }).limit(500);
+                if (error) { console.error('Erro SQL:', error); throw error; }
                 historicoData = data || [];
+                console.log('Histórico carregado:', historicoData.length, 'registros');
                 renderizarHistorico(historicoData);
             } catch(e) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Erro ao carregar histórico: ${e.message}</td></tr>`;
+                console.error('Erro ao carregar histórico:', e);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
             }
         }
 
