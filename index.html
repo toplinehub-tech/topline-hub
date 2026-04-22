@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v4.1</title>
+    <title>TopLineHub | Gestão Integrada v5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
@@ -17,7 +17,19 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        
+        /* LOGIN MODERNO */
         #login-screen { position: fixed; inset: 0; z-index: 10000; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        .login-card { background: white; border-radius: 32px; padding: 40px; width: 100%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.05); border: 1px solid rgba(16, 185, 129, 0.1); }
+        .user-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+        .user-select-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: 20px; border: 2px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        .user-select-btn:hover { background: #f8fafc; transform: translateY(-4px); }
+        .user-select-btn.active { border-color: #10b981; background: #f0fdf4; }
+        .user-avatar { width: 56px; height: 56px; rounded-full: 50%; background: #f1f5f9; display: flex; items-center: center; justify-content: center; color: #94a3b8; transition: all 0.3s; }
+        .user-select-btn.active .user-avatar { background: #10b981; color: white; }
+        .login-input { width: 100%; padding: 16px; border-radius: 16px; border: 2px solid #f1f5f9; outline: none; transition: all 0.3s; text-align: center; font-weight: 600; }
+        .login-input:focus { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+        
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -105,34 +117,9 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 300px; color: #94a3b8;
         }
-
-        /* Envio em massa */
-        .bulk-btn-wa {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 8px 16px; border-radius: 10px; font-size: 10px; font-weight: 800;
-            background: #25D366; color: white; border: none; cursor: pointer;
-            transition: all 0.2s; text-transform: uppercase;
-        }
-        .bulk-btn-wa:hover { background: #128C7E; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,211,102,0.4); }
-        .bulk-btn-gmail {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 8px 16px; border-radius: 10px; font-size: 10px; font-weight: 800;
-            background: white; color: #EA4335; border: 1.5px solid #EA4335; cursor: pointer;
-            transition: all 0.2s; text-transform: uppercase;
-        }
-        .bulk-btn-gmail:hover { background: #EA4335; color: white; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(234,67,53,0.35); }
-        .bulk-progress { background: #f1f5f9; border-radius: 8px; height: 6px; overflow: hidden; margin-top: 6px; }
-        .bulk-progress-bar { height: 100%; background: #10b981; border-radius: 8px; transition: width 0.3s ease; }
-
-        /* Monitor */
-        .monitor-tab-btn { padding: 8px 20px; font-size: 10px; font-weight: 800; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; text-transform: uppercase; transition: all 0.2s; cursor: pointer; }
-        .monitor-tab-active { background: #10b981; color: white; border-color: #059669; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.3); }
-        .colab-card { border-radius: 16px; padding: 16px; background: white; border: 1px solid #e2e8f0; transition: all 0.2s; }
-        .colab-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
-
-        /* Barra de pesquisa — oculta por padrão, visível só no painel */
-        #search-bar-wrapper { display: none; }
-        #search-bar-wrapper.visible { display: flex; align-items: center; gap: 8px; }
+        
+        /* SENHAS */
+        .senha-destaque { background-color: #fffbeb; border: 1px solid #fef3c7; color: #92400e; font-weight: 800; padding: 4px 8px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -144,18 +131,39 @@
     </div>
 
     <div id="login-screen">
-        <div class="white-card p-8 max-w-md w-full mx-4 text-center">
-            <div class="brand-name text-3xl justify-center mb-6"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-            <p class="text-slate-500 text-xs mb-8 uppercase tracking-wide">Acesso ao sistema</p>
-            <div class="flex flex-col gap-4 mb-8">
-                <div class="flex flex-wrap justify-center gap-3">
-                    <button onclick="login('EQUIPE')" class="login-btn px-6 py-3 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition shadow-lg">🎯 EQUIPE</button>
-                    <button onclick="login('Ingrid')" class="login-btn px-6 py-3 bg-white border-2 border-pink-200 rounded-xl text-sm font-bold text-pink-700 hover:bg-pink-50 transition">👤 Ingrid</button>
-                    <button onclick="login('Nikolas')" class="login-btn px-6 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition">👤 Nikolas</button>
+        <div class="login-card text-center">
+            <div class="brand-name text-3xl justify-center mb-8"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+            <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">Selecione seu usuário</p>
+            
+            <div class="user-grid">
+                <div onclick="selectUser('Jordan')" id="user-Jordan" class="user-select-btn">
+                    <div class="user-avatar rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>
+                    <span class="text-[10px] font-bold uppercase">Jordan</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-2">⚠️ Apenas Ingrid pode realizar novos sorteios e resetar distribuições</p>
+                <div onclick="selectUser('Patricia')" id="user-Patricia" class="user-select-btn">
+                    <div class="user-avatar rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>
+                    <span class="text-[10px] font-bold uppercase">Patricia</span>
+                </div>
+                <div onclick="selectUser('Sirlene')" id="user-Sirlene" class="user-select-btn">
+                    <div class="user-avatar rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>
+                    <span class="text-[10px] font-bold uppercase">Sirlene</span>
+                </div>
+                <div onclick="selectUser('Ingrid')" id="user-Ingrid" class="user-select-btn">
+                    <div class="user-avatar rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>
+                    <span class="text-[10px] font-bold uppercase">Ingrid</span>
+                </div>
+                <div onclick="selectUser('Nikolas')" id="user-Nikolas" class="user-select-btn">
+                    <div class="user-avatar rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>
+                    <span class="text-[10px] font-bold uppercase">Nikolas</span>
+                </div>
             </div>
-            <div class="text-[9px] text-slate-400 uppercase tracking-wider border-t pt-4 mt-2">Sistema de Gestão de Certidões</div>
+
+            <div id="password-area" class="hidden animate-fade-in">
+                <input type="password" id="login-pass" placeholder="Digite sua senha" class="login-input mb-4">
+                <button onclick="confirmLogin()" class="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold uppercase text-xs shadow-lg hover:bg-emerald-600 transition-all">Entrar no Sistema</button>
+            </div>
+            
+            <div class="text-[9px] text-slate-300 uppercase tracking-wider mt-8">TopLine Hub v5.0</div>
         </div>
     </div>
 
@@ -170,341 +178,292 @@
     <div id="notification-toast">
         <div class="flex items-start gap-3">
             <div class="bg-emerald-100 p-2 rounded-lg">
-                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405l-1.405 1.405H15z"></path></svg>
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             </div>
             <div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização</h4>
-                <p id="notif-message" class="text-xs font-bold text-slate-700 leading-tight mt-1">Uma tarefa foi atualizada.</p>
-                <p id="notif-cliente" class="text-[11px] text-emerald-600 font-black mt-1 uppercase"></p>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notificação</h4>
+                <p id="notif-message" class="text-xs font-bold text-slate-700 mt-1"></p>
+                <p id="notif-cliente" class="text-[9px] text-emerald-600 font-bold mt-0.5 uppercase"></p>
             </div>
         </div>
     </div>
 
     <div id="main-app" style="display: none;">
-        <div class="p-6 max-w-[1600px] mx-auto">
-            <header class="white-card p-5 flex justify-between items-center mb-6">
-                <div>
-                    <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                    <nav class="flex gap-6 mt-3" id="main-nav">
+        <div class="p-4 md:p-8 max-w-[1600px] mx-auto">
+            <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+                <div class="flex flex-col items-center md:items-start">
+                    <div class="brand-name text-3xl mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
+                    <nav class="flex gap-6 mt-2">
                         <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
                         <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
                         <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                         <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
                         <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
-                        <!-- Aba Monitor: visível apenas para Ingrid e Nikolas -->
+                        <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
                         <button onclick="switchTab('monitor')" id="tab-monitor" class="hidden text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
+                        <button onclick="switchTab('logs')" id="tab-logs" class="hidden text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
                     </nav>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-4">
                     <div class="user-badge flex items-center gap-2">
-                        <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                         <span id="current-user-name">Usuário</span>
                     </div>
-                    <button onclick="logout()" class="p-2 hover:bg-slate-100 rounded-full transition text-slate-400 hover:text-red-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <button onclick="logout()" class="p-2 hover:bg-red-50 rounded-full transition text-slate-400 hover:text-red-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     </button>
-                </div>
-                <!-- Barra de pesquisa: visível apenas na aba Painel -->
-                <div id="search-bar-wrapper" class="visible flex items-center gap-4">
-                    <div class="flex flex-col items-end">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Database Sync</span>
-                        <span class="text-[10px] font-bold text-emerald-500">Online</span>
-                    </div>
-                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[250px] outline-none">
-                    <button onclick="fetchGoogleSheets()" id="syncBtn" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Sincronizar Sheets</button>
-                    <button onclick="exportarExcel()" class="btn-mini text-blue-700 border-blue-200">Exportar Backup</button>
-                    <button onclick="resetAllFilters()" class="btn-mini text-slate-500">Limpar</button>
                 </div>
             </header>
 
-            <!-- PAINEL -->
-            <div id="view-dash">
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="white-card dashboard-card p-5 border-t-8 border-blue-500">
-                        <div class="flex justify-between items-start mb-3">
-                            <div><h3 class="text-[10px] font-black text-blue-600 uppercase tracking-wider">Jordan</h3><p class="text-[9px] text-slate-400">Tarefas atribuídas</p></div>
-                            <div class="text-2xl font-black text-blue-600" id="jordan-percent">0%</div>
-                        </div>
-                        <div class="progress-bar bg-blue-100 rounded-full overflow-hidden"><div id="jordan-progress" class="progress-bar bg-blue-500" style="width: 0%"></div></div>
-                        <div class="flex justify-between mt-2 text-[9px] text-slate-500"><span>Concluídas: <strong id="jordan-concluidas">0</strong></span><span>Total: <strong id="jordan-total">0</strong></span></div>
-                    </div>
-                    <div class="white-card dashboard-card p-5 border-t-8 border-purple-500">
-                        <div class="flex justify-between items-start mb-3">
-                            <div><h3 class="text-[10px] font-black text-purple-600 uppercase tracking-wider">Sirlene</h3><p class="text-[9px] text-slate-400">Tarefas atribuídas</p></div>
-                            <div class="text-2xl font-black text-purple-600" id="sirlene-percent">0%</div>
-                        </div>
-                        <div class="progress-bar bg-purple-100 rounded-full overflow-hidden"><div id="sirlene-progress" class="progress-bar bg-purple-500" style="width: 0%"></div></div>
-                        <div class="flex justify-between mt-2 text-[9px] text-slate-500"><span>Concluídas: <strong id="sirlene-concluidas">0</strong></span><span>Total: <strong id="sirlene-total">0</strong></span></div>
-                    </div>
-                    <div class="white-card dashboard-card p-5 border-t-8 border-pink-500">
-                        <div class="flex justify-between items-start mb-3">
-                            <div><h3 class="text-[10px] font-black text-pink-600 uppercase tracking-wider">Ingrid</h3><p class="text-[9px] text-slate-400">Tarefas atribuídas</p></div>
-                            <div class="text-2xl font-black text-pink-600" id="ingrid-percent">0%</div>
-                        </div>
-                        <div class="progress-bar bg-pink-100 rounded-full overflow-hidden"><div id="ingrid-progress" class="progress-bar bg-pink-500" style="width: 0%"></div></div>
-                        <div class="flex justify-between mt-2 text-[9px] text-slate-500"><span>Concluídas: <strong id="ingrid-concluidas">0</strong></span><span>Total: <strong id="ingrid-total">0</strong></span></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div class="white-card p-6 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-wider">Resumo Crítico Operacional</h3>
-                            <div class="space-y-3">
-                                <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-red-400"></span><span class="text-xs font-bold text-slate-600 w-24">Vencidos:</span><span id="dash-count-vencido" class="text-xs font-black text-slate-800">0</span></div>
-                                <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-purple-400"></span><span class="text-xs font-bold text-slate-600 w-24">Andamento:</span><span id="dash-count-andamento" class="text-xs font-black text-slate-800">0</span></div>
-                                <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-orange-400"></span><span class="text-xs font-bold text-slate-600 w-24">Análise:</span><span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span></div>
-                                <div class="pt-2 border-t mt-2 flex gap-4"><span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos itens: <span id="dash-count-total">0</span></span></div>
-                            </div>
-                        </div>
-                        <div class="relative w-32 h-32">
-                            <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
-                                <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="4"></circle>
-                                <circle id="circle-vencido" cx="18" cy="18" r="16" fill="none" stroke="#f87171" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                                <circle id="circle-andamento" cx="18" cy="18" r="16" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                                <circle id="circle-analise" cx="18" cy="18" r="16" fill="none" stroke="#fb923c" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
-                            </svg>
-                            <div class="absolute inset-0 flex items-center justify-center flex-col leading-none">
-                                <span id="dash-percent" class="text-xl font-extrabold text-slate-800">0%</span>
-                                <span class="text-[7px] font-bold text-slate-400 uppercase mt-1">Status</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="white-card p-4 bg-gradient-to-br from-sky-50 to-blue-50 flex flex-col justify-center border-sky-100 relative overflow-hidden">
-                        <div class="flex justify-between items-start relative z-10">
-                            <div>
-                                <h3 class="text-sky-800 font-black text-xs uppercase tracking-wider mb-1">Clima Zona Leste</h3>
-                                <p class="text-slate-500 text-[10px]">São Paulo, SP</p>
-                            </div>
-                            <div id="weather-icon" class="text-3xl">☀️</div>
-                        </div>
-                        <div class="mt-3 flex items-end gap-2 relative z-10">
-                            <span id="weather-temp" class="text-3xl font-black text-slate-800 leading-none">--°C</span>
-                            <span id="weather-desc" class="text-[10px] font-bold text-sky-600 uppercase pb-1">Carregando...</span>
-                        </div>
-                        <div class="mt-4 flex gap-2 relative z-10">
-                            <span class="px-2 py-1 bg-white/80 backdrop-blur-sm border border-sky-100 rounded-lg text-[8px] font-bold text-sky-600 uppercase shadow-sm">Umidade: <span id="weather-hum">--%</span></span>
-                            <span id="last-update-tag" class="px-2 py-1 bg-white/80 backdrop-blur-sm border border-slate-100 rounded-lg text-[8px] font-bold text-slate-400 uppercase shadow-sm font-mono">--:--</span>
-                        </div>
-                        <!-- Decoração de fundo -->
-                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-sky-200/20 rounded-full blur-2xl"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-                    <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
-                    <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
-                    <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
-                    <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span><span class="text-xs font-bold text-slate-700">90 Dias</span></button>
-                    <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-purple-500 uppercase">Status</span><span class="text-xs font-bold text-slate-700">Andamento</span></button>
-                    <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span><span class="text-xs font-bold text-slate-700">Análise</span></button>
-                </div>
-                <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
-                <div class="white-card overflow-hidden">
-                    <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody">
-                    </tbody></table></div>
-                </div>
-            </div>
-
-            <!-- TAREFAS -->
-            <div id="view-tasks" class="hidden">
-                <div class="white-card p-4 mb-8">
-                    <div class="flex gap-3 justify-center flex-wrap" id="botoesSorteioTasks"></div>
-                    <div id="avisoRestricao" class="text-center text-xs text-slate-400 mt-3 hidden">⚠️ Apenas a Ingrid pode realizar novos sorteios e resetar distribuições</div>
-                    <div id="resetButtonContainer" class="flex justify-center mt-3"></div>
-                </div>
-                <div class="grid grid-cols-3 gap-6">
-                    <div class="white-card border-t-8 border-blue-400 p-5 min-h-[400px]"><h3 class="font-black text-xs uppercase mb-4 flex justify-between text-blue-600">Jordan <span id="count-jordan">0</span></h3><div id="list-jordan" class="space-y-2"></div></div>
-                    <div class="white-card border-t-8 border-purple-400 p-5 min-h-[400px]"><h3 class="font-black text-xs uppercase mb-4 flex justify-between text-purple-600">Sirlene <span id="count-sirlene">0</span></h3><div id="list-sirlene" class="space-y-2"></div></div>
-                    <div class="white-card border-t-8 border-pink-400 p-5 min-h-[400px]"><h3 class="font-black text-xs uppercase mb-4 flex justify-between text-pink-600">Ingrid <span id="count-ingrid">0</span></h3><div id="list-ingrid" class="space-y-2"></div></div>
-                </div>
-            </div>
-
-            <!-- SENHAS -->
-            <div id="view-senhas" class="hidden">
-                <div class="white-card p-6">
-                    <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
-                    <div class="scroll-container">
-                        <table class="w-full text-left">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
-                            <tbody id="senhasBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ABA COMUNICAR -->
-            <div id="view-comm" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Painel de Controle -->
-                    <div class="md:col-span-1 space-y-6">
-                        <div class="white-card p-6">
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">WhatsApp Web</h3>
-                            <button onclick="abrirWhatsAppWeb()" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold text-xs hover:bg-emerald-600 transition shadow-lg flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                Logar WhatsApp
-                            </button>
-                            <p class="text-[9px] text-slate-400 mt-2 text-center">Clique para abrir/focar a janela do WhatsApp Web</p>
-                        </div>
-                        <div class="white-card p-6">
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">1. Selecione o Documento</h3>
-                            <div class="grid grid-cols-2 gap-2" id="commDocFilters"></div>
-                        </div>
-                        <div class="white-card p-6">
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">2. Selecione o Prazo</h3>
-                            <div class="space-y-2">
-                                <button onclick="setCommStatus('vencido')" id="comm-btn-vencido" class="w-full comm-filter-btn">Vencidos</button>
-                                <button onclick="setCommStatus('30')" id="comm-btn-30" class="w-full comm-filter-btn">Vencem em 30 dias</button>
-                                <button onclick="setCommStatus('60')" id="comm-btn-60" class="w-full comm-filter-btn">Vencem em 60 dias</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Listagem -->
-                    <div class="md:col-span-3">
-                        <div class="white-card p-6 min-h-[600px]">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-sm font-black text-slate-700 uppercase tracking-tight">Clientes para Comunicar</h3>
-                                <div id="comm-counter" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">0 Clientes encontrados</div>
-                            </div>
-
-                            <!-- Botões de envio em massa -->
-                            <div class="flex items-center gap-3 mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Envio em massa:</span>
-                                <button onclick="envioEmMassa('whatsapp')" class="bulk-btn-wa">
-                                    <svg style="width:12px;height:12px" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                    Enviar Todos via WhatsApp
-                                </button>
-                                <button onclick="envioEmMassa('gmail')" class="bulk-btn-gmail">
-                                    <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" stroke="#EA4335" stroke-width="1.5"/><path d="M2 6l10 7 10-7" stroke="#EA4335" stroke-width="1.5" stroke-linecap="round"/></svg>
-                                    Enviar Todos via Gmail
-                                </button>
-                                <div id="bulk-status" class="text-[10px] text-slate-400 ml-auto hidden">
-                                    <span id="bulk-status-text">Aguardando...</span>
-                                    <div class="bulk-progress w-32"><div id="bulk-progress-bar" class="bulk-progress-bar" style="width:0%"></div></div>
+            <main>
+                <!-- ABA PAINEL -->
+                <div id="view-dash" class="animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div class="md:col-span-9">
+                            <div class="white-card p-6 mb-6">
+                                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                                    <div class="flex items-center gap-4 w-full md:w-auto">
+                                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-full md:w-[300px] outline-none focus:border-emerald-500">
+                                        <button onclick="resetAllFilters()" class="text-[10px] font-bold text-slate-400 uppercase hover:text-emerald-600">Limpar</button>
+                                    </div>
+                                    <div class="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0" id="statusCards">
+                                        <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="btn-mini border-red-200 text-red-700">Vencidos</button>
+                                        <button onclick="toggleStatusFilter('30')" id="btn-30" class="btn-mini border-amber-200 text-amber-700">30 Dias</button>
+                                        <button onclick="toggleStatusFilter('60')" id="btn-60" class="btn-mini border-emerald-200 text-emerald-700">60 Dias</button>
+                                        <button onclick="toggleStatusFilter('90')" id="btn-90" class="btn-mini border-sky-200 text-sky-700">90 Dias</button>
+                                        <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="btn-mini border-purple-200 text-purple-700">Andamento</button>
+                                        <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="btn-mini border-orange-200 text-orange-700">Análise</button>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mb-6 overflow-x-auto pb-2" id="docButtons"></div>
+                                <div class="scroll-container">
+                                    <table id="mainTable">
+                                        <thead id="tableHeader"></thead>
+                                        <tbody id="tableBody"></tbody>
+                                    </table>
+                                </div>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div id="last-update-tag" class="text-[9px] font-bold text-slate-400 uppercase">Update: --:--</div>
+                                    <div class="flex gap-3">
+                                        <button onclick="fetchGoogleSheets(true)" class="btn-mini bg-emerald-50 text-emerald-700 border-emerald-100">Sincronizar</button>
+                                        <button onclick="exportarExcel()" class="btn-mini bg-slate-50 text-slate-700 border-slate-200">Backup Excel</button>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div class="scroll-container">
-                                <table class="w-full text-left">
-                                    <thead>
-                                        <tr>
-                                            <th class="col-fixed">Cliente</th>
-                                            <th>Documento</th>
-                                            <th>Vencimento</th>
-                                            <th>WhatsApp</th>
-                                            <th>E-mail</th>
-                                            <th class="text-center" style="min-width:180px">Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="commTableBody"></tbody>
-                                </table>
+                        </div>
+                        <div class="md:col-span-3 space-y-6">
+                            <div class="white-card p-6 text-center">
+                                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-6 tracking-widest">Status Global</h3>
+                                <div class="relative w-40 h-40 mx-auto mb-6">
+                                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f1f5f9" stroke-width="3" />
+                                        <path id="circle-vencido" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="0, 100" />
+                                        <path id="circle-andamento" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#a855f7" stroke-width="3" stroke-dasharray="0, 100" />
+                                        <path id="circle-analise" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f97316" stroke-width="3" stroke-dasharray="0, 100" />
+                                    </svg>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span id="dash-percent" class="text-3xl font-black text-slate-800">0%</span>
+                                        <span class="text-[9px] font-bold text-slate-400 uppercase">Regular</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="p-2 bg-red-50 rounded-xl"><div id="dash-count-vencido" class="text-sm font-black text-red-600">0</div><div class="text-[8px] font-bold text-red-400 uppercase">Venc.</div></div>
+                                    <div class="p-2 bg-purple-50 rounded-xl"><div id="dash-count-andamento" class="text-sm font-black text-purple-600">0</div><div class="text-[8px] font-bold text-purple-400 uppercase">And.</div></div>
+                                    <div class="p-2 bg-orange-50 rounded-xl"><div id="dash-count-analise" class="text-sm font-black text-orange-600">0</div><div class="text-[8px] font-bold text-orange-400 uppercase">Anál.</div></div>
+                                </div>
+                            </div>
+                            <div class="white-card p-6" id="weather-widget">
+                                <div class="animate-pulse flex space-x-4">
+                                    <div class="rounded-full bg-slate-100 h-10 w-10"></div>
+                                    <div class="flex-1 space-y-2 py-1">
+                                        <div class="h-2 bg-slate-100 rounded w-3/4"></div>
+                                        <div class="h-2 bg-slate-100 rounded"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ABA ATALHOS -->
-            <div id="view-atalhos" class="hidden">
-                <div class="white-card p-6 mb-4">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center">
-                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                        </div>
+                <!-- ABA TAREFAS -->
+                <div id="view-tasks" class="hidden animate-fade-in">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                         <div>
-                            <h2 class="text-sm font-black text-slate-700 uppercase tracking-tight">Atalhos Rápidos</h2>
-                            <p class="text-[10px] text-slate-400">Clique em qualquer link para abrir no visualizador ou em nova aba</p>
+                            <h2 class="text-2xl font-black text-slate-800 mb-1">Distribuição de Tarefas</h2>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Sorteio e acompanhamento diário</p>
                         </div>
-                        <div class="ml-auto">
-                            <button onclick="fecharIframe()" id="btn-fechar-iframe" class="hidden btn-mini text-red-500 border-red-200 bg-red-50">✕ Fechar</button>
+                        <div class="flex flex-wrap gap-3 justify-center" id="botoesSorteioTasks"></div>
+                    </div>
+                    <div id="avisoRestricao" class="hidden mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-center">
+                        <p class="text-xs font-bold text-amber-700 uppercase tracking-wider">🔒 Apenas Ingrid pode realizar novos sorteios</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="white-card p-5 bg-slate-50/50">
+                            <div class="flex justify-between items-center mb-4"><h3 class="text-xs font-black text-slate-800 uppercase">Jordan</h3><span id="count-jordan" class="bg-white px-2 py-1 rounded-lg text-[10px] font-black text-emerald-600 border border-slate-100">0</span></div>
+                            <div id="list-jordan" class="space-y-3"></div>
+                        </div>
+                        <div class="white-card p-5 bg-slate-50/50">
+                            <div class="flex justify-between items-center mb-4"><h3 class="text-xs font-black text-slate-800 uppercase">Patricia</h3><span id="count-patricia" class="bg-white px-2 py-1 rounded-lg text-[10px] font-black text-emerald-600 border border-slate-100">0</span></div>
+                            <div id="list-patricia" class="space-y-3"></div>
+                        </div>
+                        <div class="white-card p-5 bg-slate-50/50">
+                            <div class="flex justify-between items-center mb-4"><h3 class="text-xs font-black text-slate-800 uppercase">Sirlene</h3><span id="count-sirlene" class="bg-white px-2 py-1 rounded-lg text-[10px] font-black text-emerald-600 border border-slate-100">0</span></div>
+                            <div id="list-sirlene" class="space-y-3"></div>
+                        </div>
+                        <div class="white-card p-5 bg-slate-50/50">
+                            <div class="flex justify-between items-center mb-4"><h3 class="text-xs font-black text-slate-800 uppercase">Ingrid</h3><span id="count-ingrid" class="bg-white px-2 py-1 rounded-lg text-[10px] font-black text-emerald-600 border border-slate-100">0</span></div>
+                            <div id="list-ingrid" class="space-y-3"></div>
                         </div>
                     </div>
-                    <!-- Grid de botões de atalhos -->
-                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3" id="atalhos-grid"></div>
+                    <div id="resetButtonContainer" class="mt-8 flex justify-center"></div>
                 </div>
 
-                <!-- Área do iframe -->
-                <div class="white-card p-0 overflow-hidden" id="atalhos-iframe-container">
-                    <div class="bg-slate-800 px-4 py-2 flex items-center gap-3">
-                        <div class="flex gap-1.5">
-                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                            <div class="w-3 h-3 rounded-full bg-amber-400"></div>
-                            <div class="w-3 h-3 rounded-full bg-emerald-400"></div>
+                <!-- ABA SENHAS -->
+                <div id="view-senhas" class="hidden animate-fade-in">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800 mb-1">Cofre de Senhas</h2>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Acesso rápido e seguro</p>
                         </div>
-                        <span id="iframe-url-label" class="text-[10px] text-slate-400 font-mono truncate flex-1"></span>
-                        <button onclick="abrirEmNovaAba()" class="text-[9px] text-slate-400 hover:text-white font-bold uppercase tracking-wider flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                            Abrir em nova aba
-                        </button>
+                        <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente..." class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs w-full md:w-[300px] outline-none focus:border-emerald-500">
                     </div>
-                    <iframe id="atalhos-iframe" src="about:blank" title="Visualizador de Atalhos" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"></iframe>
+                    <div class="white-card overflow-hidden">
+                        <div class="scroll-container" style="max-height: 70vh;">
+                            <table class="w-full text-left">
+                                <thead><tr><th class="col-fixed">Cliente</th><th>CNPJ</th><th>CCM</th><th>Senha Web</th><th>Senha Gov</th><th>Senha 156</th><th>Senha CRCE</th><th>SIGEP</th></tr></thead>
+                                <tbody id="senhasBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="atalhos-placeholder" class="white-card">
-                    <div class="text-6xl mb-4">🔗</div>
-                    <p class="font-bold text-slate-500 text-sm">Selecione um atalho acima</p>
-                    <p class="text-[11px] text-slate-400 mt-1">O site será carregado aqui dentro do sistema</p>
+                <!-- ABA COMUNICAR -->
+                <div id="view-comm" class="hidden animate-fade-in">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800 mb-1">Comunicar</h2>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Envio de avisos aos clientes</p>
+                        </div>
+                        <div class="flex gap-3 bg-white p-2 rounded-2xl border border-slate-100">
+                            <button onclick="setCommStatus('vencido')" id="comm-btn-vencido" class="btn-mini border-red-100 text-red-600">Vencidos</button>
+                            <button onclick="setCommStatus('30')" id="comm-btn-30" class="btn-mini border-amber-100 text-amber-600">30 Dias</button>
+                            <button onclick="setCommStatus('60')" id="comm-btn-60" class="btn-mini border-emerald-100 text-emerald-600">60 Dias</button>
+                        </div>
+                    </div>
+                    <div class="white-card p-6">
+                        <div class="flex flex-wrap gap-2 mb-6" id="commDocFilters"></div>
+                        <div class="flex justify-between items-center mb-4">
+                            <span id="comm-counter" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">0 Clientes encontrados</span>
+                            <button onclick="envioEmMassa('gmail')" class="action-btn-gmail">📧 Enviar Todos via Gmail</button>
+                        </div>
+                        <div class="scroll-container">
+                            <table class="w-full text-left">
+                                <thead><tr><th class="col-fixed">Cliente</th><th>Documento</th><th>Vencimento</th><th>WhatsApp</th><th>E-mail</th><th class="text-center">Ações</th></tr></thead>
+                                <tbody id="commTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- ABA MONITOR (apenas Ingrid e Nikolas) -->
-            <div id="view-monitor" class="hidden max-w-5xl mx-auto">
-                <div class="white-card p-4 mb-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <!-- ABA ATALHOS -->
+                <div id="view-atalhos" class="hidden animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div class="md:col-span-3 space-y-3" id="atalhos-grid"></div>
+                        <div class="md:col-span-9">
+                            <div class="white-card p-4">
+                                <div id="atalhos-placeholder">
+                                    <div class="text-5xl mb-4">🌐</div>
+                                    <h3 class="text-sm font-black text-slate-800 uppercase">Visualizador de Atalhos</h3>
+                                    <p class="text-xs text-slate-400 mt-2">Selecione um atalho ao lado para abrir aqui.</p>
+                                </div>
+                                <div id="atalhos-iframe-container">
+                                    <div class="flex justify-between items-center p-3 bg-slate-100 border-b border-slate-200">
+                                        <span id="atalho-nome-atual" class="text-[10px] font-black text-slate-600 uppercase">Navegador Interno</span>
+                                        <div class="flex gap-2">
+                                            <button onclick="abrirEmNovaAba()" class="btn-mini bg-white">Abrir em Nova Aba ↗</button>
+                                            <button onclick="fecharAtalho()" class="btn-mini bg-red-50 text-red-600 border-red-100">Fechar</button>
+                                        </div>
+                                    </div>
+                                    <iframe id="atalhos-iframe" src="about:blank"></iframe>
+                                </div>
                             </div>
-                            <div>
-                                <h2 class="text-xs font-black text-slate-700 uppercase tracking-tight">Monitor de Desempenho</h2>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="flex gap-1">
-                                <button onclick="setMonitorPeriodo('diario')" id="monitor-btn-diario" class="monitor-tab-btn monitor-tab-active text-[9px] px-2 py-1">Diário</button>
-                                <button onclick="setMonitorPeriodo('semanal')" id="monitor-btn-semanal" class="monitor-tab-btn text-[9px] px-2 py-1">Semanal</button>
-                                <button onclick="setMonitorPeriodo('mensal')" id="monitor-btn-mensal" class="monitor-tab-btn text-[9px] px-2 py-1">Mensal</button>
-                            </div>
-                            <button onclick="registrarDesempenhoHoje()" class="btn-mini bg-indigo-500 text-white border-indigo-600 hover:bg-indigo-600 text-[9px] px-2 py-1">+ Registrar Hoje</button>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-3 gap-3 mb-4" id="monitor-cards"></div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div class="white-card p-4">
-                        <h3 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider" id="monitor-chart-title">Tarefas Concluídas</h3>
-                        <div style="height: 150px;"><canvas id="monitor-bar-chart"></canvas></div>
+                <!-- ABA HISTÓRICO -->
+                <div id="view-historico" class="hidden animate-fade-in">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800 mb-1">Histórico de Observações</h2>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Registro de todas as anotações feitas</p>
+                        </div>
+                        <input type="text" id="searchHistorico" onkeyup="renderHistoricoGeral()" placeholder="Filtrar histórico..." class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs w-[300px] outline-none">
                     </div>
-                    <div class="white-card p-4">
-                        <h3 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Distribuição</h3>
-                        <div style="height: 150px;"><canvas id="monitor-pie-chart"></canvas></div>
+                    <div class="white-card overflow-hidden">
+                        <div class="max-h-[600px] overflow-y-auto">
+                            <table class="w-full text-left">
+                                <thead><tr><th>Data/Hora</th><th>Colaborador</th><th>Empresa</th><th>Campo</th><th>Observação</th><th>Alteração</th></tr></thead>
+                                <tbody id="historico-geral-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="white-card p-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Histórico</h3>
-                        <span id="monitor-historico-info" class="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full"></span>
+                <!-- ABA MONITOR -->
+                <div id="view-monitor" class="hidden animate-fade-in">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800 mb-1">Monitor de Desempenho</h2>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Acompanhamento de produtividade</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="flex bg-white border border-slate-200 rounded-xl p-1">
+                                <button onclick="setMonitorPeriodo('diario')" id="monitor-btn-diario" class="px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all bg-emerald-500 text-white">Diário</button>
+                                <button onclick="setMonitorPeriodo('semanal')" id="monitor-btn-semanal" class="px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all text-slate-400">Semanal</button>
+                                <button onclick="setMonitorPeriodo('mensal')" id="monitor-btn-mensal" class="px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all text-slate-400">Mensal</button>
+                            </div>
+                            <button onclick="registrarDesempenhoHoje()" class="bg-emerald-500 text-white px-6 py-2 rounded-xl text-[10px] font-bold uppercase shadow-lg hover:bg-emerald-600 transition">+ Registrar Hoje</button>
+                        </div>
                     </div>
-                    <div class="scroll-container" style="max-height: 200px;">
-                        <table class="w-full text-left text-[10px]">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Colaborador</th>
-                                    <th>Total</th>
-                                    <th>Concluídas</th>
-                                    <th>%</th>
-                                    <th>Por</th>
-                                </tr>
-                            </thead>
-                            <tbody id="monitor-historico-body"></tbody>
-                        </table>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="white-card p-4"><h3 class="text-[10px] font-black text-slate-400 uppercase mb-4">Tarefas Concluídas</h3><div class="h-[150px]"><canvas id="monitor-bar-chart"></canvas></div></div>
+                        <div class="white-card p-4"><h3 class="text-[10px] font-black text-slate-400 uppercase mb-4">Distribuição</h3><div class="h-[150px] flex justify-center"><canvas id="monitor-pie-chart"></canvas></div></div>
+                        <div class="white-card p-4 flex flex-col justify-center items-center text-center">
+                            <div class="text-4xl mb-2">🏆</div>
+                            <h3 class="text-xs font-black text-slate-800 uppercase">Destaque</h3>
+                            <p id="monitor-destaque-nome" class="text-2xl font-black text-emerald-600 mt-1">--</p>
+                        </div>
+                    </div>
+                    <div class="white-card overflow-hidden">
+                        <div class="max-h-[300px] overflow-y-auto">
+                            <table class="w-full text-left">
+                                <thead><tr><th>Data</th><th>Colaborador</th><th>Total</th><th>Concluídas</th><th>%</th><th>Por</th></tr></thead>
+                                <tbody id="monitor-historico-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
 
+                <!-- ABA LOGS -->
+                <div id="view-logs" class="hidden animate-fade-in">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800 mb-1">Logs do Sistema</h2>
+                            <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Rastreabilidade total de ações</p>
+                        </div>
+                        <input type="text" id="searchLogs" onkeyup="renderLogs()" placeholder="Filtrar logs..." class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs w-[300px] outline-none">
+                    </div>
+                    <div class="white-card overflow-hidden">
+                        <div class="max-h-[600px] overflow-y-auto">
+                            <table class="w-full text-left">
+                                <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Empresa/Campo</th><th>Valores</th><th>Observação</th></tr></thead>
+                                <tbody id="logs-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
@@ -521,174 +480,55 @@
     </div>
 
     <script>
-        // ============================================
-        // CONFIGURAÇÕES
-        // ============================================
         const SUPABASE_URL = "https://pstwlvyhbmmzpybkowqa.supabase.co";
         const SUPABASE_KEY = "sb_publishable_GmzLunKnwonGfUcyC4lL7w_HqPsfGIO";
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbzMRx5gVh2y7Yk3JU3Ht1WwDWvZoiLXuItDEMkCryakguKcZDDBAc6qsw5Iz2P9oayv/exec";
-        
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
         const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
         const URL_DADOS_PRINCIPAIS = BASE_URL + "&gid=0";
         const URL_SENHAS = BASE_URL + "&gid=49695199";
 
         let rawData = [], headers = [], passwordData = [];
-        let activeDoc = null, activeStatus = null;
+        let activeDoc = null, activeStatus = null, currentUser = "", selectedLoginUser = null, selectedOption = null, currentEditTarget = {};
         let commActiveDoc = null, commActiveStatus = null;
-        let currentEditTarget = {};
+        let distribuicaoAtual = { Jordan: [], Patricia: [], Sirlene: [], Ingrid: [] };
+        let monitorPeriodoAtual = 'diario', monitorBarChart = null, monitorPieChart = null;
         let lastKnownDataHash = "";
-        let selectedOption = null;
-        let currentUser = "";
-        
-        let distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
+        let atalhoAtualUrl = "";
 
-        // Variáveis do Monitor
-        let monitorPeriodoAtual = 'diario';
-        let monitorBarChart = null;
-        let monitorPieChart = null;
-        
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
-
         const MENSAGENS_PADRAO = {
             vencido: "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline.",
             '30': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline.",
             '60': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline."
         };
 
-        // ============================================
-        // ATALHOS — URLs que bloqueiam iFrame
-        // ============================================
-        // Sites que bloqueiam iFrame via X-Frame-Options ou CSP:
-        // Abre diretamente em nova aba ao invés de tentar no iframe.
-        const ATALHOS_NOVA_ABA = [
-            "receita.fazenda.gov.br",
-            "caixa.gov.br",
-            "receitafederal.gov.br",
-            "tst.jus.br",
-            "prefeitura.sp.gov.br",
-            "ccm.prefeitura.sp.gov.br",
-            "cadastrodeentidades.sp.gov.br",
-            "cav.receita.fazenda.gov.br",
-            "vreredesim.sp.gov.br",
-            "imprensaoficial.com.br",
-            "processos.prefeitura.sp.gov.br",
-            "cdtsp.com.br",
-            "chatgpt.com",
-            "pf.gov.br",
-            "ssp.sp.gov.br",
-            "ilovepdf.com",
-            "sp156.prefeitura.sp.gov.br"
-        ];
-
-        function urlBloqueiaIframe(url) {
-            try {
-                const hostname = new URL(url).hostname;
-                return ATALHOS_NOVA_ABA.some(dominio => hostname.includes(dominio));
-            } catch(e) { return false; }
-        }
-
         const ATALHOS = [
-            { nome: "CNPJ",                  url: "https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/cnpjreva_solicitacao.asp" },
-            { nome: "CRF",                   url: "https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf" },
-            { nome: "CND",                   url: "https://servicos.receitafederal.gov.br/servico/certidoes/#/home" },
-            { nome: "CNDT",                  url: "https://cndt-certidao.tst.jus.br/inicio.faces" },
-            { nome: "CTM",                   url: "https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmconsultaemissaocertificado.aspx" },
-            { nome: "CCM",                   url: "https://ccm.prefeitura.sp.gov.br/login/contribuinte?tipo=F" },
-            { nome: "CENTS",                 url: "https://www3.prefeitura.sp.gov.br/CENTS.Web/instrucoes/instrucoesInscricao.aspx" },
-            { nome: "CRCE",                  url: "https://www.cadastrodeentidades.sp.gov.br/(S(nt0ws255yy5adi2ouydxco55))/CertificadoPublico.aspx" },
-            { nome: "ECAC",                  url: "https://cav.receita.fazenda.gov.br/autenticacao/login" },
-            { nome: "VRE",                   url: "https://vreredesim.sp.gov.br/home" },
-            { nome: "DIÁRIO OFICIAL",        url: "https://www.imprensaoficial.com.br/#09/07/2025" },
-            { nome: "SEI",                   url: "https://processos.prefeitura.sp.gov.br/Forms/principal.aspx" },
-            { nome: "CDT",                   url: "https://cdtsp.com.br/consultarandamento" },
-            { nome: "CHAT GPT",              url: "https://chatgpt.com/" },
-            { nome: "ANT. FEDERAL",          url: "https://servicos.pf.gov.br/epol-sinic-publico/" },
-            { nome: "ANT. ESTADUAL",         url: "https://www2.ssp.sp.gov.br/aacweb/carrega-formulario" },
-            { nome: "iLOVE PDF",             url: "https://www.ilovepdf.com/pt" },
-            { nome: "PORTAL 156",            url: "https://sp156.prefeitura.sp.gov.br/portal/servicos" },
+            { nome: "CNPJ", url: "https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/cnpjreva_solicitacao.asp" },
+            { nome: "CRF", url: "https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf" },
+            { nome: "CND", url: "https://servicos.receitafederal.gov.br/servico/certidoes/#/home" },
+            { nome: "CNDT", url: "https://cndt-certidao.tst.jus.br/inicio.faces" },
+            { nome: "CTM", url: "https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmconsultaemissaocertificado.aspx" },
+            { nome: "CCM", url: "https://ccm.prefeitura.sp.gov.br/login/contribuinte?tipo=F" },
+            { nome: "CENTS", url: "https://www3.prefeitura.sp.gov.br/CENTS.Web/instrucoes/instrucoesInscricao.aspx" },
+            { nome: "CRCE", url: "https://www.cadastrodeentidades.sp.gov.br/(S(nt0ws255yy5adi2ouydxco55))/CertificadoPublico.aspx" },
+            { nome: "ECAC", url: "https://cav.receita.fazenda.gov.br/autenticacao/login" },
+            { nome: "VRE", url: "https://vreredesim.sp.gov.br/home" },
+            { nome: "DIÁRIO OFICIAL", url: "https://www.imprensaoficial.com.br/#09/07/2025" },
+            { nome: "SEI", url: "https://processos.prefeitura.sp.gov.br/Forms/principal.aspx" },
+            { nome: "CDT", url: "https://cdtsp.com.br/consultarandamento" },
+            { nome: "CHAT GPT", url: "https://chatgpt.com/" },
+            { nome: "ANT. FEDERAL", url: "https://servicos.pf.gov.br/epol-sinic-publico/" },
+            { nome: "ANT. ESTADUAL", url: "https://www2.ssp.sp.gov.br/aacweb/carrega-formulario" },
+            { nome: "iLOVE PDF", url: "https://www.ilovepdf.com/pt" },
+            { nome: "PORTAL 156", url: "https://sp156.prefeitura.sp.gov.br/portal/servicos" },
         ];
 
-        let atalhoAtualUrl = '';
-
-        function renderAtalhos() {
-            const grid = document.getElementById('atalhos-grid');
-            if (!grid) return;
-            grid.innerHTML = ATALHOS.map((a, i) => {
-                const bloqueado = urlBloqueiaIframe(a.url);
-                return `
-                <button onclick="abrirAtalho(${i})" id="atalho-btn-${i}" class="atalho-btn flex flex-col gap-1" title="${bloqueado ? 'Abre em nova aba (site não permite incorporação)' : 'Abre no visualizador interno'}">
-                    <span class="text-[8px] text-slate-400 font-mono">#${String(i+1).padStart(2,'0')} ${bloqueado ? '↗' : ''}</span>
-                    <span class="text-[10px] font-black leading-tight">${a.nome}</span>
-                </button>`;
-            }).join('');
-        }
-
-        function abrirAtalho(idx) {
-            const atalho = ATALHOS[idx];
-            if (!atalho) return;
-
-            // Atualiza estilo dos botões
-            document.querySelectorAll('.atalho-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.getElementById('atalho-btn-' + idx);
-            if (btn) btn.classList.add('active');
-
-            atalhoAtualUrl = atalho.url;
-
-            // Se o site bloqueia iframe, abre em nova aba diretamente
-            if (urlBloqueiaIframe(atalho.url)) {
-                window.open(atalho.url, '_blank');
-                // Mantém o botão ativo brevemente e remove
-                setTimeout(() => { if (btn) btn.classList.remove('active'); }, 1500);
-                return;
-            }
-
-            // Mostra container iframe
-            const container = document.getElementById('atalhos-iframe-container');
-            const placeholder = document.getElementById('atalhos-placeholder');
-            const iframe = document.getElementById('atalhos-iframe');
-            const label = document.getElementById('iframe-url-label');
-            const btnFechar = document.getElementById('btn-fechar-iframe');
-
-            container.style.display = 'block';
-            placeholder.style.display = 'none';
-            if (btnFechar) btnFechar.classList.remove('hidden');
-
-            label.textContent = atalho.url;
-            iframe.src = atalho.url;
-
-            // Fallback: se o iframe falhar ao carregar (erro de rede/CORS), abre em nova aba
-            iframe.onerror = () => {
-                fecharIframe();
-                window.open(atalho.url, '_blank');
-            };
-        }
-
-        function fecharIframe() {
-            const container = document.getElementById('atalhos-iframe-container');
-            const placeholder = document.getElementById('atalhos-placeholder');
-            const iframe = document.getElementById('atalhos-iframe');
-            const btnFechar = document.getElementById('btn-fechar-iframe');
-
-            container.style.display = 'none';
-            placeholder.style.display = 'flex';
-            if (btnFechar) btnFechar.classList.add('hidden');
-            iframe.src = 'about:blank';
-            atalhoAtualUrl = '';
-
-            document.querySelectorAll('.atalho-btn').forEach(b => b.classList.remove('active'));
-        }
-
-        function abrirEmNovaAba() {
-            if (atalhoAtualUrl) window.open(atalhoAtualUrl, '_blank');
-        }
-
         // ============================================
-        // INIT
+        // LOGIN E ACESSO
         // ============================================
         window.onload = () => {
-            setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; }, 1200);
+            setTimeout(() => { document.getElementById('splash-screen').style.opacity = '0'; setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 500); }, 1200);
             
             const container = document.getElementById('docButtons');
             docList.forEach(doc => {
@@ -711,31 +551,52 @@
             renderAtalhos();
         };
 
-        function login(userName) {
-            currentUser = userName;
-            document.getElementById('current-user-name').innerText = currentUser;
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-app').style.display = 'block';
-            atualizarBotoesSorteio();
-            // Mostrar aba Monitor apenas para Ingrid e Nikolas
-            const tabMonitor = document.getElementById('tab-monitor');
-            if (currentUser === 'Ingrid' || currentUser === 'Nikolas') {
-                tabMonitor.classList.remove('hidden');
+        function selectUser(user) {
+            selectedLoginUser = user;
+            document.querySelectorAll('.user-select-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('user-' + user).classList.add('active');
+            document.getElementById('password-area').classList.remove('hidden');
+            document.getElementById('login-pass').value = '';
+            document.getElementById('login-pass').focus();
+        }
+
+        async function confirmLogin() {
+            const pass = document.getElementById('login-pass').value;
+            const user = selectedLoginUser;
+            const isAdmin = (user === 'Nikolas' || user === 'Ingrid');
+            const correctPass = isAdmin ? 'ToplineNK2026' : 'NKTOP2026';
+            
+            if (pass === correctPass) {
+                currentUser = user;
+                document.getElementById('current-user-name').innerText = currentUser;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                registrarLog('LOGIN', null, null, null, null, { user_agent: navigator.userAgent });
+                
+                const tabMonitor = document.getElementById('tab-monitor');
+                const tabLogs = document.getElementById('tab-logs');
+                if (isAdmin) { tabMonitor.classList.remove('hidden'); tabLogs.classList.remove('hidden'); }
+                else { tabMonitor.classList.add('hidden'); tabLogs.classList.add('hidden'); }
+                
+                atualizarBotoesSorteio();
+                fetchGoogleSheets(true);
+                setInterval(() => fetchGoogleSheets(false), 60000);
+                setInterval(() => carregarDistribuicaoGlobal(), 30000);
+                setTimeout(() => carregarDistribuicaoGlobal(), 2000);
             } else {
-                tabMonitor.classList.add('hidden');
+                showNotification('Senha incorreta!', true);
             }
-            fetchGoogleSheets(true);
-            setInterval(() => fetchGoogleSheets(false), 60000);
-            setInterval(() => carregarDistribuicaoGlobal(), 30000);
-            setTimeout(() => { carregarDistribuicaoGlobal(); }, 2000);
         }
 
         function logout() {
-            currentUser = "";
+            registrarLog('LOGOUT', null, null, null, null);
+            currentUser = ""; selectedLoginUser = null;
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('password-area').classList.add('hidden');
+            document.querySelectorAll('.user-select-btn').forEach(b => b.classList.remove('active'));
         }
-        
+
         function atualizarBotoesSorteio() {
             const isIngrid = currentUser === 'Ingrid';
             const containerTasks = document.getElementById('botoesSorteioTasks');
@@ -763,11 +624,16 @@
         }
 
         // ============================================
-        // SUPABASE
+        // SUPABASE E LOGS
         // ============================================
+        async function registrarLog(acao, empresa, campo, valorAntigo, valorNovo, detalhes = null, observacao = null) {
+            try { await supabaseClient.from('logs_sistema').insert([{ usuario: currentUser, acao: acao, empresa: empresa, campo: campo, valor_antigo: String(valorAntigo || ''), valor_novo: String(valorNovo || ''), observacao: observacao, detalhes: detalhes }]); } catch (e) { console.error('Erro log:', e); }
+        }
+
         async function salvarDistribuicaoNoServidor(statusAlvo) {
             const dadosCompactos = {
                 J: distribuicaoAtual.Jordan.map(t => `${t.rowIndex}|${t.documento}`),
+                P: distribuicaoAtual.Patricia.map(t => `${t.rowIndex}|${t.documento}`),
                 S: distribuicaoAtual.Sirlene.map(t => `${t.rowIndex}|${t.documento}`),
                 I: distribuicaoAtual.Ingrid.map(t => `${t.rowIndex}|${t.documento}`)
             };
@@ -788,22 +654,24 @@
                     const dados = registro.dados;
                     const status = registro.status;
                     const dataRegistro = registro.data;
-                    const distribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
-                    if (dados && dados.J) {
-                        const mapPessoa = (arr, dest) => {
-                            for (const item of arr) {
-                                const [rowIndex, documento] = item.split('|');
-                                const idx = parseInt(rowIndex);
-                                const linha = rawData[idx];
-                                if (linha) {
-                                    dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
-                                }
+                    const distribuicao = { Jordan: [], Patricia: [], Sirlene: [], Ingrid: [] };
+                    
+                    const mapPessoa = (arr, dest) => {
+                        if (!arr) return;
+                        for (const item of arr) {
+                            const [rowIndex, documento] = item.split('|');
+                            const idx = parseInt(rowIndex);
+                            const linha = rawData[idx];
+                            if (linha) {
+                                dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
                             }
-                        };
-                        mapPessoa(dados.J, distribuicao.Jordan);
-                        mapPessoa(dados.S, distribuicao.Sirlene);
-                        mapPessoa(dados.I, distribuicao.Ingrid);
-                    }
+                        }
+                    };
+                    mapPessoa(dados.J, distribuicao.Jordan);
+                    mapPessoa(dados.P, distribuicao.Patricia);
+                    mapPessoa(dados.S, distribuicao.Sirlene);
+                    mapPessoa(dados.I, distribuicao.Ingrid);
+                    
                     distribuicaoAtual = distribuicao;
                     renderizarTarefas();
                     atualizarDashboardDesempenho();
@@ -827,15 +695,15 @@
             loadingOverlay.style.display = 'flex';
             try {
                 await supabaseClient.from('distribuicao_tarefas').delete().neq('id', 0);
-                distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
+                distribuicaoAtual = { Jordan: [], Patricia: [], Sirlene: [], Ingrid: [] };
                 renderizarTarefas(); atualizarDashboardDesempenho();
-                showNotification('✅ Distribuição resetada com sucesso!', false, 'Todas as tarefas foram removidas');
+                showNotification('✅ Distribuição resetada com sucesso!');
             } catch (error) { console.error('Erro ao resetar:', error); showNotification('Erro ao resetar distribuição', true); }
             finally { loadingOverlay.style.display = 'none'; }
         }
 
         // ============================================
-        // GOOGLE SHEETS
+        // GOOGLE SHEETS E DADOS
         // ============================================
         async function fetchGoogleSheets(isFirstLoad) {
             try {
@@ -845,9 +713,7 @@
                 Papa.parse(csvDados, {
                     header: true, dynamicTyping: true, skipEmptyLines: true,
                     complete: (results) => {
-                        const newData = results.data.map(processRow);
-                        if (!isFirstLoad && rawData.length > 0) detectChanges(rawData, newData);
-                        rawData = newData;
+                        rawData = results.data.map(row => processRow(row));
                         lastKnownDataHash = csvDados;
                         if (rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable(); renderizarTarefas(); atualizarDashboardDesempenho();
@@ -877,17 +743,6 @@
             return nr;
         }
 
-        function detectChanges(oldData, newData) {
-            for (let i = 0; i < newData.length; i++) {
-                if (JSON.stringify(oldData[i]) !== JSON.stringify(newData[i]) && oldData[i]?.CLIENTE) {
-                    showNotification('Dados atualizados!', false, newData[i].CLIENTE); break;
-                }
-            }
-        }
-
-        // ============================================
-        // EDIÇÃO DE CÉLULAS
-        // ============================================
         function enviarParaGoogleSheets(cliente, coluna, tipo, valor) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
@@ -909,30 +764,30 @@
 
         async function saveEdit() {
             const { r, c } = currentEditTarget;
-            let valorParaSalvar = null;
-            let tipo = selectedOption;
-            if (!selectedOption) { showNotification('Selecione uma opção (Análise, Andamento ou Data)', true); return; }
-            if (selectedOption === 'analise') valorParaSalvar = "ANALISE";
-            else if (selectedOption === 'andamento') valorParaSalvar = "EM ANDAMENTO";
-            else if (selectedOption === 'data') {
-                const dataInput = document.getElementById('dateValue').value;
-                if (!dataInput) { showNotification('Selecione uma data', true); return; }
-                valorParaSalvar = dataInput;
-            }
-            if (valorParaSalvar !== null) {
-                if (selectedOption === 'data') rawData[r][c] = new Date(valorParaSalvar + "T12:00:00");
-                else rawData[r][c] = valorParaSalvar;
-                rawData[r][c + "_DONE"] = false;
-                renderTable();
-            }
-            closeModal();
+            const obs = document.getElementById('editObservacao').value;
+            const valorAntigo = rawData[r][c];
+            if (!selectedOption) { showNotification('Selecione uma opção!', true); return; }
+            if (!obs.trim()) { showNotification('Insira uma observação!', true); return; }
+            
+            let valorParaSalvar = (selectedOption === 'analise') ? "ANALISE" : (selectedOption === 'andamento' ? "EM ANDAMENTO" : document.getElementById('dateValue').value);
+            if (selectedOption === 'data' && !valorParaSalvar) { showNotification('Selecione a data!', true); return; }
+            
+            const cliente = rawData[r].CLIENTE;
+            const valorAntigoStr = valorAntigo instanceof Date ? valorAntigo.toLocaleDateString('pt-BR') : String(valorAntigo || '');
+            const valorNovoStr = (selectedOption === 'data') ? new Date(valorParaSalvar + "T12:00:00").toLocaleDateString('pt-BR') : valorParaSalvar;
+            
+            if (selectedOption === 'data') rawData[r][c] = new Date(valorParaSalvar + "T12:00:00"); else rawData[r][c] = valorParaSalvar;
+            rawData[r][c + "_DONE"] = true; 
+            
+            renderTable(); closeModal();
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
-            const cliente = rawData[r].CLIENTE;
             try {
-                await enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar);
+                await enviarParaGoogleSheets(cliente, c, selectedOption, valorParaSalvar);
+                await supabaseClient.from('historico_observacoes').insert([{ usuario: currentUser, empresa: cliente, campo: c, status_anterior: valorAntigoStr, status_novo: valorNovoStr, observacao: obs }]);
+                await registrarLog('ALTERACAO', cliente, c, valorAntigoStr, valorNovoStr, null, obs);
                 loadingOverlay.style.display = 'none';
-                showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
+                showNotification('Atualizado com sucesso!', false, cliente);
                 setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 2000);
             } catch (error) {
                 loadingOverlay.style.display = 'none';
@@ -941,7 +796,7 @@
         }
 
         // ============================================
-        // AUXILIARES
+        // AUXILIARES E RENDERIZAÇÃO
         // ============================================
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
@@ -971,7 +826,7 @@
         }
 
         function renderizarTarefas() {
-            ['Jordan', 'Sirlene', 'Ingrid'].forEach(resp => {
+            ['Jordan', 'Patricia', 'Sirlene', 'Ingrid'].forEach(resp => {
                 const container = document.getElementById(`list-${resp.toLowerCase()}`);
                 const countSpan = document.getElementById(`count-${resp.toLowerCase()}`);
                 const tarefas = distribuicaoAtual[resp] || [];
@@ -979,8 +834,8 @@
                     countSpan.innerText = tarefas.length;
                     container.innerHTML = '';
                     tarefas.forEach(t => {
-                        const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
-                        const isConcluida = statusTarefa === 'concluido';
+                        const row = rawData[t.rowIndex];
+                        const isConcluida = row && (String(row[t.documento] || "").toUpperCase().includes("CONCLUIDO") || row[t.documento + "_DONE"]);
                         const card = document.createElement('div');
                         card.className = `p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm ${isConcluida ? 'opacity-50' : ''}`;
                         card.onclick = () => { if (!isConcluida) openEditCell(t.rowIndex, t.documento); else showNotification('Esta tarefa já foi concluída!', true); };
@@ -990,35 +845,22 @@
                 }
             });
         }
-        
-        function obterStatusTarefa(rowIndex, documento) {
-            const linha = rawData[rowIndex];
-            if (!linha) return 'pendente';
-            const strVal = String(linha[documento] || "").toUpperCase();
-            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO") return 'concluido';
-            if (strVal === "EM ANDAMENTO") return 'andamento';
-            return 'pendente';
-        }
 
-        async function atualizarDashboardDesempenho() {
-            ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+        function atualizarDashboardDesempenho() {
+            ['Jordan', 'Patricia', 'Sirlene', 'Ingrid'].forEach(colab => {
                 const tarefasColab = distribuicaoAtual[colab] || [];
                 const total = tarefasColab.length;
                 let concluidas = 0;
                 tarefasColab.forEach(tarefa => {
                     const linha = rawData[tarefa.rowIndex];
-                    const strValor = String(linha ? linha[tarefa.documento] : "").toUpperCase();
-                    if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO") concluidas++;
+                    if (linha && (String(linha[tarefa.documento] || "").toUpperCase().includes("CONCLUIDO") || linha[tarefa.documento + "_DONE"])) concluidas++;
                 });
                 const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
-                const n = colab.toLowerCase();
-                const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `${percentual}%`;
-                const prEl = document.getElementById(`${n}-progress`); if (prEl) prEl.style.width = `${percentual}%`;
-                const cEl = document.getElementById(`${n}-concluidas`); if (cEl) cEl.innerText = concluidas;
-                const tEl = document.getElementById(`${n}-total`); if (tEl) tEl.innerText = total;
             });
+            atualizarClima();
+        }
 
-            // Busca Clima (Zona Leste SP)
+        async function atualizarClima() {
             try {
                 const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5329&longitude=-46.4428&current=temperature_2m,relative_humidity_2m,weather_code&timezone=America%2FSao_Paulo');
                 const data = await res.json();
@@ -1026,19 +868,12 @@
                     const temp = Math.round(data.current.temperature_2m);
                     const hum = data.current.relative_humidity_2m;
                     const code = data.current.weather_code;
-                    document.getElementById('weather-temp').innerText = temp + '°C';
-                    document.getElementById('weather-hum').innerText = hum + '%';
-                    let desc = 'Limpo'; let icon = '☀️';
-                    if (code >= 1 && code <= 3) { desc = 'Parcial'; icon = '⛅'; }
-                    else if (code >= 45 && code <= 48) { desc = 'Nevoeiro'; icon = '🌫️'; }
-                    else if (code >= 51 && code <= 67) { desc = 'Chuva'; icon = '🌧️'; }
-                    else if (code >= 71 && code <= 86) { desc = 'Neve'; icon = '❄️'; }
-                    else if (code >= 95) { desc = 'Tempestade'; icon = '⛈️'; }
-                    document.getElementById('weather-desc').innerText = desc;
-                    document.getElementById('weather-icon').innerText = icon;
+                    const weatherMap = { 0: "Céu Limpo", 1: "Parcial. Limpo", 2: "Parcial. Nublado", 3: "Nublado", 45: "Nevoeiro", 61: "Chuva Leve", 63: "Chuva", 95: "Tempestade" };
+                    const weatherText = weatherMap[code] || "Estável";
+                    const weatherIcon = code > 60 ? "🌧️" : (code > 0 ? "⛅" : "☀️");
+                    document.getElementById('weather-widget').innerHTML = `<div class="flex items-center gap-3"><div class="text-3xl">${weatherIcon}</div><div class="text-left"><div class="text-lg font-black text-slate-800">${temp}°C</div><div class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${weatherText}</div></div><div class="ml-auto text-right"><div class="text-[9px] font-black text-emerald-600 uppercase">Zona Leste</div><div class="text-[8px] text-slate-400 font-bold">UR: ${hum}%</div></div></div>`;
                 }
             } catch (e) { console.error('Erro clima:', e); }
-            document.getElementById('last-update-tag').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         }
 
         function updateAnalytics() {
@@ -1054,7 +889,6 @@
             document.getElementById('dash-count-vencido').innerText = c.vencido;
             document.getElementById('dash-count-andamento').innerText = c.andamento;
             document.getElementById('dash-count-analise').innerText = c.analise;
-            document.getElementById('dash-count-total').innerText = total;
             const safe = total || 1;
             document.getElementById('circle-vencido').setAttribute('stroke-dasharray', `${(c.vencido/safe)*100} 100`);
             document.getElementById('circle-andamento').setAttribute('stroke-dashoffset', `-${(c.vencido/safe)*100}`);
@@ -1062,20 +896,7 @@
             document.getElementById('circle-analise').setAttribute('stroke-dashoffset', `-${((c.vencido+c.andamento)/safe)*100}`);
             document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${(c.analise/safe)*100} 100`);
             document.getElementById('dash-percent').innerText = total > 0 ? Math.round(((total-c.vencido)/total)*100)+"%" : "100%";
-        }
-
-        function toggleStatusFilter(s) { 
-            activeStatus = (activeStatus === s) ? null : s;
-            document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected'));
-            if (activeStatus) document.getElementById('btn-'+s).classList.add('card-selected');
-            renderTable();
-        }
-
-        function toggleDocFilter(d) { 
-            activeDoc = (activeDoc === d) ? null : d;
-            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
-            if (activeDoc) document.getElementById('btn-doc-'+d).classList.add('doc-btn-active');
-            renderTable();
+            document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
         function renderTable() {
@@ -1098,14 +919,6 @@
             updateAnalytics();
         }
 
-        function selectOption(option) {
-            selectedOption = option;
-            ['analise','andamento','data'].forEach(o => document.getElementById('option-'+o).classList.remove('option-selected'));
-            document.getElementById(`option-${option}`).classList.add('option-selected');
-            document.getElementById('datePickerContainer').classList.add('hidden');
-            if (option === 'data') document.getElementById('datePickerContainer').classList.remove('hidden');
-        }
-
         function openEditCell(r, c) {
             if (c === 'CLIENTE') return;
             currentEditTarget = { r, c };
@@ -1114,91 +927,52 @@
             let valorExibicao = valorAtual instanceof Date ? valorAtual.toLocaleDateString('pt-BR') : (valorAtual ? String(valorAtual) : '<span class="text-slate-300 italic">vazio</span>');
             document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`;
             document.getElementById('modalContent').innerHTML = `
-                <div class="mb-4">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label>
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">${valorExibicao}</div>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Selecione uma opção</label>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center cursor-pointer"><div class="text-2xl mb-2">🔍</div><div class="text-xs font-black text-orange-700 uppercase">Análise</div><div class="text-[9px] text-orange-500 mt-1">Insere "ANALISE"</div></div>
-                        <div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-4 text-center cursor-pointer"><div class="text-2xl mb-2">⚡</div><div class="text-xs font-black text-purple-700 uppercase">Andamento</div><div class="text-[9px] text-purple-500 mt-1">Insere "EM ANDAMENTO"</div></div>
-                        <div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 text-center cursor-pointer"><div class="text-2xl mb-2">📅</div><div class="text-xs font-black text-emerald-700 uppercase">Data</div><div class="text-[9px] text-emerald-500 mt-1">Define uma data</div></div>
-                    </div>
-                </div>
-                <div id="datePickerContainer" class="hidden">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Selecione a data</label>
-                    <input type="date" id="dateValue" class="w-full border border-slate-200 p-3 rounded-xl text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                </div>
+                <div class="mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Valor atual</label><div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 break-all">${valorExibicao}</div></div>
+                <div class="mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Selecione uma opção</label><div class="grid grid-cols-3 gap-3">
+                    <div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center cursor-pointer"><div class="text-2xl mb-2">🔍</div><div class="text-xs font-black text-orange-700 uppercase">Análise</div></div>
+                    <div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-4 text-center cursor-pointer"><div class="text-2xl mb-2">⚡</div><div class="text-xs font-black text-purple-700 uppercase">Andamento</div></div>
+                    <div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 text-center cursor-pointer"><div class="text-2xl mb-2">📅</div><div class="text-xs font-black text-emerald-700 uppercase">Data</div></div>
+                </div></div>
+                <div id="datePickerContainer" class="hidden mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Selecione a data</label><input type="date" id="dateValue" class="w-full border border-slate-200 p-3 rounded-xl text-sm focus:border-emerald-500 outline-none"></div>
+                <div class="mb-4"><label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-wider">Observação</label><textarea id="editObservacao" placeholder="O que foi feito?" class="w-full border border-slate-200 p-3 rounded-xl text-xs focus:border-emerald-500 outline-none h-20 resize-none"></textarea></div>
+                <div class="flex justify-center"><button onclick="verHistoricoEmpresa('${rawData[r].CLIENTE}', '${c}')" class="text-[10px] font-bold text-emerald-600 uppercase hover:underline flex items-center gap-1">Ver Histórico</button></div>
             `;
             document.getElementById('modalSaveBtn').onclick = saveEdit;
             document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        async function verHistoricoEmpresa(cliente, campo) {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                const { data, error } = await supabaseClient.from('historico_observacoes').select('*').eq('empresa', cliente).eq('campo', campo).order('data_hora', { ascending: false });
+                if (error) throw error;
+                const content = document.getElementById('modalContent');
+                document.getElementById('modalTitle').innerText = `Histórico: ${cliente}`;
+                content.innerHTML = data.length === 0 ? '<div class="text-center py-10 text-slate-400">Sem registros.</div>' : `<div class="max-h-[400px] overflow-y-auto pr-2">${data.map(h => `<div class="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100"><div class="flex justify-between items-center mb-2"><span class="text-[10px] font-black text-emerald-600 uppercase">${h.usuario}</span><span class="text-[9px] text-slate-400">${new Date(h.data_hora).toLocaleString('pt-BR')}</span></div><div class="text-[10px] text-slate-500 mb-2 italic">"${h.observacao}"</div><div class="flex gap-2 text-[8px] font-bold uppercase"><span class="text-slate-300">De: ${h.status_anterior || '-'}</span><span class="text-emerald-500">Para: ${h.status_novo || '-'}</span></div></div>`).join('')}</div><div class="mt-4 flex justify-center"><button onclick="openEditCell(currentEditTarget.r, currentEditTarget.c)" class="bg-slate-800 text-white px-6 py-2 rounded-xl text-[10px] font-bold uppercase">Voltar</button></div>`;
+                document.getElementById('modalSaveBtn').classList.add('hidden');
+            } catch (e) { showNotification('Erro: ' + e.message, true); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
         }
 
         function renderSenhas() {
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             if (!passwordData.length) return;
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
-                <tr>
-                    <td class="col-fixed font-bold text-slate-700">${p.CLIENTE||'-'}</td>
-                    <td class="text-[10px] text-slate-500">${p.CNPJ||'-'}</td>
-                    <td class="text-[10px] text-slate-500">${p.CCM||'-'}</td>
-                    ${["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => {
-                        const val = p[c] || '-';
-                        const isSenha = val !== '-' && val.length > 0;
-                        return `<td class="${isSenha ? 'bg-amber-50/50' : ''}">
-                            <button onclick="abrirModalSenha('${p.CLIENTE}', '${c}', '${val}')" 
-                                    class="${isSenha ? 'font-black text-amber-600 hover:text-amber-700' : 'text-slate-300'} transition-all">
-                                ${val}
-                            </button>
-                        </td>`;
-                    }).join('')}
-                </tr>`).join('');
+                <tr><td class="col-fixed">${p.CLIENTE||'-'}</td><td>${p.CNPJ||'-'}</td><td>${p.CCM||'-'}</td>
+                ${["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => `<td><span class="senha-destaque" onclick="abrirModalSenha('${p.CLIENTE}', '${p[c]}', '${c}')">${p[c] ? '********' : '-'}</span></td>`).join('')}</tr>`).join('');
         }
 
-        function abrirModalSenha(cliente, campo, valor) {
-            if (valor === '-') { showNotification('Nenhuma senha cadastrada neste campo', true); return; }
-            
-            const modal = document.getElementById('editModal');
-            const title = document.getElementById('modalTitle');
-            const content = document.getElementById('modalContent');
-            const saveBtn = document.getElementById('modalSaveBtn');
-
-            title.innerText = `Ações: ${campo}`;
-            content.innerHTML = `
-                <div class="text-center">
-                    <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">${cliente}</p>
-                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 mb-6">
-                        <span class="text-xl font-black text-slate-800 tracking-widest">${valor}</span>
-                    </div>
-                    <div class="grid grid-cols-1 gap-3">
-                        <button onclick="copyToClipboard('${valor}')" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-slate-900 transition">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                            Copiar Senha
-                        </button>
-                        <button onclick="window.open('https://docs.google.com/spreadsheets/d/1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/edit#gid=49695199', '_blank')" class="w-full bg-white border-2 border-slate-200 text-slate-600 py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-50 transition">
-                            Alterar na Planilha
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            saveBtn.classList.add('hidden');
-            modal.classList.remove('hidden');
+        function abrirModalSenha(cliente, senha, campo) {
+            if (!senha || senha === '-') return;
+            document.getElementById('modalTitle').innerText = `Senha: ${cliente}`;
+            document.getElementById('modalContent').innerHTML = `<div class="text-center py-6"><div class="text-[10px] font-black text-slate-400 uppercase mb-2">${campo}</div><div class="text-2xl font-black text-slate-800 mb-6">${senha}</div><div class="flex gap-3"><button onclick="copyToClipboard('${senha}')" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold uppercase text-[10px]">Copiar Senha</button><button onclick="window.open('https://docs.google.com/spreadsheets/d/1X_K_X_K_X_K_X_K_X_K_X_K_X_K_X_K_X_K_X_K/edit', '_blank')" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold uppercase text-[10px]">Alterar</button></div></div>`;
+            document.getElementById('modalSaveBtn').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('hidden');
         }
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification('Senha copiada para a área de transferência!');
-                closeModal();
-            });
-        }
+        function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { registrarLog('SENHA_COPIADA', null, null, null, null, { valor: '***' }); showNotification('Senha copiada!'); closeModal(); }); }
 
-        // ============================================
-        // SWITCH TAB — com controle da barra de pesquisa
-        // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','tasks','senhas','comm','atalhos','monitor'];
+            const allTabs = ['dash','tasks','senhas','comm','atalhos','monitor','historico','logs'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -1208,276 +982,85 @@
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             document.getElementById('tab-'+tab).classList.remove('text-slate-400');
-
-            // Barra de pesquisa: visível apenas no Painel
-            const searchBar = document.getElementById('search-bar-wrapper');
-            if (tab === 'dash') {
-                searchBar.classList.add('visible');
-            } else {
-                searchBar.classList.remove('visible');
-            }
-
             if (tab === 'senhas') renderSenhas();
             if (tab === 'dash') atualizarDashboardDesempenho();
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
             if (tab === 'atalhos') renderAtalhos();
             if (tab === 'monitor') carregarMonitor();
+            if (tab === 'historico') carregarHistoricoGeral();
+            if (tab === 'logs') carregarLogs();
         }
 
-        function closeModal() { document.getElementById('editModal').classList.add('hidden'); selectedOption = null; }
-        
-        function resetAllFilters() {
-            activeDoc = null; activeStatus = null;
-            document.getElementById('searchInput').value = "";
-            document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected'));
-            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
-            renderTable();
-        }
-
-        function exportarExcel() {
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawData), "Base");
-            XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`);
-        }
-
-        function showNotification(message, isError = false, cliente = '') {
-            const toast = document.getElementById('notification-toast');
-            document.getElementById('notif-message').innerHTML = (isError ? '⚠️ ' : '✓ ') + message;
-            document.getElementById('notif-cliente').innerHTML = isError ? 'Tente novamente em alguns segundos' : (cliente || 'Atualização concluída');
-            toast.style.borderLeftColor = isError ? '#ef4444' : '#10b981';
-            toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 4000);
-        }
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); document.getElementById('modalSaveBtn').classList.remove('hidden'); selectedOption = null; }
+        function selectOption(o) { selectedOption = o; document.querySelectorAll('.option-card').forEach(c => c.classList.remove('option-selected')); document.getElementById('option-'+o).classList.add('option-selected'); document.getElementById('datePickerContainer').classList.toggle('hidden', o !== 'data'); }
+        function toggleStatusFilter(s) { activeStatus = (activeStatus === s) ? null : s; document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected')); if (activeStatus) document.getElementById('btn-'+s).classList.add('card-selected'); renderTable(); }
+        function toggleDocFilter(d) { activeDoc = (activeDoc === d) ? null : d; document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active')); if (activeDoc) document.getElementById('btn-doc-'+d).classList.add('doc-btn-active'); renderTable(); }
+        function resetAllFilters() { activeDoc = null; activeStatus = null; document.getElementById('searchInput').value = ""; document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected')); document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active')); renderTable(); }
 
         // ============================================
         // ABA COMUNICAR
         // ============================================
-        function setCommDoc(doc) {
-            commActiveDoc = (commActiveDoc === doc) ? null : doc;
-            document.querySelectorAll('#commDocFilters .comm-filter-btn').forEach(b => b.classList.remove('comm-filter-active'));
-            if (commActiveDoc) document.getElementById('comm-doc-' + doc).classList.add('comm-filter-active');
-            renderCommTable();
-        }
-
-        function setCommStatus(status) {
-            commActiveStatus = (commActiveStatus === status) ? null : status;
-            document.querySelectorAll('#comm-btn-vencido, #comm-btn-30, #comm-btn-60').forEach(b => b.classList.remove('comm-filter-active'));
-            if (commActiveStatus) document.getElementById('comm-btn-' + status).classList.add('comm-filter-active');
-            renderCommTable();
-        }
-
-        // Abre/foca a janela do WhatsApp Web sem criar nova aba
-        function abrirWhatsAppWeb() {
-            window.open('https://web.whatsapp.com', 'whatsapp_window');
-        }
-
-        // Dados filtrados da tabela de comunicação (usados pelo envio em massa)
-        let commFilteredData = [];
+        function setCommDoc(doc) { commActiveDoc = (commActiveDoc === doc) ? null : doc; document.querySelectorAll('#commDocFilters .comm-filter-btn').forEach(b => b.classList.remove('comm-filter-active')); if (commActiveDoc) document.getElementById('comm-doc-' + doc).classList.add('comm-filter-active'); renderCommTable(); }
+        function setCommStatus(status) { commActiveStatus = (commActiveStatus === status) ? null : status; document.querySelectorAll('#comm-btn-vencido, #comm-btn-30, #comm-btn-60').forEach(b => b.classList.remove('comm-filter-active')); if (commActiveStatus) document.getElementById('comm-btn-' + status).classList.add('comm-filter-active'); renderCommTable(); }
 
         function renderCommTable() {
             const tbody = document.getElementById('commTableBody');
             const counter = document.getElementById('comm-counter');
             if (!tbody) return;
-
-            if (!commActiveDoc && !commActiveStatus) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Selecione um documento e um prazo para filtrar</td></tr>';
-                counter.innerText = '0 Clientes encontrados';
-                commFilteredData = [];
-                return;
-            }
-
+            if (!commActiveDoc && !commActiveStatus) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Selecione um documento e um prazo para filtrar</td></tr>'; counter.innerText = '0 Clientes encontrados'; return; }
             const filtered = [];
             rawData.forEach((row, idx) => {
                 if (!row.CLIENTE) return;
-                if (commActiveDoc) {
-                    const docStatus = getStatus(row[commActiveDoc], row, commActiveDoc);
-                    if (commActiveStatus && docStatus !== commActiveStatus) return;
-                    if (!commActiveStatus && !row[commActiveDoc]) return;
-                } else if (commActiveStatus) {
-                    const hasStatus = headers.some(h => h !== 'CLIENTE' && getStatus(row[h], row, h) === commActiveStatus);
-                    if (!hasStatus) return;
-                }
-
+                if (commActiveDoc) { const docStatus = getStatus(row[commActiveDoc], row, commActiveDoc); if (commActiveStatus && docStatus !== commActiveStatus) return; if (!commActiveStatus && !row[commActiveDoc]) return; }
+                else if (commActiveStatus) { const hasStatus = headers.some(h => h !== 'CLIENTE' && getStatus(row[h], row, h) === commActiveStatus); if (!hasStatus) return; }
                 const emailCol = getEmailCol(row);
-                const emailVal = emailCol ? (row[emailCol] || '') : '';
-                const emailDisplay = emailVal && String(emailVal).trim() !== '' ? String(emailVal).trim() : '-';
-
-                const whatsVal = row['WHATSAPP'] || '';
-                const whatsDisplay = whatsVal && String(whatsVal).trim() !== '' ? String(whatsVal).trim() : '-';
-
-                const docStatus = commActiveDoc ? getStatus(row[commActiveDoc], row, commActiveDoc) : null;
-
-                filtered.push({
-                    index: idx,
-                    cliente: row.CLIENTE,
-                    documento: commActiveDoc || '-',
-                    vencimento: commActiveDoc && row[commActiveDoc] instanceof Date
-                        ? row[commActiveDoc].toLocaleDateString('pt-BR')
-                        : (row[commActiveDoc] || '-'),
-                    whatsapp: whatsDisplay,
-                    email: emailDisplay,
-                    status: docStatus
-                });
+                filtered.push({ index: idx, cliente: row.CLIENTE, documento: commActiveDoc || '-', vencimento: commActiveDoc && row[commActiveDoc] instanceof Date ? row[commActiveDoc].toLocaleDateString('pt-BR') : (row[commActiveDoc] || '-'), whatsapp: row['WHATSAPP'] || '-', email: emailCol ? (row[emailCol] || '-') : '-', status: commActiveDoc ? getStatus(row[commActiveDoc], row, commActiveDoc) : null });
             });
-
-            commFilteredData = filtered;
-            counter.innerText = `${filtered.length} Cliente${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`;
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhum cliente encontrado com estes filtros</td></tr>';
-                return;
-            }
-
-            const svgWA = `<svg style="width:11px;height:11px;flex-shrink:0" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
-            const svgGmail = `<svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" fill="none"/><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l10 7 10-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path fill="currentColor" d="M4 6l8 5.5L20 6v-.001l-8 5.5L4 6z" opacity="0.15"/></svg>`;
-
-            tbody.innerHTML = filtered.map(item => {
-                const hasWA = item.whatsapp !== '-' && item.whatsapp.length > 5;
-                const hasEmail = item.email !== '-' && item.email.includes('@');
-
-                return `
-                    <tr>
-                        <td class="col-fixed font-semibold">${item.cliente}</td>
-                        <td class="font-bold text-emerald-600">${item.documento}</td>
-                        <td class="font-mono text-xs">${item.vencimento}</td>
-                        <td class="text-slate-500 text-xs">${item.whatsapp}</td>
-                        <td class="text-slate-500 text-xs">${item.email}</td>
-                        <td>
-                            <div class="action-cell">
-                                <button 
-                                    onclick="enviarWhatsApp(${item.index}, '${item.documento}', '${item.whatsapp}')" 
-                                    class="action-btn-wa ${!hasWA ? 'disabled' : ''}" 
-                                    title="${hasWA ? 'Enviar via WhatsApp' : 'WhatsApp não cadastrado'}"
-                                    ${!hasWA ? 'disabled' : ''}>
-                                    ${svgWA} WA
-                                </button>
-                                <button 
-                                    onclick="enviarEmail(${item.index}, '${item.documento}', '${item.email}')" 
-                                    class="action-btn-gmail ${!hasEmail ? 'disabled' : ''}" 
-                                    title="${hasEmail ? 'Enviar via Gmail' : 'E-mail não cadastrado'}"
-                                    ${!hasEmail ? 'disabled' : ''}>
-                                    ${svgGmail} Gmail
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            counter.innerText = `${filtered.length} Clientes encontrados`;
+            tbody.innerHTML = filtered.map(item => `<tr><td class="col-fixed font-semibold">${item.cliente}</td><td class="font-bold text-emerald-600">${item.documento}</td><td class="font-mono text-xs">${item.vencimento}</td><td class="text-slate-500 text-xs">${item.whatsapp}</td><td class="text-slate-500 text-xs">${item.email}</td><td><div class="action-cell"><button onclick="enviarWhatsApp(${item.index}, '${item.documento}', '${item.whatsapp}')" class="action-btn-wa ${item.whatsapp==='-'?'disabled':''}" ${item.whatsapp==='-'?'disabled':''}>WA</button><button onclick="enviarEmail(${item.index}, '${item.documento}', '${item.email}')" class="action-btn-gmail ${item.email==='-'?'disabled':''}" ${item.email==='-'?'disabled':''}>Gmail</button></div></td></tr>`).join('');
         }
 
-        // Variáveis para controlar as janelas únicas
-        let whatsappWindow = null;
-        let gmailWindow = null;
-
-        // Envia WhatsApp sempre na mesma janela
         function enviarWhatsApp(rowIndex, documento, whatsapp) {
-            if (!whatsapp || whatsapp === '-') { showNotification('Número de WhatsApp não configurado para este cliente', true); return; }
-            const row = rawData[rowIndex];
-            
-            // Busca a data correta do documento na linha original
-            let dataDoc = 'N/A';
-            if (row && row[documento]) {
-                dataDoc = row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : String(row[documento]);
-            }
-
-            const status = getStatus(row[documento], row, documento);
+            if (!whatsapp || whatsapp === '-') { showNotification('Número não configurado', true); return; }
+            const row = rawData[rowIndex]; const status = getStatus(row[documento], row, documento);
             const mensagem = MENSAGENS_PADRAO[status] || MENSAGENS_PADRAO['60'];
-            const mensagemFinal = mensagem
-                .replace(/{DOC}/g, documento)
-                .replace(/{CLIENTE}/g, row.CLIENTE)
-                .replace(/{DATA}/g, dataDoc);
-            
-            const numeroLimpo = String(whatsapp).replace(/\D/g, '');
-            const fone = numeroLimpo.length <= 11 ? '55' + numeroLimpo : numeroLimpo;
-            const url = `https://web.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(mensagemFinal)}`;
-            
-            // Técnica de aba única via window.open com nome fixo
-            window.open(url, 'whatsapp_window');
+            const final = mensagem.replace('{DOC}', documento).replace('{CLIENTE}', row.CLIENTE).replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
+            const num = String(whatsapp).replace(/\D/g, ''); const fone = num.length <= 11 ? '55' + num : num;
+            registrarLog('ENVIO_WHATSAPP', row.CLIENTE, documento, null, null, { fone });
+            window.open(`https://web.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(final)}`, 'whatsapp_window');
         }
 
-        // Envia Gmail sempre na mesma janela
         function enviarEmail(rowIndex, documento, email) {
-            const row = rawData[rowIndex];
-            const emailCol = getEmailCol(row);
-            const emailReal = emailCol ? (String(row[emailCol] || '').trim()) : '';
-            const emailFinal = (email && email !== '-' && email.includes('@')) ? email : emailReal;
-
-            if (!emailFinal || !emailFinal.includes('@')) {
-                showNotification('E-mail não cadastrado para este cliente', true);
-                return;
-            }
-
-            let dataDoc = 'N/A';
-            if (row && row[documento]) {
-                dataDoc = row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : String(row[documento]);
-            }
-
-            const status = getStatus(row[documento], row, documento);
+            if (!email || email === '-' || !email.includes('@')) { showNotification('E-mail não cadastrado', true); return; }
+            const row = rawData[rowIndex]; const status = getStatus(row[documento], row, documento);
             const mensagem = MENSAGENS_PADRAO[status] || MENSAGENS_PADRAO['60'];
-            const mensagemFinal = mensagem
-                .replace(/{DOC}/g, documento)
-                .replace(/{CLIENTE}/g, row.CLIENTE)
-                .replace(/{DATA}/g, dataDoc);
-            
+            const final = mensagem.replace('{DOC}', documento).replace('{CLIENTE}', row.CLIENTE).replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
             const assunto = `Aviso: Documento ${documento} - ${row.CLIENTE}`;
-            const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailFinal)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemFinal)}`;
-            
-            window.open(url, 'gmail_window');
+            registrarLog('ENVIO_EMAIL', row.CLIENTE, documento, null, null, { email });
+            window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(final)}`, 'gmail_window');
         }
 
         // ============================================
-        // ENVIO EM MASSA
+        // ATALHOS
         // ============================================
-        let bulkRunning = false;
-
-        async function envioEmMassa(canal) {
-            if (bulkRunning) { showNotification('Envio em massa já em andamento. Aguarde.', true); return; }
-            if (commFilteredData.length === 0) { showNotification('Nenhum cliente na lista. Selecione filtros primeiro.', true); return; }
-
-            const lista = canal === 'whatsapp'
-                ? commFilteredData.filter(i => i.whatsapp !== '-' && i.whatsapp.length > 5)
-                : commFilteredData.filter(i => i.email !== '-' && i.email.includes('@'));
-
-            if (lista.length === 0) {
-                showNotification(`Nenhum cliente com ${canal === 'whatsapp' ? 'WhatsApp' : 'e-mail'} cadastrado.`, true);
-                return;
-            }
-
-            const confirmar = confirm(`Enviar mensagem para ${lista.length} cliente(s) via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}?\n\nCada mensagem será aberta na mesma janela. Você precisará confirmar o envio em cada uma.`);
-            if (!confirmar) return;
-
-            bulkRunning = true;
-            const statusDiv = document.getElementById('bulk-status');
-            const statusText = document.getElementById('bulk-status-text');
-            const progressBar = document.getElementById('bulk-progress-bar');
-            statusDiv.classList.remove('hidden');
-
-            for (let i = 0; i < lista.length; i++) {
-                const item = lista[i];
-                const pct = Math.round(((i + 1) / lista.length) * 100);
-                statusText.textContent = `Enviando ${i + 1}/${lista.length}: ${item.cliente}`;
-                progressBar.style.width = pct + '%';
-
-                if (canal === 'whatsapp') {
-                    enviarWhatsApp(item.index, item.documento, item.whatsapp);
-                } else {
-                    enviarEmail(item.index, item.documento, item.email);
-                }
-
-                // Aguarda 4 segundos entre cada envio para garantir que a aba carregue e processe a URL
-                if (i < lista.length - 1) {
-                    await new Promise(r => setTimeout(r, 4000));
-                }
-            }
-
-            statusText.textContent = `✓ Concluído: ${lista.length} mensagens abertas`;
-            progressBar.style.width = '100%';
-            bulkRunning = false;
-            showNotification(`✅ Envio em massa concluído: ${lista.length} mensagens`, false, `Via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}`);
-
-            setTimeout(() => { statusDiv.classList.add('hidden'); progressBar.style.width = '0%'; }, 5000);
+        function renderAtalhos() {
+            document.getElementById('atalhos-grid').innerHTML = ATALHOS.map(a => `<button onclick="abrirAtalho('${a.url}', '${a.nome}')" class="atalho-btn"><span>${a.nome}</span></button>`).join('');
         }
+
+        function abrirAtalho(url, nome) {
+            atalhoAtualUrl = url;
+            const container = document.getElementById('atalhos-iframe-container');
+            const placeholder = document.getElementById('atalhos-placeholder');
+            const iframe = document.getElementById('atalhos-iframe');
+            const bloqueia = ["receita.fazenda.gov.br", "caixa.gov.br", "tst.jus.br", "prefeitura.sp.gov.br", "chatgpt.com"].some(d => url.includes(d));
+            if (bloqueia) { window.open(url, '_blank'); fecharAtalho(); return; }
+            document.getElementById('atalho-nome-atual').innerText = nome;
+            iframe.src = url; container.style.display = 'block'; placeholder.style.display = 'none';
+        }
+
+        function fecharAtalho() { document.getElementById('atalhos-iframe-container').style.display = 'none'; document.getElementById('atalhos-placeholder').style.display = 'flex'; document.getElementById('atalhos-iframe').src = 'about:blank'; atalhoAtualUrl = ''; }
+        function abrirEmNovaAba() { if (atalhoAtualUrl) window.open(atalhoAtualUrl, '_blank'); }
 
         // ============================================
         // SORTEIO
@@ -1489,244 +1072,130 @@
             try {
                 const empresasComTarefas = new Map();
                 for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
-                    const row = rawData[rowIndex];
-                    if (!row || !row.CLIENTE) continue;
-                    const clienteNome = String(row.CLIENTE).trim();
-                    if (!clienteNome) continue;
+                    const row = rawData[rowIndex]; if (!row || !row.CLIENTE) continue;
                     const tarefasDaEmpresa = [];
                     for (let colIndex = 0; colIndex < headers.length; colIndex++) {
-                        const col = headers[colIndex];
-                        if (col === 'CLIENTE') continue;
+                        const col = headers[colIndex]; if (col === 'CLIENTE') continue;
                         if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
                     }
-                    if (tarefasDaEmpresa.length > 0) empresasComTarefas.set(clienteNome, tarefasDaEmpresa);
+                    if (tarefasDaEmpresa.length > 0) empresasComTarefas.set(row.CLIENTE, tarefasDaEmpresa);
                 }
-                if (empresasComTarefas.size === 0) {
-                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
-                    showNotification(`⚠️ Nenhuma tarefa para: ${n[statusAlvo]||statusAlvo}`, true);
-                    loadingOverlay.style.display = 'none'; return;
-                }
+                if (empresasComTarefas.size === 0) { showNotification(`⚠️ Nenhuma tarefa encontrada`, true); loadingOverlay.style.display = 'none'; return; }
                 let arr = Array.from(empresasComTarefas.entries());
                 arr.sort((a, b) => b[1].length - a[1].length);
-                const novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
-                const cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
+                const novaDistribuicao = { Jordan: [], Patricia: [], Sirlene: [], Ingrid: [] };
+                const cargas = { Jordan: 0, Patricia: 0, Sirlene: 0, Ingrid: 0 };
+                const nomes = ['Jordan', 'Patricia', 'Sirlene', 'Ingrid'];
                 for (const [empresa, tarefas] of arr) {
-                    let escolhido = 'Jordan', menor = cargas.Jordan;
-                    if (cargas.Sirlene < menor) { menor = cargas.Sirlene; escolhido = 'Sirlene'; }
-                    if (cargas.Ingrid < menor) { escolhido = 'Ingrid'; }
+                    let escolhido = nomes.reduce((a, b) => cargas[a] <= cargas[b] ? a : b);
                     novaDistribuicao[escolhido].push(...tarefas);
                     cargas[escolhido] += tarefas.length;
                 }
                 distribuicaoAtual = novaDistribuicao;
                 await salvarDistribuicaoNoServidor(statusAlvo);
                 await carregarDistribuicaoGlobal();
-                const n2 = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
-                showNotification(`✅ Distribuição concluída! ${empresasComTarefas.size} empresas para ${n2[statusAlvo]||statusAlvo}`, false, `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
-            } catch (error) { showNotification('Erro ao realizar sorteio: ' + error.message, true); }
+                showNotification(`✅ Distribuição concluída!`);
+            } catch (error) { showNotification('Erro: ' + error.message, true); }
             finally { loadingOverlay.style.display = 'none'; }
         }
 
         // ============================================
-        // ABA MONITOR — Dashboard de Desempenho
+        // LOGS, HISTÓRICO E MONITOR
         // ============================================
-        function setMonitorPeriodo(periodo) {
-            monitorPeriodoAtual = periodo;
-            ['diario','semanal','mensal'].forEach(p => {
-                document.getElementById('monitor-btn-' + p).classList.remove('monitor-tab-active');
-            });
-            document.getElementById('monitor-btn-' + periodo).classList.add('monitor-tab-active');
-            carregarMonitor();
+        async function carregarHistoricoGeral() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                const { data, error } = await supabaseClient.from('historico_observacoes').select('*').order('data_hora', { ascending: false });
+                if (error) throw error; window.historicoData = data; renderHistoricoGeral();
+            } catch (e) { showNotification('Erro: ' + e.message, true); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
         }
 
-        async function registrarDesempenhoHoje() {
-            if (currentUser !== 'Ingrid' && currentUser !== 'Nikolas') {
-                showNotification('Acesso restrito ao Monitor.', true); return;
-            }
-            const hoje = new Date().toISOString().slice(0, 10);
-            const registros = [];
-            ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
-                const tarefas = distribuicaoAtual[colab] || [];
-                const total = tarefas.length;
-                let concluidas = 0;
-                tarefas.forEach(t => {
-                    const linha = rawData[t.rowIndex];
-                    const v = String(linha ? linha[t.documento] : '').toUpperCase();
-                    if (v === 'CONCLUIDO' || v === 'CONCLUÍDO') concluidas++;
-                });
-                registros.push({
-                    data: hoje,
-                    colaborador: colab,
-                    total_tarefas: total,
-                    concluidas: concluidas,
-                    percentual: total > 0 ? Math.round((concluidas / total) * 100) : 0,
-                    registrado_por: currentUser
-                });
-            });
+        function renderHistoricoGeral() {
+            const q = document.getElementById('searchHistorico').value.toLowerCase();
+            document.getElementById('historico-geral-body').innerHTML = (window.historicoData || []).filter(h => h.empresa.toLowerCase().includes(q) || h.usuario.toLowerCase().includes(q)).map(h => `<tr class="border-b border-slate-50"><td class="py-3 font-mono text-[9px] text-slate-400">${new Date(h.data_hora).toLocaleString('pt-BR')}</td><td class="py-3 font-black text-emerald-600 uppercase">${h.usuario}</td><td class="py-3 font-bold text-slate-700">${h.empresa}</td><td class="py-3"><span class="bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold">${h.campo}</span></td><td class="py-3 text-slate-500 italic">"${h.observacao}"</td><td class="py-3"><div class="flex flex-col gap-0.5 text-[8px] uppercase font-bold"><span class="text-slate-300">De: ${h.status_anterior || '-'}</span><span class="text-emerald-500">Para: ${h.status_novo || '-'}</span></div></td></tr>`).join('');
+        }
 
+        async function carregarLogs() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
             try {
-                // Deleta registros do dia atual para evitar duplicatas
-                await supabaseClient.from('monitor_desempenho').delete().eq('data', hoje);
-                const { error } = await supabaseClient.from('monitor_desempenho').insert(registros);
-                if (error) throw error;
-                showNotification('✅ Desempenho de hoje registrado com sucesso!', false, hoje);
-                carregarMonitor();
-            } catch (err) {
-                console.error('Erro ao registrar desempenho:', err);
-                showNotification('Erro ao registrar desempenho: ' + err.message, true);
-            }
+                const { data, error } = await supabaseClient.from('logs_sistema').select('*').order('data_hora', { ascending: false }).limit(200);
+                if (error) throw error; window.logsData = data; renderLogs();
+            } catch (e) { showNotification('Erro: ' + e.message, true); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
+        }
+
+        function renderLogs() {
+            const q = document.getElementById('searchLogs').value.toLowerCase();
+            document.getElementById('logs-body').innerHTML = (window.logsData || []).filter(l => l.usuario.toLowerCase().includes(q) || l.acao.toLowerCase().includes(q)).map(l => `<tr class="border-b border-slate-50"><td class="py-3 font-mono text-[9px] text-slate-400">${new Date(l.data_hora).toLocaleString('pt-BR')}</td><td class="py-3 font-black text-slate-700 uppercase">${l.usuario}</td><td class="py-3"><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase ${l.acao === 'ALTERACAO' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">${l.acao}</span></td><td class="py-3 text-slate-600 font-bold">${l.empresa || '-'}${l.campo ? ' / ' + l.campo : ''}</td><td class="py-3">${l.valor_novo ? `<div class="flex flex-col gap-0.5 text-[8px] uppercase font-bold"><span class="text-slate-300">De: ${l.valor_antigo || '-'}</span><span class="text-blue-500">Para: ${l.valor_novo}</span></div>` : '-'}</td><td class="py-3 text-slate-400 italic text-[9px]">${l.observacao || '-'}</td></tr>`).join('');
         }
 
         async function carregarMonitor() {
-            if (currentUser !== 'Ingrid' && currentUser !== 'Nikolas') return;
-
-            const hoje = new Date();
-            let dataInicio;
-
-            if (monitorPeriodoAtual === 'diario') {
-                dataInicio = hoje.toISOString().slice(0, 10);
-            } else if (monitorPeriodoAtual === 'semanal') {
-                const d = new Date(hoje);
-                d.setDate(d.getDate() - 6);
-                dataInicio = d.toISOString().slice(0, 10);
-            } else {
-                const d = new Date(hoje);
-                d.setDate(d.getDate() - 29);
-                dataInicio = d.toISOString().slice(0, 10);
-            }
-
-            const periodoLabel = { diario: 'Hoje', semanal: 'Últimos 7 dias', mensal: 'Últimos 30 dias' };
-            document.getElementById('monitor-chart-title').textContent = `Tarefas Concluídas — ${periodoLabel[monitorPeriodoAtual]}`;
-            document.getElementById('monitor-historico-info').textContent = periodoLabel[monitorPeriodoAtual];
-
+            document.getElementById('loadingOverlay').style.display = 'flex';
             try {
-                const { data, error } = await supabaseClient
-                    .from('monitor_desempenho')
-                    .select('*')
-                    .gte('data', dataInicio)
-                    .order('data', { ascending: false });
-
+                const { data, error } = await supabaseClient.from('monitor_desempenho').select('*').order('data', { ascending: false });
                 if (error) throw error;
+                renderMonitorCharts(data);
+                renderMonitorHistorico(data);
+            } catch (e) { showNotification('Erro: ' + e.message, true); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
+        }
 
-                const registros = data || [];
+        function renderMonitorCharts(data) {
+            const ctxBar = document.getElementById('monitor-bar-chart').getContext('2d');
+            const ctxPie = document.getElementById('monitor-pie-chart').getContext('2d');
+            if (monitorBarChart) monitorBarChart.destroy();
+            if (monitorPieChart) monitorPieChart.destroy();
+            
+            const periodData = data.filter(d => {
+                const dt = new Date(d.data); const hoje = new Date();
+                if (monitorPeriodoAtual === 'diario') return dt.toDateString() === hoje.toDateString();
+                return true;
+            });
 
-                // Agrega por colaborador
-                const agrupado = {};
-                ['Jordan', 'Sirlene', 'Ingrid'].forEach(c => {
-                    agrupado[c] = { total: 0, concluidas: 0, registros: 0 };
-                });
-                registros.forEach(r => {
-                    if (agrupado[r.colaborador]) {
-                        agrupado[r.colaborador].total += r.total_tarefas;
-                        agrupado[r.colaborador].concluidas += r.concluidas;
-                        agrupado[r.colaborador].registros++;
-                    }
-                });
+            const labels = [...new Set(periodData.map(d => d.colaborador))];
+            const values = labels.map(l => periodData.filter(d => d.colaborador === l).reduce((a, b) => a + b.concluidas, 0));
 
-                // Renderiza cards
-                const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
-                const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8' };
-                const coresBorder = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
+            monitorBarChart = new Chart(ctxBar, { type: 'bar', data: { labels, datasets: [{ label: 'Concluídas', data: values, backgroundColor: '#10b981' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+            monitorPieChart = new Chart(ctxPie, { type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'] }] }, options: { maintainAspectRatio: false } });
+            
+            const max = Math.max(...values);
+            document.getElementById('monitor-destaque-nome').innerText = labels[values.indexOf(max)] || '--';
+        }
 
-                document.getElementById('monitor-cards').innerHTML = ['Jordan', 'Sirlene', 'Ingrid'].map(colab => {
-                    const d = agrupado[colab];
-                    const pct = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
-                    return `<div class="colab-card" style="border-top: 6px solid ${cores[colab]}; background: ${coresLight[colab]};">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 class="text-[10px] font-black uppercase tracking-wider" style="color:${cores[colab]}">${colab}</h3>
-                                <p class="text-[9px] text-slate-400">${periodoLabel[monitorPeriodoAtual]}</p>
-                            </div>
-                            <div class="text-2xl font-black" style="color:${cores[colab]}">${pct}%</div>
-                        </div>
-                        <div class="progress-bar rounded-full overflow-hidden" style="background:#e2e8f0">
-                            <div class="progress-bar" style="width:${pct}%;background:${cores[colab]}"></div>
-                        </div>
-                        <div class="flex justify-between mt-2 text-[9px] text-slate-500">
-                            <span>Concluídas: <strong>${d.concluidas}</strong></span>
-                            <span>Total: <strong>${d.total}</strong></span>
-                            <span>Dias: <strong>${d.registros}</strong></span>
-                        </div>
-                    </div>`;
-                }).join('');
+        function renderMonitorHistorico(data) {
+            document.getElementById('monitor-historico-body').innerHTML = data.map(d => `<tr><td>${new Date(d.data).toLocaleDateString('pt-BR')}</td><td class="font-bold">${d.colaborador}</td><td>${d.total_tarefas}</td><td class="text-emerald-600 font-bold">${d.concluidas}</td><td>${d.percentual}%</td><td class="text-[9px] text-slate-400">${d.registrado_por}</td></tr>`).join('');
+        }
 
-                // Gráfico de barras
-                const labelsBar = ['Jordan', 'Sirlene', 'Ingrid'];
-                const dataBar = labelsBar.map(c => agrupado[c].concluidas);
-                const bgBar = ['#3b82f6', '#a855f7', '#ec4899'];
-
-                if (monitorBarChart) monitorBarChart.destroy();
-                const ctxBar = document.getElementById('monitor-bar-chart').getContext('2d');
-                monitorBarChart = new Chart(ctxBar, {
-                    type: 'bar',
-                    data: {
-                        labels: labelsBar,
-                        datasets: [{
-                            label: 'Tarefas Concluídas',
-                            data: dataBar,
-                            backgroundColor: bgBar,
-                            borderRadius: 8,
-                            borderSkipped: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                        }
-                    }
-                });
-
-                // Gráfico de pizza
-                const dataPie = labelsBar.map(c => agrupado[c].total > 0 ? agrupado[c].total : 0);
-                if (monitorPieChart) monitorPieChart.destroy();
-                const ctxPie = document.getElementById('monitor-pie-chart').getContext('2d');
-                monitorPieChart = new Chart(ctxPie, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labelsBar,
-                        datasets: [{
-                            data: dataPie,
-                            backgroundColor: bgBar,
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { font: { size: 10 } } }
-                        }
-                    }
-                });
-
-                // Tabela de histórico
-                const tbody = document.getElementById('monitor-historico-body');
-                if (registros.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
-                } else {
-                    tbody.innerHTML = registros.map(r => {
-                        const pctR = r.total_tarefas > 0 ? Math.round((r.concluidas / r.total_tarefas) * 100) : 0;
-                        const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
-                        return `<tr>
-                            <td class="font-mono text-xs">${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                            <td class="font-bold ${corColab[r.colaborador] || ''}">${r.colaborador}</td>
-                            <td>${r.total_tarefas}</td>
-                            <td class="text-emerald-600 font-bold">${r.concluidas}</td>
-                            <td>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${pctR}%"></div></div>
-                                    <span class="text-xs font-bold">${pctR}%</span>
-                                </div>
-                            </td>
-                            <td class="text-slate-400 text-xs">${r.registrado_por}</td>
-                        </tr>`;
-                    }).join('');
+        async function registrarDesempenhoHoje() {
+            if (currentUser !== 'Nikolas' && currentUser !== 'Ingrid') return;
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            try {
+                const colabs = ['Jordan', 'Patricia', 'Sirlene', 'Ingrid'];
+                for (const c of colabs) {
+                    const tarefas = distribuicaoAtual[c] || [];
+                    const concluidas = tarefas.filter(t => rawData[t.rowIndex] && rawData[t.rowIndex][t.documento + "_DONE"]).length;
+                    const total = tarefas.length;
+                    const perc = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+                    await supabaseClient.from('monitor_desempenho').insert([{ data: new Date().toISOString().split('T')[0], colaborador: c, total_tarefas: total, concluidas: concluidas, percentual: perc, registrado_por: currentUser }]);
                 }
+                showNotification('Desempenho registrado!');
+                carregarMonitor();
+            } catch (e) { showNotification('Erro: ' + e.message, true); } finally { loadingOverlay.style.display = 'none'; }
+        }
 
-            } catch (err) {
-                console.error('Erro ao carregar monitor:', err);
-                document.getElementById('monitor-historico-body').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Erro ao carregar dados. Verifique a tabela no Supabase.</td></tr>';
-            }
+        function showNotification(msg, isError = false, cliente = '') {
+            const toast = document.getElementById('notification-toast');
+            document.getElementById('notif-message').innerText = msg;
+            document.getElementById('notif-cliente').innerText = cliente;
+            toast.style.borderLeftColor = isError ? '#ef4444' : '#10b981';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        function exportarExcel() {
+            const ws = XLSX.utils.json_to_sheet(rawData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Dados");
+            XLSX.writeFile(wb, `TopLineHub_Backup_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
     </script>
 </body>
