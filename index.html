@@ -155,6 +155,25 @@
             background: #128C7E;
             transform: translateY(-1px);
         }
+        .email-btn {
+            background: #EA4335;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            margin-left: 4px;
+            border: none;
+            cursor: pointer;
+        }
+        .email-btn:hover {
+            background: #C5221F;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -461,6 +480,7 @@
                                             <th>Documento</th>
                                             <th>Vencimento</th>
                                             <th>WhatsApp</th>
+                                            <th>E-mail</th>
                                             <th class="text-center">Ação</th>
                                         </tr>
                                     </thead>
@@ -1437,14 +1457,15 @@
                 const docStatus = getStatus(row[commActiveDoc], row, commActiveDoc);
                 if (commActiveStatus && docStatus !== commActiveStatus) return;
                 
-                filtered.push({
-                    index: idx,
-                    cliente: row.CLIENTE,
-                    documento: commActiveDoc,
-                    vencimento: row[commActiveDoc] instanceof Date ? row[commActiveDoc].toLocaleDateString('pt-BR') : (row[commActiveDoc] || '-'),
-                    whatsapp: row.WHATSAPP || '-',
-                    status: docStatus
-                });
+            filtered.push({
+                index: idx,
+                cliente: row.CLIENTE,
+                documento: commActiveDoc,
+                vencimento: row[commActiveDoc] instanceof Date ? row[commActiveDoc].toLocaleDateString('pt-BR') : (row[commActiveDoc] || '-'),
+                whatsapp: row.WHATSAPP || '-',
+                email: row.EMAIL || '-',
+                status: docStatus
+            });
             });
             
             counter.innerText = `${filtered.length} Cliente${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`;
@@ -1455,9 +1476,13 @@
                     <td>${item.documento || '-'}</td>
                     <td>${item.vencimento}</td>
                     <td>${item.whatsapp}</td>
+                    <td>${item.email}</td>
                     <td class="text-center">
-                        <button onclick="enviarWhatsApp(${item.index}, '${item.documento}', '${item.whatsapp}')" class="whatsapp-btn">
-                            📱 Enviar
+                        <button onclick="enviarWhatsApp(${item.index}, '${item.documento}', '${item.whatsapp}')" class="whatsapp-btn" title="Enviar via WhatsApp">
+                            📱
+                        </button>
+                        <button onclick="enviarEmail(${item.index}, '${item.documento}', '${item.email}')" class="email-btn" title="Enviar via E-mail">
+                            ✉️
                         </button>
                     </td>
                 </tr>
@@ -1482,10 +1507,28 @@
             const numeroLimpo = whatsapp.replace(/\D/g, '');
             const url = `https://web.whatsapp.com/send?phone=${numeroLimpo}&text=${encodeURIComponent(mensagemFinal)}`;
             
-            whatsappWindow = window.open(url, 'whatsapp_window', 'width=800,height=600');
-            if (!whatsappWindow) {
-                showNotification('Abra o WhatsApp Web em uma aba separada primeiro', true);
+            window.open(url, 'whatsapp_window');
+        }
+        
+        function enviarEmail(rowIndex, documento, email) {
+            if (!email || email === '-') {
+                showNotification('E-mail não configurado para este cliente', true);
+                return;
             }
+            
+            const row = rawData[rowIndex];
+            const status = getStatus(row[documento], row, documento);
+            const mensagem = MENSAGENS_PADRAO[status] || MENSAGENS_PADRAO['60'];
+            
+            const mensagemFinal = mensagem
+                .replace('{DOC}', documento)
+                .replace('{CLIENTE}', row.CLIENTE)
+                .replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
+            
+            const assunto = `Aviso: Documento ${documento} - ${row.CLIENTE}`;
+            const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemFinal)}`;
+            
+            window.open(url, 'gmail_window');
         }
         
         function toggleClientSelection(rowIndex) {
@@ -1623,5 +1666,3 @@
     </script>
 </body>
 </html>
-How to Handle Uploaded File Content in Text Format? - Manus
-How to Handle Uploaded File Content in Text Format? - Manus
