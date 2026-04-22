@@ -120,7 +120,7 @@
         /* Monitor */
         .monitor-tab-btn { padding: 8px 20px; font-size: 10px; font-weight: 800; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; text-transform: uppercase; transition: all 0.2s; cursor: pointer; }
         .monitor-tab-active { background: #10b981; color: white; border-color: #059669; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.3); }
-        .colab-card { border-radius: 16px; padding: 16px; background: white; border: 1px solid #e2e8f0; transition: all 0.2s; }
+        .colab-card { border-radius: 12px; padding: 10px; background: white; border: 1px solid #e2e8f0; transition: all 0.2s; }
         .colab-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
 
         /* Barra de pesquisa — oculta por padrão, visível só no painel */
@@ -483,15 +483,38 @@
             <!-- ABA HISTÓRICO -->
             <div id="view-historico" class="hidden">
                 <div class="white-card p-6">
-                    <div class="flex justify-between items-center mb-6">
+                    <div class="flex justify-between items-center mb-4">
                         <div>
                             <h3 class="text-sm font-black text-slate-700 uppercase tracking-tight">Histórico de Observações</h3>
                             <p class="text-[10px] text-slate-400 mt-1">Registro de todas as observações feitas pelos colaboradores</p>
                         </div>
-                        <div class="flex gap-2">
-                            <input type="text" id="searchHistorico" oninput="filtrarHistorico()" placeholder="Filtrar por cliente..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
-                            <button onclick="carregarHistorico()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
-                        </div>
+                        <button onclick="carregarHistorico()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2 mb-4">
+                        <input type="text" id="searchHistorico" oninput="filtrarHistorico()" placeholder="Filtrar por cliente..." class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
+                        <input type="date" id="filtroDataInicio" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
+                        <input type="date" id="filtroDataFim" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
+                        <select id="filtroUsuarioHistorico" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
+                            <option value="">Todos os colaboradores</option>
+                            <option value="Nikolas">Nikolas</option>
+                            <option value="Ingrid">Ingrid</option>
+                            <option value="Jordan">Jordan</option>
+                            <option value="Patricia">Patricia</option>
+                            <option value="Sirlene">Sirlene</option>
+                        </select>
+                        <select id="filtroDocumento" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
+                            <option value="">Todos os documentos</option>
+                            <option value="ATA">ATA</option>
+                            <option value="CRED.">CRED.</option>
+                            <option value="CENTS">CENTS</option>
+                            <option value="CTM">CTM</option>
+                            <option value="CND">CND</option>
+                            <option value="CMDCA">CMDCA</option>
+                            <option value="UTILIDADE">UTILIDADE</option>
+                            <option value="CERTIF.DIGITAL">CERTIF.DIGITAL</option>
+                            <option value="COMAS">COMAS</option>
+                            <option value="COVISA">COVISA</option>
+                        </select>
                     </div>
                     <div class="scroll-container" style="max-height: 70vh;">
                         <table class="w-full text-left">
@@ -928,13 +951,15 @@
         // ============================================
         // LOGS DO SISTEMA
         // ============================================
-        async function registrarLog(acao, cliente, documento, detalhes) {
+        async function registrarLog(acao, cliente, documento, detalhes, valorAnterior = null, valorNovo = null) {
             try {
                 await supabaseClient.from('logs_sistema').insert([{
                     usuario: currentUser || 'Sistema',
                     acao: acao,
                     cliente: cliente || null,
                     documento: documento || null,
+                    valor_antigo: valorAnterior || null,
+                    valor_novo: valorNovo || null,
                     detalhes: detalhes || null
                 }]);
             } catch(e) {
@@ -1062,13 +1087,22 @@
 
         function filtrarHistorico() {
             const q = (document.getElementById('searchHistorico')?.value || '').toLowerCase();
-            const filtrado = historicoData.filter(h =>
-                !q ||
-                (h.cliente || '').toLowerCase().includes(q) ||
-                (h.observacao || '').toLowerCase().includes(q) ||
-                (h.usuario || '').toLowerCase().includes(q) ||
-                (h.documento || '').toLowerCase().includes(q)
-            );
+            const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+            const dataFim = document.getElementById('filtroDataFim')?.value || '';
+            const usuarioFiltro = document.getElementById('filtroUsuarioHistorico')?.value || '';
+            const documentoFiltro = document.getElementById('filtroDocumento')?.value || '';
+            const filtrado = historicoData.filter(h => {
+                const matchTexto = !q || (h.cliente || '').toLowerCase().includes(q) || (h.observacao || '').toLowerCase().includes(q) || (h.usuario || '').toLowerCase().includes(q) || (h.documento || '').toLowerCase().includes(q);
+                let matchData = true;
+                if (dataInicio || dataFim) {
+                    const dataH = new Date(h.created_at).toISOString().slice(0, 10);
+                    if (dataInicio && dataH < dataInicio) matchData = false;
+                    if (dataFim && dataH > dataFim) matchData = false;
+                }
+                const matchUsuario = !usuarioFiltro || h.usuario === usuarioFiltro;
+                const matchDocumento = !documentoFiltro || h.documento === documentoFiltro;
+                return matchTexto && matchData && matchUsuario && matchDocumento;
+            });
             renderizarHistorico(filtrado);
         }
 
@@ -1325,6 +1359,7 @@
             // Captura observação
             const observacao = document.getElementById('modalObservacao')?.value || '';
             const cliente = rawData[r].CLIENTE;
+            const valorAnterior = rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : (rawData[r][c] || 'vazio');
 
             if (valorParaSalvar !== null) {
                 if (selectedOption === 'data') rawData[r][c] = new Date(valorParaSalvar + "T12:00:00");
@@ -1345,14 +1380,12 @@
                 loadingOverlay.style.display = 'none';
                 showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
 
-                // Registrar log
-                const detalheLog = `Campo "${c}" alterado para: ${valorParaSalvar}${observacao ? ' | Obs: ' + observacao : ''}`;
-                await registrarLog(`Alteração: ${selectedOption}`, cliente, c, detalheLog);
+                // Registrar log com valores antigo e novo
+                const detalheLog = `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`;
+                await registrarLog(`Alteração: ${selectedOption}`, cliente, c, detalheLog, valorAnterior, valorParaSalvar);
 
-                // Salvar observação no histórico (se preenchida)
-                if (observacao && observacao.trim()) {
-                    await salvarObservacao(cliente, c, observacao, selectedOption);
-                }
+                // Salvar observação no histórico (sempre, mesmo que vazia)
+                await salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption);
 
                 setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 2000);
             } catch (error) {
@@ -1601,20 +1634,20 @@
             const content = document.getElementById('modalContent');
             const saveBtn = document.getElementById('modalSaveBtn');
 
-            title.innerText = `Ações: ${campo}`;
+            title.innerText = `${campo}`;
             content.innerHTML = `
                 <div class="text-center">
-                    <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">${cliente}</p>
-                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 mb-6">
-                        <span class="text-xl font-black text-slate-800 tracking-widest">${valor}</span>
+                    <p class="text-[9px] text-slate-400 uppercase font-bold mb-2">${cliente}</p>
+                    <div class="bg-slate-50 p-2 rounded-lg border-2 border-dashed border-slate-200 mb-3">
+                        <span class="text-sm font-black text-slate-800 tracking-widest">${valor}</span>
                     </div>
-                    <div class="grid grid-cols-1 gap-3">
-                        <button onclick="copyToClipboard('${valor}')" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-slate-900 transition">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                            Copiar Senha
+                    <div class="grid grid-cols-1 gap-2">
+                        <button onclick="copyToClipboard('${valor}')" class="w-full bg-slate-800 text-white py-2 rounded-lg font-bold uppercase text-[8px] flex items-center justify-center gap-1 hover:bg-slate-900 transition">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                            Copiar
                         </button>
-                        <button onclick="window.open('https://docs.google.com/spreadsheets/d/1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/edit#gid=49695199', '_blank')" class="w-full bg-white border-2 border-slate-200 text-slate-600 py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-50 transition">
-                            Alterar na Planilha
+                        <button onclick="window.open('https://docs.google.com/spreadsheets/d/1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/edit#gid=49695199', '_blank')" class="w-full bg-white border-2 border-slate-200 text-slate-600 py-2 rounded-lg font-bold uppercase text-[8px] hover:bg-slate-50 transition">
+                            Alterar
                         </button>
                     </div>
                 </div>
