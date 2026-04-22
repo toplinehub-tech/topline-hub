@@ -1,14 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v4.0</title>
+    <title>TopLineHub | Gestão Integrada v4.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
@@ -87,7 +87,7 @@
 
         /* Atalhos */
         .atalho-btn {
-            display: flex; align-items: center; gap-8px;
+            display: flex; align-items: center; gap: 8px;
             padding: 10px 14px; border-radius: 12px; font-size: 10px; font-weight: 800;
             background: white; color: #334155; border: 1.5px solid #e2e8f0;
             cursor: pointer; transition: all 0.2s; text-align: left;
@@ -105,6 +105,34 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 300px; color: #94a3b8;
         }
+
+        /* Envio em massa */
+        .bulk-btn-wa {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 10px; font-size: 10px; font-weight: 800;
+            background: #25D366; color: white; border: none; cursor: pointer;
+            transition: all 0.2s; text-transform: uppercase;
+        }
+        .bulk-btn-wa:hover { background: #128C7E; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,211,102,0.4); }
+        .bulk-btn-gmail {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 10px; font-size: 10px; font-weight: 800;
+            background: white; color: #EA4335; border: 1.5px solid #EA4335; cursor: pointer;
+            transition: all 0.2s; text-transform: uppercase;
+        }
+        .bulk-btn-gmail:hover { background: #EA4335; color: white; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(234,67,53,0.35); }
+        .bulk-progress { background: #f1f5f9; border-radius: 8px; height: 6px; overflow: hidden; margin-top: 6px; }
+        .bulk-progress-bar { height: 100%; background: #10b981; border-radius: 8px; transition: width 0.3s ease; }
+
+        /* Monitor */
+        .monitor-tab-btn { padding: 8px 20px; font-size: 10px; font-weight: 800; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; text-transform: uppercase; transition: all 0.2s; cursor: pointer; }
+        .monitor-tab-active { background: #10b981; color: white; border-color: #059669; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.3); }
+        .colab-card { border-radius: 16px; padding: 16px; background: white; border: 1px solid #e2e8f0; transition: all 0.2s; }
+        .colab-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+
+        /* Barra de pesquisa — oculta por padrão, visível só no painel */
+        #search-bar-wrapper { display: none; }
+        #search-bar-wrapper.visible { display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -142,7 +170,7 @@
     <div id="notification-toast">
         <div class="flex items-start gap-3">
             <div class="bg-emerald-100 p-2 rounded-lg">
-                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.405l-1.405 1.405H15z"></path></svg>
             </div>
             <div>
                 <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Atualização</h4>
@@ -157,12 +185,14 @@
             <header class="white-card p-5 flex justify-between items-center mb-6">
                 <div>
                     <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                    <nav class="flex gap-6 mt-3">
+                    <nav class="flex gap-6 mt-3" id="main-nav">
                         <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
                         <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
                         <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                         <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
                         <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
+                        <!-- Aba Monitor: visível apenas para Ingrid e Nikolas -->
+                        <button onclick="switchTab('monitor')" id="tab-monitor" class="hidden text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
                     </nav>
                 </div>
                 <div class="flex items-center gap-3">
@@ -174,7 +204,8 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     </button>
                 </div>
-                <div class="flex items-center gap-4">
+                <!-- Barra de pesquisa: visível apenas na aba Painel -->
+                <div id="search-bar-wrapper" class="visible flex items-center gap-4">
                     <div class="flex flex-col items-end">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Database Sync</span>
                         <span class="text-[10px] font-bold text-emerald-500">Online</span>
@@ -257,7 +288,8 @@
                 </div>
                 <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
                 <div class="white-card overflow-hidden">
-                    <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody"></tbody></table></div>
+                    <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody">
+                    </tbody></table></div>
                 </div>
             </div>
 
@@ -295,10 +327,11 @@
                     <div class="md:col-span-1 space-y-6">
                         <div class="white-card p-6">
                             <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">WhatsApp Web</h3>
-                            <button onclick="window.open('https://web.whatsapp.com', '_blank')" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold text-xs hover:bg-emerald-600 transition shadow-lg flex items-center justify-center gap-2">
+                            <button onclick="abrirWhatsAppWeb()" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold text-xs hover:bg-emerald-600 transition shadow-lg flex items-center justify-center gap-2">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                                 Logar WhatsApp
                             </button>
+                            <p class="text-[9px] text-slate-400 mt-2 text-center">Clique para abrir/focar a janela do WhatsApp Web</p>
                         </div>
                         <div class="white-card p-6">
                             <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">1. Selecione o Documento</h3>
@@ -317,10 +350,28 @@
                     <!-- Listagem -->
                     <div class="md:col-span-3">
                         <div class="white-card p-6 min-h-[600px]">
-                            <div class="flex justify-between items-center mb-6">
+                            <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-sm font-black text-slate-700 uppercase tracking-tight">Clientes para Comunicar</h3>
                                 <div id="comm-counter" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">0 Clientes encontrados</div>
                             </div>
+
+                            <!-- Botões de envio em massa -->
+                            <div class="flex items-center gap-3 mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Envio em massa:</span>
+                                <button onclick="envioEmMassa('whatsapp')" class="bulk-btn-wa">
+                                    <svg style="width:12px;height:12px" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                    Enviar Todos via WhatsApp
+                                </button>
+                                <button onclick="envioEmMassa('gmail')" class="bulk-btn-gmail">
+                                    <svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" stroke="#EA4335" stroke-width="1.5"/><path d="M2 6l10 7 10-7" stroke="#EA4335" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                    Enviar Todos via Gmail
+                                </button>
+                                <div id="bulk-status" class="text-[10px] text-slate-400 ml-auto hidden">
+                                    <span id="bulk-status-text">Aguardando...</span>
+                                    <div class="bulk-progress w-32"><div id="bulk-progress-bar" class="bulk-progress-bar" style="width:0%"></div></div>
+                                </div>
+                            </div>
+
                             <div class="scroll-container">
                                 <table class="w-full text-left">
                                     <thead>
@@ -350,7 +401,7 @@
                         </div>
                         <div>
                             <h2 class="text-sm font-black text-slate-700 uppercase tracking-tight">Atalhos Rápidos</h2>
-                            <p class="text-[10px] text-slate-400">Clique em qualquer link para abrir no visualizador abaixo</p>
+                            <p class="text-[10px] text-slate-400">Clique em qualquer link para abrir no visualizador ou em nova aba</p>
                         </div>
                         <div class="ml-auto">
                             <button onclick="fecharIframe()" id="btn-fechar-iframe" class="hidden btn-mini text-red-500 border-red-200 bg-red-50">✕ Fechar</button>
@@ -383,6 +434,75 @@
                     <p class="text-[11px] text-slate-400 mt-1">O site será carregado aqui dentro do sistema</p>
                 </div>
             </div>
+
+            <!-- ABA MONITOR (apenas Ingrid e Nikolas) -->
+            <div id="view-monitor" class="hidden">
+                <div class="white-card p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-black text-slate-700 uppercase tracking-tight">Monitor de Desempenho</h2>
+                                <p class="text-[10px] text-slate-400">Acompanhamento de produtividade dos colaboradores</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <!-- Seletor de período -->
+                            <div class="flex gap-2">
+                                <button onclick="setMonitorPeriodo('diario')" id="monitor-btn-diario" class="monitor-tab-btn monitor-tab-active">Diário</button>
+                                <button onclick="setMonitorPeriodo('semanal')" id="monitor-btn-semanal" class="monitor-tab-btn">Semanal</button>
+                                <button onclick="setMonitorPeriodo('mensal')" id="monitor-btn-mensal" class="monitor-tab-btn">Mensal</button>
+                            </div>
+                            <button onclick="registrarDesempenhoHoje()" class="btn-mini bg-indigo-500 text-white border-indigo-600 hover:bg-indigo-600">+ Registrar Hoje</button>
+                        </div>
+                    </div>
+
+                    <!-- Cards de resumo por colaborador -->
+                    <div class="grid grid-cols-3 gap-4 mb-6" id="monitor-cards">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="white-card p-6">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider" id="monitor-chart-title">Tarefas Concluídas — Hoje</h3>
+                        <canvas id="monitor-bar-chart" height="200"></canvas>
+                    </div>
+                    <div class="white-card p-6">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">Distribuição por Colaborador</h3>
+                        <canvas id="monitor-pie-chart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabela de histórico -->
+                <div class="white-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Histórico de Registros</h3>
+                        <span id="monitor-historico-info" class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full"></span>
+                    </div>
+                    <div class="scroll-container" style="max-height: 300px;">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Colaborador</th>
+                                    <th>Tarefas Totais</th>
+                                    <th>Concluídas</th>
+                                    <th>% Conclusão</th>
+                                    <th>Registrado por</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monitor-historico-body">
+                                <tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando dados...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -421,6 +541,11 @@
         let currentUser = "";
         
         let distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
+
+        // Variáveis do Monitor
+        let monitorPeriodoAtual = 'diario';
+        let monitorBarChart = null;
+        let monitorPieChart = null;
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
@@ -431,8 +556,37 @@
         };
 
         // ============================================
-        // ATALHOS
+        // ATALHOS — URLs que bloqueiam iFrame
         // ============================================
+        // Sites que bloqueiam iFrame via X-Frame-Options ou CSP:
+        // Abre diretamente em nova aba ao invés de tentar no iframe.
+        const ATALHOS_NOVA_ABA = [
+            "receita.fazenda.gov.br",
+            "caixa.gov.br",
+            "receitafederal.gov.br",
+            "tst.jus.br",
+            "prefeitura.sp.gov.br",
+            "ccm.prefeitura.sp.gov.br",
+            "cadastrodeentidades.sp.gov.br",
+            "cav.receita.fazenda.gov.br",
+            "vreredesim.sp.gov.br",
+            "imprensaoficial.com.br",
+            "processos.prefeitura.sp.gov.br",
+            "cdtsp.com.br",
+            "chatgpt.com",
+            "pf.gov.br",
+            "ssp.sp.gov.br",
+            "ilovepdf.com",
+            "sp156.prefeitura.sp.gov.br"
+        ];
+
+        function urlBloqueiaIframe(url) {
+            try {
+                const hostname = new URL(url).hostname;
+                return ATALHOS_NOVA_ABA.some(dominio => hostname.includes(dominio));
+            } catch(e) { return false; }
+        }
+
         const ATALHOS = [
             { nome: "CNPJ",                  url: "https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/cnpjreva_solicitacao.asp" },
             { nome: "CRF",                   url: "https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf" },
@@ -459,12 +613,14 @@
         function renderAtalhos() {
             const grid = document.getElementById('atalhos-grid');
             if (!grid) return;
-            grid.innerHTML = ATALHOS.map((a, i) => `
-                <button onclick="abrirAtalho(${i})" id="atalho-btn-${i}" class="atalho-btn flex flex-col gap-1">
-                    <span class="text-[8px] text-slate-400 font-mono">#${String(i+1).padStart(2,'0')}</span>
+            grid.innerHTML = ATALHOS.map((a, i) => {
+                const bloqueado = urlBloqueiaIframe(a.url);
+                return `
+                <button onclick="abrirAtalho(${i})" id="atalho-btn-${i}" class="atalho-btn flex flex-col gap-1" title="${bloqueado ? 'Abre em nova aba (site não permite incorporação)' : 'Abre no visualizador interno'}">
+                    <span class="text-[8px] text-slate-400 font-mono">#${String(i+1).padStart(2,'0')} ${bloqueado ? '↗' : ''}</span>
                     <span class="text-[10px] font-black leading-tight">${a.nome}</span>
-                </button>
-            `).join('');
+                </button>`;
+            }).join('');
         }
 
         function abrirAtalho(idx) {
@@ -477,6 +633,14 @@
             if (btn) btn.classList.add('active');
 
             atalhoAtualUrl = atalho.url;
+
+            // Se o site bloqueia iframe, abre em nova aba diretamente
+            if (urlBloqueiaIframe(atalho.url)) {
+                window.open(atalho.url, '_blank');
+                // Mantém o botão ativo brevemente e remove
+                setTimeout(() => { if (btn) btn.classList.remove('active'); }, 1500);
+                return;
+            }
 
             // Mostra container iframe
             const container = document.getElementById('atalhos-iframe-container');
@@ -491,6 +655,12 @@
 
             label.textContent = atalho.url;
             iframe.src = atalho.url;
+
+            // Fallback: se o iframe falhar ao carregar (erro de rede/CORS), abre em nova aba
+            iframe.onerror = () => {
+                fecharIframe();
+                window.open(atalho.url, '_blank');
+            };
         }
 
         function fecharIframe() {
@@ -545,6 +715,13 @@
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
             atualizarBotoesSorteio();
+            // Mostrar aba Monitor apenas para Ingrid e Nikolas
+            const tabMonitor = document.getElementById('tab-monitor');
+            if (currentUser === 'Ingrid' || currentUser === 'Nikolas') {
+                tabMonitor.classList.remove('hidden');
+            } else {
+                tabMonitor.classList.add('hidden');
+            }
             fetchGoogleSheets(true);
             setInterval(() => fetchGoogleSheets(false), 60000);
             setInterval(() => carregarDistribuicaoGlobal(), 30000);
@@ -780,16 +957,12 @@
             return 'ok';
         }
 
-        // Encontra a coluna de e-mail de forma robusta
         function getEmailCol(row) {
-            // 1. Tenta direto
             if (row['EMAIL'] !== undefined) return 'EMAIL';
             if (row['E-MAIL'] !== undefined) return 'E-MAIL';
             if (row['E_MAIL'] !== undefined) return 'E_MAIL';
-            // 2. Procura por qualquer header que contenha "mail" (case insensitive)
             const emailKey = Object.keys(row).find(k => k.toUpperCase().includes('MAIL') || k.toUpperCase().includes('EMAIL'));
             if (emailKey) return emailKey;
-            // 3. Coluna logo após WHATSAPP
             const whatsIdx = headers.indexOf('WHATSAPP');
             if (whatsIdx >= 0 && whatsIdx + 1 < headers.length) return headers[whatsIdx + 1];
             return null;
@@ -947,8 +1120,12 @@
                 ${["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => `<td>${p[c]||'-'}</td>`).join('')}</tr>`).join('');
         }
 
+        // ============================================
+        // SWITCH TAB — com controle da barra de pesquisa
+        // ============================================
         function switchTab(tab) {
-            ['dash','tasks','senhas','comm','atalhos'].forEach(t => {
+            const allTabs = ['dash','tasks','senhas','comm','atalhos','monitor'];
+            allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
                 if (view) view.classList.add('hidden');
@@ -957,11 +1134,21 @@
             document.getElementById('view-'+tab).classList.remove('hidden');
             document.getElementById('tab-'+tab).classList.add('tab-active');
             document.getElementById('tab-'+tab).classList.remove('text-slate-400');
+
+            // Barra de pesquisa: visível apenas no Painel
+            const searchBar = document.getElementById('search-bar-wrapper');
+            if (tab === 'dash') {
+                searchBar.classList.add('visible');
+            } else {
+                searchBar.classList.remove('visible');
+            }
+
             if (tab === 'senhas') renderSenhas();
             if (tab === 'dash') atualizarDashboardDesempenho();
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
             if (tab === 'atalhos') renderAtalhos();
+            if (tab === 'monitor') carregarMonitor();
         }
 
         function closeModal() { document.getElementById('editModal').classList.add('hidden'); selectedOption = null; }
@@ -1006,6 +1193,14 @@
             renderCommTable();
         }
 
+        // Abre/foca a janela do WhatsApp Web sem criar nova aba
+        function abrirWhatsAppWeb() {
+            window.open('https://web.whatsapp.com', 'whatsapp_window');
+        }
+
+        // Dados filtrados da tabela de comunicação (usados pelo envio em massa)
+        let commFilteredData = [];
+
         function renderCommTable() {
             const tbody = document.getElementById('commTableBody');
             const counter = document.getElementById('comm-counter');
@@ -1014,6 +1209,7 @@
             if (!commActiveDoc && !commActiveStatus) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Selecione um documento e um prazo para filtrar</td></tr>';
                 counter.innerText = '0 Clientes encontrados';
+                commFilteredData = [];
                 return;
             }
 
@@ -1029,7 +1225,6 @@
                     if (!hasStatus) return;
                 }
 
-                // Detecta coluna de email de forma robusta
                 const emailCol = getEmailCol(row);
                 const emailVal = emailCol ? (row[emailCol] || '') : '';
                 const emailDisplay = emailVal && String(emailVal).trim() !== '' ? String(emailVal).trim() : '-';
@@ -1052,6 +1247,7 @@
                 });
             });
 
+            commFilteredData = filtered;
             counter.innerText = `${filtered.length} Cliente${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`;
 
             if (filtered.length === 0) {
@@ -1059,10 +1255,7 @@
                 return;
             }
 
-            // SVG WhatsApp
             const svgWA = `<svg style="width:11px;height:11px;flex-shrink:0" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
-
-            // SVG Gmail "M"
             const svgGmail = `<svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" fill="none"/><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l10 7 10-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path fill="currentColor" d="M4 6l8 5.5L20 6v-.001l-8 5.5L4 6z" opacity="0.15"/></svg>`;
 
             tbody.innerHTML = filtered.map(item => {
@@ -1099,6 +1292,7 @@
             }).join('');
         }
 
+        // Envia WhatsApp sempre na mesma janela 'whatsapp_window'
         function enviarWhatsApp(rowIndex, documento, whatsapp) {
             if (!whatsapp || whatsapp === '-') { showNotification('Número de WhatsApp não configurado para este cliente', true); return; }
             const row = rawData[rowIndex];
@@ -1110,11 +1304,12 @@
                 .replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
             const numeroLimpo = String(whatsapp).replace(/\D/g, '');
             const fone = numeroLimpo.length <= 11 ? '55' + numeroLimpo : numeroLimpo;
+            // Sempre usa a mesma janela 'whatsapp_window' — não abre nova aba
             window.open(`https://web.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(mensagemFinal)}`, 'whatsapp_window');
         }
 
+        // Envia Gmail sempre na mesma janela 'gmail_window'
         function enviarEmail(rowIndex, documento, email) {
-            // Tenta detectar e-mail diretamente do row, caso o parâmetro tenha problema
             const row = rawData[rowIndex];
             const emailCol = getEmailCol(row);
             const emailReal = emailCol ? (String(row[emailCol] || '').trim()) : '';
@@ -1132,7 +1327,61 @@
                 .replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
             const assunto = `Aviso: Documento ${documento} - ${row.CLIENTE}`;
             const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailFinal)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemFinal)}`;
+            // Sempre usa a mesma janela 'gmail_window' — não abre nova aba
             window.open(url, 'gmail_window');
+        }
+
+        // ============================================
+        // ENVIO EM MASSA
+        // ============================================
+        let bulkRunning = false;
+
+        async function envioEmMassa(canal) {
+            if (bulkRunning) { showNotification('Envio em massa já em andamento. Aguarde.', true); return; }
+            if (commFilteredData.length === 0) { showNotification('Nenhum cliente na lista. Selecione filtros primeiro.', true); return; }
+
+            const lista = canal === 'whatsapp'
+                ? commFilteredData.filter(i => i.whatsapp !== '-' && i.whatsapp.length > 5)
+                : commFilteredData.filter(i => i.email !== '-' && i.email.includes('@'));
+
+            if (lista.length === 0) {
+                showNotification(`Nenhum cliente com ${canal === 'whatsapp' ? 'WhatsApp' : 'e-mail'} cadastrado.`, true);
+                return;
+            }
+
+            const confirmar = confirm(`Enviar mensagem para ${lista.length} cliente(s) via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}?\n\nCada mensagem será aberta na mesma janela. Você precisará confirmar o envio em cada uma.`);
+            if (!confirmar) return;
+
+            bulkRunning = true;
+            const statusDiv = document.getElementById('bulk-status');
+            const statusText = document.getElementById('bulk-status-text');
+            const progressBar = document.getElementById('bulk-progress-bar');
+            statusDiv.classList.remove('hidden');
+
+            for (let i = 0; i < lista.length; i++) {
+                const item = lista[i];
+                const pct = Math.round(((i + 1) / lista.length) * 100);
+                statusText.textContent = `Enviando ${i + 1}/${lista.length}: ${item.cliente}`;
+                progressBar.style.width = pct + '%';
+
+                if (canal === 'whatsapp') {
+                    enviarWhatsApp(item.index, item.documento, item.whatsapp);
+                } else {
+                    enviarEmail(item.index, item.documento, item.email);
+                }
+
+                // Aguarda 2 segundos entre cada envio para não sobrecarregar
+                if (i < lista.length - 1) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+
+            statusText.textContent = `✓ Concluído: ${lista.length} mensagens abertas`;
+            progressBar.style.width = '100%';
+            bulkRunning = false;
+            showNotification(`✅ Envio em massa concluído: ${lista.length} mensagens`, false, `Via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}`);
+
+            setTimeout(() => { statusDiv.classList.add('hidden'); progressBar.style.width = '0%'; }, 5000);
         }
 
         // ============================================
@@ -1180,6 +1429,209 @@
                 showNotification(`✅ Distribuição concluída! ${empresasComTarefas.size} empresas para ${n2[statusAlvo]||statusAlvo}`, false, `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
             } catch (error) { showNotification('Erro ao realizar sorteio: ' + error.message, true); }
             finally { loadingOverlay.style.display = 'none'; }
+        }
+
+        // ============================================
+        // ABA MONITOR — Dashboard de Desempenho
+        // ============================================
+        function setMonitorPeriodo(periodo) {
+            monitorPeriodoAtual = periodo;
+            ['diario','semanal','mensal'].forEach(p => {
+                document.getElementById('monitor-btn-' + p).classList.remove('monitor-tab-active');
+            });
+            document.getElementById('monitor-btn-' + periodo).classList.add('monitor-tab-active');
+            carregarMonitor();
+        }
+
+        async function registrarDesempenhoHoje() {
+            if (currentUser !== 'Ingrid' && currentUser !== 'Nikolas') {
+                showNotification('Acesso restrito ao Monitor.', true); return;
+            }
+            const hoje = new Date().toISOString().slice(0, 10);
+            const registros = [];
+            ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                const tarefas = distribuicaoAtual[colab] || [];
+                const total = tarefas.length;
+                let concluidas = 0;
+                tarefas.forEach(t => {
+                    const linha = rawData[t.rowIndex];
+                    const v = String(linha ? linha[t.documento] : '').toUpperCase();
+                    if (v === 'CONCLUIDO' || v === 'CONCLUÍDO') concluidas++;
+                });
+                registros.push({
+                    data: hoje,
+                    colaborador: colab,
+                    total_tarefas: total,
+                    concluidas: concluidas,
+                    percentual: total > 0 ? Math.round((concluidas / total) * 100) : 0,
+                    registrado_por: currentUser
+                });
+            });
+
+            try {
+                // Deleta registros do dia atual para evitar duplicatas
+                await supabaseClient.from('monitor_desempenho').delete().eq('data', hoje);
+                const { error } = await supabaseClient.from('monitor_desempenho').insert(registros);
+                if (error) throw error;
+                showNotification('✅ Desempenho de hoje registrado com sucesso!', false, hoje);
+                carregarMonitor();
+            } catch (err) {
+                console.error('Erro ao registrar desempenho:', err);
+                showNotification('Erro ao registrar desempenho: ' + err.message, true);
+            }
+        }
+
+        async function carregarMonitor() {
+            if (currentUser !== 'Ingrid' && currentUser !== 'Nikolas') return;
+
+            const hoje = new Date();
+            let dataInicio;
+
+            if (monitorPeriodoAtual === 'diario') {
+                dataInicio = hoje.toISOString().slice(0, 10);
+            } else if (monitorPeriodoAtual === 'semanal') {
+                const d = new Date(hoje);
+                d.setDate(d.getDate() - 6);
+                dataInicio = d.toISOString().slice(0, 10);
+            } else {
+                const d = new Date(hoje);
+                d.setDate(d.getDate() - 29);
+                dataInicio = d.toISOString().slice(0, 10);
+            }
+
+            const periodoLabel = { diario: 'Hoje', semanal: 'Últimos 7 dias', mensal: 'Últimos 30 dias' };
+            document.getElementById('monitor-chart-title').textContent = `Tarefas Concluídas — ${periodoLabel[monitorPeriodoAtual]}`;
+            document.getElementById('monitor-historico-info').textContent = periodoLabel[monitorPeriodoAtual];
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('monitor_desempenho')
+                    .select('*')
+                    .gte('data', dataInicio)
+                    .order('data', { ascending: false });
+
+                if (error) throw error;
+
+                const registros = data || [];
+
+                // Agrega por colaborador
+                const agrupado = {};
+                ['Jordan', 'Sirlene', 'Ingrid'].forEach(c => {
+                    agrupado[c] = { total: 0, concluidas: 0, registros: 0 };
+                });
+                registros.forEach(r => {
+                    if (agrupado[r.colaborador]) {
+                        agrupado[r.colaborador].total += r.total_tarefas;
+                        agrupado[r.colaborador].concluidas += r.concluidas;
+                        agrupado[r.colaborador].registros++;
+                    }
+                });
+
+                // Renderiza cards
+                const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
+                const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8' };
+                const coresBorder = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
+
+                document.getElementById('monitor-cards').innerHTML = ['Jordan', 'Sirlene', 'Ingrid'].map(colab => {
+                    const d = agrupado[colab];
+                    const pct = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
+                    return `<div class="colab-card" style="border-top: 6px solid ${cores[colab]}; background: ${coresLight[colab]};">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="text-[10px] font-black uppercase tracking-wider" style="color:${cores[colab]}">${colab}</h3>
+                                <p class="text-[9px] text-slate-400">${periodoLabel[monitorPeriodoAtual]}</p>
+                            </div>
+                            <div class="text-2xl font-black" style="color:${cores[colab]}">${pct}%</div>
+                        </div>
+                        <div class="progress-bar rounded-full overflow-hidden" style="background:#e2e8f0">
+                            <div class="progress-bar" style="width:${pct}%;background:${cores[colab]}"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 text-[9px] text-slate-500">
+                            <span>Concluídas: <strong>${d.concluidas}</strong></span>
+                            <span>Total: <strong>${d.total}</strong></span>
+                            <span>Dias: <strong>${d.registros}</strong></span>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                // Gráfico de barras
+                const labelsBar = ['Jordan', 'Sirlene', 'Ingrid'];
+                const dataBar = labelsBar.map(c => agrupado[c].concluidas);
+                const bgBar = ['#3b82f6', '#a855f7', '#ec4899'];
+
+                if (monitorBarChart) monitorBarChart.destroy();
+                const ctxBar = document.getElementById('monitor-bar-chart').getContext('2d');
+                monitorBarChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsBar,
+                        datasets: [{
+                            label: 'Tarefas Concluídas',
+                            data: dataBar,
+                            backgroundColor: bgBar,
+                            borderRadius: 8,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        }
+                    }
+                });
+
+                // Gráfico de pizza
+                const dataPie = labelsBar.map(c => agrupado[c].total > 0 ? agrupado[c].total : 0);
+                if (monitorPieChart) monitorPieChart.destroy();
+                const ctxPie = document.getElementById('monitor-pie-chart').getContext('2d');
+                monitorPieChart = new Chart(ctxPie, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labelsBar,
+                        datasets: [{
+                            data: dataPie,
+                            backgroundColor: bgBar,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { font: { size: 10 } } }
+                        }
+                    }
+                });
+
+                // Tabela de histórico
+                const tbody = document.getElementById('monitor-historico-body');
+                if (registros.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
+                } else {
+                    tbody.innerHTML = registros.map(r => {
+                        const pctR = r.total_tarefas > 0 ? Math.round((r.concluidas / r.total_tarefas) * 100) : 0;
+                        const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
+                        return `<tr>
+                            <td class="font-mono text-xs">${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                            <td class="font-bold ${corColab[r.colaborador] || ''}">${r.colaborador}</td>
+                            <td>${r.total_tarefas}</td>
+                            <td class="text-emerald-600 font-bold">${r.concluidas}</td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${pctR}%"></div></div>
+                                    <span class="text-xs font-bold">${pctR}%</span>
+                                </div>
+                            </td>
+                            <td class="text-slate-400 text-xs">${r.registrado_por}</td>
+                        </tr>`;
+                    }).join('');
+                }
+
+            } catch (err) {
+                console.error('Erro ao carregar monitor:', err);
+                document.getElementById('monitor-historico-body').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Erro ao carregar dados. Verifique a tabela no Supabase.</td></tr>';
+            }
         }
     </script>
 </body>
