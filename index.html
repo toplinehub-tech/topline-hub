@@ -436,68 +436,59 @@
             </div>
 
             <!-- ABA MONITOR (apenas Ingrid e Nikolas) -->
-            <div id="view-monitor" class="hidden">
-                <div class="white-card p-6 mb-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
-                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <div id="view-monitor" class="hidden max-w-5xl mx-auto">
+                <div class="white-card p-4 mb-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             </div>
                             <div>
-                                <h2 class="text-sm font-black text-slate-700 uppercase tracking-tight">Monitor de Desempenho</h2>
-                                <p class="text-[10px] text-slate-400">Acompanhamento de produtividade dos colaboradores</p>
+                                <h2 class="text-xs font-black text-slate-700 uppercase tracking-tight">Monitor de Desempenho</h2>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <!-- Seletor de período -->
-                            <div class="flex gap-2">
-                                <button onclick="setMonitorPeriodo('diario')" id="monitor-btn-diario" class="monitor-tab-btn monitor-tab-active">Diário</button>
-                                <button onclick="setMonitorPeriodo('semanal')" id="monitor-btn-semanal" class="monitor-tab-btn">Semanal</button>
-                                <button onclick="setMonitorPeriodo('mensal')" id="monitor-btn-mensal" class="monitor-tab-btn">Mensal</button>
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1">
+                                <button onclick="setMonitorPeriodo('diario')" id="monitor-btn-diario" class="monitor-tab-btn monitor-tab-active text-[9px] px-2 py-1">Diário</button>
+                                <button onclick="setMonitorPeriodo('semanal')" id="monitor-btn-semanal" class="monitor-tab-btn text-[9px] px-2 py-1">Semanal</button>
+                                <button onclick="setMonitorPeriodo('mensal')" id="monitor-btn-mensal" class="monitor-tab-btn text-[9px] px-2 py-1">Mensal</button>
                             </div>
-                            <button onclick="registrarDesempenhoHoje()" class="btn-mini bg-indigo-500 text-white border-indigo-600 hover:bg-indigo-600">+ Registrar Hoje</button>
+                            <button onclick="registrarDesempenhoHoje()" class="btn-mini bg-indigo-500 text-white border-indigo-600 hover:bg-indigo-600 text-[9px] px-2 py-1">+ Registrar Hoje</button>
                         </div>
                     </div>
 
-                    <!-- Cards de resumo por colaborador -->
-                    <div class="grid grid-cols-3 gap-4 mb-6" id="monitor-cards">
-                        <!-- Preenchido via JS -->
+                    <div class="grid grid-cols-3 gap-3 mb-4" id="monitor-cards"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="white-card p-4">
+                        <h3 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider" id="monitor-chart-title">Tarefas Concluídas</h3>
+                        <div style="height: 150px;"><canvas id="monitor-bar-chart"></canvas></div>
+                    </div>
+                    <div class="white-card p-4">
+                        <h3 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Distribuição</h3>
+                        <div style="height: 150px;"><canvas id="monitor-pie-chart"></canvas></div>
                     </div>
                 </div>
 
-                <!-- Gráficos -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div class="white-card p-6">
-                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider" id="monitor-chart-title">Tarefas Concluídas — Hoje</h3>
-                        <canvas id="monitor-bar-chart" height="200"></canvas>
+                <div class="white-card p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Histórico</h3>
+                        <span id="monitor-historico-info" class="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full"></span>
                     </div>
-                    <div class="white-card p-6">
-                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">Distribuição por Colaborador</h3>
-                        <canvas id="monitor-pie-chart" height="200"></canvas>
-                    </div>
-                </div>
-
-                <!-- Tabela de histórico -->
-                <div class="white-card p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Histórico de Registros</h3>
-                        <span id="monitor-historico-info" class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full"></span>
-                    </div>
-                    <div class="scroll-container" style="max-height: 300px;">
-                        <table class="w-full text-left">
+                    <div class="scroll-container" style="max-height: 200px;">
+                        <table class="w-full text-left text-[10px]">
                             <thead>
                                 <tr>
                                     <th>Data</th>
                                     <th>Colaborador</th>
-                                    <th>Tarefas Totais</th>
+                                    <th>Total</th>
                                     <th>Concluídas</th>
-                                    <th>% Conclusão</th>
-                                    <th>Registrado por</th>
+                                    <th>%</th>
+                                    <th>Por</th>
                                 </tr>
                             </thead>
-                            <tbody id="monitor-historico-body">
-                                <tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando dados...</td></tr>
-                            </tbody>
+                            <tbody id="monitor-historico-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -550,9 +541,9 @@
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         const MENSAGENS_PADRAO = {
-            vencido: "Olá! Informamos que o documento {DOC} da empresa {CLIENTE} está VENCIDO ({DATA}). Favor providenciar a renovação.",
-            '30': "Olá! Informamos que o documento {DOC} da empresa {CLIENTE} vencerá em 30 dias ({DATA}). Já estamos em fase de acompanhamento.",
-            '60': "Olá! Informamos que o documento {DOC} da empresa {CLIENTE} vencerá em 60 dias ({DATA})."
+            vencido: "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.",
+            '30': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.",
+            '60': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes."
         };
 
         // ============================================
@@ -1292,7 +1283,11 @@
             }).join('');
         }
 
-        // Envia WhatsApp sempre na mesma janela 'whatsapp_window'
+        // Variáveis para controlar as janelas únicas
+        let whatsappWindow = null;
+        let gmailWindow = null;
+
+        // Envia WhatsApp sempre na mesma janela
         function enviarWhatsApp(rowIndex, documento, whatsapp) {
             if (!whatsapp || whatsapp === '-') { showNotification('Número de WhatsApp não configurado para este cliente', true); return; }
             const row = rawData[rowIndex];
@@ -1304,11 +1299,18 @@
                 .replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
             const numeroLimpo = String(whatsapp).replace(/\D/g, '');
             const fone = numeroLimpo.length <= 11 ? '55' + numeroLimpo : numeroLimpo;
-            // Sempre usa a mesma janela 'whatsapp_window' — não abre nova aba
-            window.open(`https://web.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(mensagemFinal)}`, 'whatsapp_window');
+            
+            const url = `https://web.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(mensagemFinal)}`;
+            
+            if (!whatsappWindow || whatsappWindow.closed) {
+                whatsappWindow = window.open(url, 'whatsapp_window');
+            } else {
+                whatsappWindow.location.href = url;
+                whatsappWindow.focus();
+            }
         }
 
-        // Envia Gmail sempre na mesma janela 'gmail_window'
+        // Envia Gmail sempre na mesma janela
         function enviarEmail(rowIndex, documento, email) {
             const row = rawData[rowIndex];
             const emailCol = getEmailCol(row);
@@ -1327,8 +1329,13 @@
                 .replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
             const assunto = `Aviso: Documento ${documento} - ${row.CLIENTE}`;
             const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailFinal)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemFinal)}`;
-            // Sempre usa a mesma janela 'gmail_window' — não abre nova aba
-            window.open(url, 'gmail_window');
+            
+            if (!gmailWindow || gmailWindow.closed) {
+                gmailWindow = window.open(url, 'gmail_window');
+            } else {
+                gmailWindow.location.href = url;
+                gmailWindow.focus();
+            }
         }
 
         // ============================================
@@ -1370,9 +1377,9 @@
                     enviarEmail(item.index, item.documento, item.email);
                 }
 
-                // Aguarda 2 segundos entre cada envio para não sobrecarregar
+                // Aguarda 4 segundos entre cada envio para garantir que a aba carregue e processe a URL
                 if (i < lista.length - 1) {
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 4000));
                 }
             }
 
