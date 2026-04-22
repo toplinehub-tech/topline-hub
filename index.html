@@ -269,13 +269,24 @@
                             </div>
                         </div>
                     </div>
-                    <div class="white-card p-6 bg-gradient-to-br from-emerald-50 to-teal-50 flex flex-col justify-center border-emerald-100">
-                        <h3 class="text-emerald-800 font-extrabold text-lg mb-1 leading-none">Desempenho do Dia</h3>
-                        <p class="text-slate-500 text-[11px] leading-relaxed mt-2">Acompanhe a produtividade da equipe em tempo real.</p>
-                        <div class="mt-4 flex gap-2">
-                            <span class="px-3 py-1 bg-white border border-emerald-100 rounded-full text-[9px] font-bold text-emerald-600 uppercase shadow-sm">Live Sync</span>
-                            <span id="last-update-tag" class="px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-bold text-slate-400 uppercase shadow-sm font-mono">Iniciando...</span>
+                    <div class="white-card p-4 bg-gradient-to-br from-sky-50 to-blue-50 flex flex-col justify-center border-sky-100 relative overflow-hidden">
+                        <div class="flex justify-between items-start relative z-10">
+                            <div>
+                                <h3 class="text-sky-800 font-black text-xs uppercase tracking-wider mb-1">Clima Zona Leste</h3>
+                                <p class="text-slate-500 text-[10px]">São Paulo, SP</p>
+                            </div>
+                            <div id="weather-icon" class="text-3xl">☀️</div>
                         </div>
+                        <div class="mt-3 flex items-end gap-2 relative z-10">
+                            <span id="weather-temp" class="text-3xl font-black text-slate-800 leading-none">--°C</span>
+                            <span id="weather-desc" class="text-[10px] font-bold text-sky-600 uppercase pb-1">Carregando...</span>
+                        </div>
+                        <div class="mt-4 flex gap-2 relative z-10">
+                            <span class="px-2 py-1 bg-white/80 backdrop-blur-sm border border-sky-100 rounded-lg text-[8px] font-bold text-sky-600 uppercase shadow-sm">Umidade: <span id="weather-hum">--%</span></span>
+                            <span id="last-update-tag" class="px-2 py-1 bg-white/80 backdrop-blur-sm border border-slate-100 rounded-lg text-[8px] font-bold text-slate-400 uppercase shadow-sm font-mono">--:--</span>
+                        </div>
+                        <!-- Decoração de fundo -->
+                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-sky-200/20 rounded-full blur-2xl"></div>
                     </div>
                 </div>
                 <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
@@ -541,9 +552,9 @@
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         const MENSAGENS_PADRAO = {
-            vencido: "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.",
-            '30': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.",
-            '60': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes."
+            vencido: "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline.",
+            '30': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline.",
+            '60': "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline."
         };
 
         // ============================================
@@ -989,7 +1000,7 @@
             return 'pendente';
         }
 
-        function atualizarDashboardDesempenho() {
+        async function atualizarDashboardDesempenho() {
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
                 const tarefasColab = distribuicaoAtual[colab] || [];
                 const total = tarefasColab.length;
@@ -1006,6 +1017,28 @@
                 const cEl = document.getElementById(`${n}-concluidas`); if (cEl) cEl.innerText = concluidas;
                 const tEl = document.getElementById(`${n}-total`); if (tEl) tEl.innerText = total;
             });
+
+            // Busca Clima (Zona Leste SP)
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5329&longitude=-46.4428&current=temperature_2m,relative_humidity_2m,weather_code&timezone=America%2FSao_Paulo');
+                const data = await res.json();
+                if (data && data.current) {
+                    const temp = Math.round(data.current.temperature_2m);
+                    const hum = data.current.relative_humidity_2m;
+                    const code = data.current.weather_code;
+                    document.getElementById('weather-temp').innerText = temp + '°C';
+                    document.getElementById('weather-hum').innerText = hum + '%';
+                    let desc = 'Limpo'; let icon = '☀️';
+                    if (code >= 1 && code <= 3) { desc = 'Parcial'; icon = '⛅'; }
+                    else if (code >= 45 && code <= 48) { desc = 'Nevoeiro'; icon = '🌫️'; }
+                    else if (code >= 51 && code <= 67) { desc = 'Chuva'; icon = '🌧️'; }
+                    else if (code >= 71 && code <= 86) { desc = 'Neve'; icon = '❄️'; }
+                    else if (code >= 95) { desc = 'Tempestade'; icon = '⛈️'; }
+                    document.getElementById('weather-desc').innerText = desc;
+                    document.getElementById('weather-icon').innerText = icon;
+                }
+            } catch (e) { console.error('Erro clima:', e); }
+            document.getElementById('last-update-tag').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         }
 
         function updateAnalytics() {
@@ -1029,7 +1062,6 @@
             document.getElementById('circle-analise').setAttribute('stroke-dashoffset', `-${((c.vencido+c.andamento)/safe)*100}`);
             document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${(c.analise/safe)*100} 100`);
             document.getElementById('dash-percent').innerText = total > 0 ? Math.round(((total-c.vencido)/total)*100)+"%" : "100%";
-            document.getElementById('last-update-tag').innerText = "Update: " + new Date().toLocaleTimeString('pt-BR');
         }
 
         function toggleStatusFilter(s) { 
@@ -1107,8 +1139,59 @@
             const q = document.getElementById('searchSenhas').value.toLowerCase();
             if (!passwordData.length) return;
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
-                <tr><td class="col-fixed">${p.CLIENTE||'-'}</td><td>${p.CNPJ||'-'}</td><td>${p.CCM||'-'}</td>
-                ${["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => `<td>${p[c]||'-'}</td>`).join('')}</tr>`).join('');
+                <tr>
+                    <td class="col-fixed font-bold text-slate-700">${p.CLIENTE||'-'}</td>
+                    <td class="text-[10px] text-slate-500">${p.CNPJ||'-'}</td>
+                    <td class="text-[10px] text-slate-500">${p.CCM||'-'}</td>
+                    ${["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => {
+                        const val = p[c] || '-';
+                        const isSenha = val !== '-' && val.length > 0;
+                        return `<td class="${isSenha ? 'bg-amber-50/50' : ''}">
+                            <button onclick="abrirModalSenha('${p.CLIENTE}', '${c}', '${val}')" 
+                                    class="${isSenha ? 'font-black text-amber-600 hover:text-amber-700' : 'text-slate-300'} transition-all">
+                                ${val}
+                            </button>
+                        </td>`;
+                    }).join('')}
+                </tr>`).join('');
+        }
+
+        function abrirModalSenha(cliente, campo, valor) {
+            if (valor === '-') { showNotification('Nenhuma senha cadastrada neste campo', true); return; }
+            
+            const modal = document.getElementById('editModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            const saveBtn = document.getElementById('modalSaveBtn');
+
+            title.innerText = `Ações: ${campo}`;
+            content.innerHTML = `
+                <div class="text-center">
+                    <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">${cliente}</p>
+                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 mb-6">
+                        <span class="text-xl font-black text-slate-800 tracking-widest">${valor}</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="copyToClipboard('${valor}')" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-slate-900 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                            Copiar Senha
+                        </button>
+                        <button onclick="window.open('https://docs.google.com/spreadsheets/d/1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/edit#gid=49695199', '_blank')" class="w-full bg-white border-2 border-slate-200 text-slate-600 py-4 rounded-2xl font-bold uppercase text-[10px] hover:bg-slate-50 transition">
+                            Alterar na Planilha
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            saveBtn.classList.add('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Senha copiada para a área de transferência!');
+                closeModal();
+            });
         }
 
         // ============================================
@@ -1291,23 +1374,26 @@
         function enviarWhatsApp(rowIndex, documento, whatsapp) {
             if (!whatsapp || whatsapp === '-') { showNotification('Número de WhatsApp não configurado para este cliente', true); return; }
             const row = rawData[rowIndex];
+            
+            // Busca a data correta do documento na linha original
+            let dataDoc = 'N/A';
+            if (row && row[documento]) {
+                dataDoc = row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : String(row[documento]);
+            }
+
             const status = getStatus(row[documento], row, documento);
             const mensagem = MENSAGENS_PADRAO[status] || MENSAGENS_PADRAO['60'];
             const mensagemFinal = mensagem
-                .replace('{DOC}', documento)
-                .replace('{CLIENTE}', row.CLIENTE)
-                .replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
+                .replace(/{DOC}/g, documento)
+                .replace(/{CLIENTE}/g, row.CLIENTE)
+                .replace(/{DATA}/g, dataDoc);
+            
             const numeroLimpo = String(whatsapp).replace(/\D/g, '');
             const fone = numeroLimpo.length <= 11 ? '55' + numeroLimpo : numeroLimpo;
-            
             const url = `https://web.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(mensagemFinal)}`;
             
-            if (!whatsappWindow || whatsappWindow.closed) {
-                whatsappWindow = window.open(url, 'whatsapp_window');
-            } else {
-                whatsappWindow.location.href = url;
-                whatsappWindow.focus();
-            }
+            // Técnica de aba única via window.open com nome fixo
+            window.open(url, 'whatsapp_window');
         }
 
         // Envia Gmail sempre na mesma janela
@@ -1321,21 +1407,23 @@
                 showNotification('E-mail não cadastrado para este cliente', true);
                 return;
             }
+
+            let dataDoc = 'N/A';
+            if (row && row[documento]) {
+                dataDoc = row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : String(row[documento]);
+            }
+
             const status = getStatus(row[documento], row, documento);
             const mensagem = MENSAGENS_PADRAO[status] || MENSAGENS_PADRAO['60'];
             const mensagemFinal = mensagem
-                .replace('{DOC}', documento)
-                .replace('{CLIENTE}', row.CLIENTE)
-                .replace('{DATA}', row[documento] instanceof Date ? row[documento].toLocaleDateString('pt-BR') : 'N/A');
+                .replace(/{DOC}/g, documento)
+                .replace(/{CLIENTE}/g, row.CLIENTE)
+                .replace(/{DATA}/g, dataDoc);
+            
             const assunto = `Aviso: Documento ${documento} - ${row.CLIENTE}`;
             const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailFinal)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemFinal)}`;
             
-            if (!gmailWindow || gmailWindow.closed) {
-                gmailWindow = window.open(url, 'gmail_window');
-            } else {
-                gmailWindow.location.href = url;
-                gmailWindow.focus();
-            }
+            window.open(url, 'gmail_window');
         }
 
         // ============================================
