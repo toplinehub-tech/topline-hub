@@ -146,6 +146,54 @@
         .login-btn-item:hover { background: #f0fdf4; border-color: #10b981; color: #065f46; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
         .login-btn-item svg { width: 16px; height: 16px; color: #64748b; }
         .login-btn-item:hover svg { color: #10b981; }
+        /* DARK MODE STYLES */
+        body.dark-mode { background-color: #0f172a; color: #e2e8f0; }
+        body.dark-mode .white-card { background: #1e293b; border-color: rgba(15, 23, 42, 0.3); }
+        body.dark-mode .scroll-container { background: #1e293b; border-color: #334155; }
+        body.dark-mode th { background: #0f172a; border-color: #334155; }
+        body.dark-mode td { border-color: #334155; }
+        body.dark-mode .col-fixed { background: #1e293b !important; border-color: #334155; }
+        body.dark-mode input, body.dark-mode textarea, body.dark-mode select { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        body.dark-mode input:focus, body.dark-mode textarea:focus, body.dark-mode select:focus { border-color: #10b981; }
+        body.dark-mode .user-badge { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        body.dark-mode .btn-mini { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        body.dark-mode .btn-mini:hover { background: #334155; }
+        body.dark-mode .bg-slate-50 { background: #0f172a !important; }
+        body.dark-mode .bg-orange-50 { background: #7c2d12 !important; }
+        body.dark-mode .bg-purple-50 { background: #3f0f5c !important; }
+        body.dark-mode .bg-emerald-50 { background: #064e3b !important; }
+        body.dark-mode .text-slate-400 { color: #94a3b8; }
+        body.dark-mode .text-slate-500 { color: #64748b; }
+        body.dark-mode .text-slate-600 { color: #475569; }
+        body.dark-mode .text-slate-700 { color: #334155; }
+        body.dark-mode .text-slate-800 { color: #1e293b; }
+        body.dark-mode #notification-toast { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        body.dark-mode .loading-spinner { background: #1e293b; }
+        body.dark-mode .option-card { background: #0f172a; border-color: #334155; }
+        
+        .dark-mode-toggle {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px; border-radius: 10px; font-size: 10px; font-weight: 800;
+            background: white; color: #334155; border: 1.5px solid #e2e8f0;
+            cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+            margin-top: 8px;
+        }
+        .dark-mode-toggle:hover { background: #f0fdf4; border-color: #10b981; color: #065f46; }
+        body.dark-mode .dark-mode-toggle { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        body.dark-mode .dark-mode-toggle:hover { background: #334155; border-color: #10b981; }
+
+        /* TOOLTIP PARA CNPJ */
+        .cnpj-cell { cursor: copy; position: relative; }
+        .cnpj-tooltip {
+            position: fixed; background: #10b981; color: white; padding: 6px 12px; border-radius: 6px;
+            font-size: 10px; font-weight: 800; pointer-events: none; z-index: 10000;
+            animation: tooltipFade 0.3s ease-in-out;
+        }
+        @keyframes tooltipFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
     </style>
 </head>
 <body>
@@ -230,31 +278,36 @@
 
     <div id="main-app" style="display: none;">
         <div class="p-6 max-w-[1600px] mx-auto">
-            <header class="white-card p-5 flex justify-between items-center mb-6">
-                <div>
-                    <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                    <nav class="flex gap-6 mt-3" id="main-nav">
-                        <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                        <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                        <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
-                        <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
-                        <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
-                        <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
-                        <!-- Aba Monitor: visível apenas para Ingrid e Nikolas -->
-                        <button onclick="switchTab('monitor')" id="tab-monitor" class="hidden text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
-                        <!-- Aba Logs: visível apenas para Nikolas e Ingrid -->
-                        <button onclick="switchTab('logs')" id="tab-logs" class="hidden text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
-                    </nav>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="user-badge flex items-center gap-2">
-                        <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        <span id="current-user-name">Usuário</span>
+            <header class="white-card p-5 mb-6">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                     </div>
-                    <button onclick="logout()" class="p-2 hover:bg-slate-100 rounded-full transition text-slate-400 hover:text-red-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    </button>
+                    <div class="flex items-start gap-3">
+                        <div class="flex flex-col items-end">
+                            <div class="user-badge flex items-center gap-2 mb-2">
+                                <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                <span id="current-user-name">Usuário</span>
+                            </div>
+                            <button onclick="toggleDarkMode()" class="dark-mode-toggle">🌙 Modo Escuro</button>
+                        </div>
+                        <button onclick="logout()" class="p-2 hover:bg-slate-100 rounded-full transition text-slate-400 hover:text-red-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        </button>
+                    </div>
                 </div>
+                <nav class="flex gap-6 mb-4" id="main-nav">
+                    <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
+                    <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
+                    <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                    <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
+                    <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
+                    <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
+                    <!-- Aba Monitor: visível apenas para Ingrid e Nikolas -->
+                    <button onclick="switchTab('monitor')" id="tab-monitor" class="hidden text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
+                    <!-- Aba Logs: visível apenas para Nikolas e Ingrid -->
+                    <button onclick="switchTab('logs')" id="tab-logs" class="hidden text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
+                </nav>
                 <!-- Barra de pesquisa: visível apenas na aba Painel -->
                 <div id="search-bar-wrapper" class="visible flex items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                     <div class="flex items-center gap-3 flex-1">
@@ -524,12 +577,11 @@
                                     <th>Colaborador</th>
                                     <th class="col-fixed">Cliente</th>
                                     <th>Documento</th>
-                                    <th>Status</th>
                                     <th>Observação</th>
                                 </tr>
                             </thead>
                             <tbody id="historicoBody">
-                                <tr><td colspan="6" class="text-center py-10 text-slate-400">Carregando histórico...</td></tr>
+                                <tr><td colspan="5" class="text-center py-10 text-slate-400">Carregando histórico...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -910,6 +962,14 @@
             setInterval(() => fetchGoogleSheets(false), 60000);
             setInterval(() => carregarDistribuicaoGlobal(), 30000);
             setTimeout(() => { carregarDistribuicaoGlobal(); }, 2000);
+            
+            // Initialize dark mode
+            initDarkMode();
+            
+            // Schedule automatic sorteio for weekdays at 19h
+            if (PERFIS_SORTEIO.includes(currentUser)) {
+                scheduleAutomaticSorteio();
+            }
         }
 
         function logout() {
@@ -973,7 +1033,7 @@
         async function carregarLogs() {
             const tbody = document.getElementById('logsBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
             try {
                 const { data, error } = await supabaseClient.from('logs_sistema').select('*').order('created_at', { ascending: false }).limit(500);
                 if (error) { console.error('Erro SQL:', error); throw error; }
@@ -1049,7 +1109,7 @@
         async function carregarHistorico() {
             const tbody = document.getElementById('historicoBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
             try {
                 const { data, error } = await supabaseClient.from('historico_observacoes').select('*').order('created_at', { ascending: false }).limit(500);
                 if (error) { console.error('Erro SQL:', error); throw error; }
@@ -1066,7 +1126,7 @@
             const tbody = document.getElementById('historicoBody');
             if (!tbody) return;
             if (!dados || dados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhuma observação registrada ainda.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma observação registrada ainda.</td></tr>';
                 return;
             }
             const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600' };
@@ -1082,7 +1142,6 @@
                     <td class="font-bold ${corUser}">${h.usuario || '-'}</td>
                     <td class="font-bold text-slate-700 col-fixed">${h.cliente || '-'}</td>
                     <td class="text-xs text-emerald-600 font-bold">${h.documento || '-'}</td>
-                    <td><span class="px-2 py-1 rounded-full text-[9px] font-bold ${corStatus}">${statusLabel}</span></td>
                     <td class="text-xs text-slate-600 max-w-xs">${h.observacao || '-'}</td>
                 </tr>`;
             }).join('');
@@ -1385,7 +1444,8 @@
 
                 // Registrar log com valores antigo e novo
                 const detalheLog = `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`;
-                await registrarLog(`Alteração: ${selectedOption}`, cliente, c, detalheLog, valorAnterior, valorParaSalvar);
+                const tipoAlteracao = selectedOption === 'analise' ? 'Análise' : selectedOption === 'andamento' ? 'Andamento' : selectedOption === 'data' ? 'Data' : selectedOption;
+                await registrarLog(`Alteração: ${tipoAlteracao}`, cliente, c, detalheLog, valorAnterior, valorParaSalvar);
 
                 // Salvar observação no histórico (sempre, mesmo que vazia)
                 await salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption);
@@ -1418,12 +1478,33 @@
             try {
                 const hoje = new Date().toISOString().slice(0, 10);
                 const cliente = rawData[rowIndex]?.CLIENTE || '';
+                
+                // Registrar no logs_sistema
                 await supabaseClient.from('logs_sistema').insert([{
                     usuario: currentUser,
                     acao: 'Tarefa do sorteio realizada',
                     cliente: cliente,
                     documento: documento,
-                    detalhes: `Tarefa atribuída a ${colaborador} foi modificada (analise/andamento/data) — considerada como atividade realizada em ${hoje}`
+                    detalhes: `Tarefa atribuida a ${colaborador} foi modificada (analise/andamento/data) - considerada como atividade realizada em ${hoje}`
+                }]);
+                
+                // Registrar como tarefa executada no monitor
+                const tarefasColab = distribuicaoAtual[colaborador] || [];
+                const total = tarefasColab.length;
+                let concluidas = 0;
+                tarefasColab.forEach(t => {
+                    const linha = rawData[t.rowIndex];
+                    const v = String(linha ? linha[t.documento] : '').toUpperCase();
+                    if (v === 'CONCLUIDO' || v === 'CONCLUIDO' || v === 'ANALISE' || v === 'EM ANDAMENTO') concluidas++;
+                });
+                
+                await supabaseClient.from('monitor_desempenho').insert([{
+                    data: hoje,
+                    colaborador: colaborador,
+                    total_tarefas: total,
+                    concluidas: concluidas,
+                    percentual: total > 0 ? Math.round((concluidas / total) * 100) : 0,
+                    registrado_por: currentUser
                 }]);
             } catch(e) {
                 console.warn('Erro ao registrar atividade:', e);
@@ -1611,7 +1692,7 @@
             document.getElementById('senhasBody').innerHTML = passwordData.filter(p => p.CLIENTE?.toLowerCase().includes(q)).map(p => `
                 <tr>
                     <td class="col-fixed font-bold text-slate-700">${p.CLIENTE||'-'}</td>
-                    <td class="text-[10px] text-slate-500">${p.CNPJ||'-'}</td>
+                    <td class="text-[10px] text-slate-500 cnpj-cell" onclick="copiarCNPJ('${p.CNPJ||'-'}', event)" title="Clique para copiar">${p.CNPJ||'-'}</td>
                     <td class="text-[10px] text-slate-500">${p.CCM||'-'}</td>
                     ${["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => {
                         const val = p[c] || '-';
@@ -2207,6 +2288,111 @@
                 document.getElementById('monitor-historico-body').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Erro ao carregar dados. Verifique a tabela no Supabase.</td></tr>';
             }
         }
+
+        // ============================================
+        // DARK MODE TOGGLE
+        // ============================================
+        function toggleDarkMode() {
+            const isDarkMode = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode ? 'true' : 'false');
+            updateDarkModeButton();
+        }
+
+        function updateDarkModeButton() {
+            const btn = document.querySelector('.dark-mode-toggle');
+            if (btn) {
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                btn.innerHTML = isDarkMode ? '☀️ Modo Claro' : '🌙 Modo Escuro';
+            }
+        }
+
+        function initDarkMode() {
+            const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (savedDarkMode) {
+                document.body.classList.add('dark-mode');
+            }
+            updateDarkModeButton();
+        }
+
+        // ============================================
+        // COPY CNPJ WITH TOOLTIP
+        // ============================================
+        function copiarCNPJ(cnpj, event) {
+            if (cnpj === '-') return;
+            event.stopPropagation();
+            navigator.clipboard.writeText(cnpj).then(() => {
+                const tooltip = document.createElement('div');
+                tooltip.className = 'cnpj-tooltip';
+                tooltip.textContent = '✓ CNPJ copiado';
+                tooltip.style.left = (event.pageX - 50) + 'px';
+                tooltip.style.top = (event.pageY - 30) + 'px';
+                document.body.appendChild(tooltip);
+                setTimeout(() => tooltip.remove(), 1000);
+            });
+        }
+
+        // ============================================
+        // AUDIO NOTIFICATION
+        // ============================================
+        function playNotificationSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // ============================================
+        // ENHANCED NOTIFICATION WITH SOUND
+        // ============================================
+        function showNotification(msg, isError, cliente) {
+            playNotificationSound();
+            const toast = document.getElementById('notification-toast');
+            if (!toast) return;
+            const notifMsg = document.getElementById('notif-message');
+            const notifCliente = document.getElementById('notif-cliente');
+            if (notifMsg) notifMsg.textContent = msg;
+            if (notifCliente) notifCliente.textContent = cliente || '';
+            toast.classList.remove('show');
+            setTimeout(() => toast.classList.add('show'), 50);
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ============================================
+        // AUTOMATIC SORTEIO AT 19H AND WEEKDAYS
+        // ============================================
+        function scheduleAutomaticSorteio() {
+            function checkAndExecuteSorteio() {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const dayOfWeek = now.getDay();
+                const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+                
+                if (hours === 19 && minutes === 0 && isWeekday && PERFIS_SORTEIO.includes(currentUser)) {
+                    distribuirTarefas('vencido');
+                }
+                
+                if (hours === 19 && minutes === 0) {
+                    resetarDistribuicao();
+                }
+            }
+            setInterval(checkAndExecuteSorteio, 60000);
+        }
+
+        // Initialize dark mode on page load
+        window.addEventListener('load', () => {
+            initDarkMode();
+            if (currentUser && PERFIS_SORTEIO.includes(currentUser)) {
+                scheduleAutomaticSorteio();
+            }
+        });
     </script>
 </body>
 </html>
