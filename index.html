@@ -1486,6 +1486,9 @@
                 // Salvar observação no histórico (sempre, mesmo que vazia)
                 await salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption);
 
+                // Registrar no Monitor (desempenho)
+                await registrarDesempenhoMonitor();
+
                 setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 2000);
             } catch (error) {
                 loadingOverlay.style.display = 'none';
@@ -2156,10 +2159,9 @@
             carregarMonitor();
         }
 
-        async function registrarDesempenhoHoje() {
-            if (!PERFIS_MONITOR.includes(currentUser)) {
-                showNotification('Acesso restrito ao Monitor.', true); return;
-            }
+        async function registrarDesempenhoMonitor() {
+            // Função chamada automaticamente ao salvar uma tarefa
+            // Não restringe por perfil para que qualquer usuário possa atualizar o monitor
             const hoje = new Date().toISOString().slice(0, 10);
             const registros = [];
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
@@ -2185,12 +2187,9 @@
                 await supabaseClient.from('monitor_desempenho').delete().eq('data', hoje);
                 const { error } = await supabaseClient.from('monitor_desempenho').insert(registros);
                 if (error) throw error;
-                registrarLog('Registro de desempenho', null, null, `Desempenho do dia ${hoje} registrado`);
-                showNotification('✅ Desempenho de hoje registrado com sucesso!', false, hoje);
-                carregarMonitor();
+                console.log('Desempenho atualizado no Monitor para', hoje);
             } catch (err) {
                 console.error('Erro ao registrar desempenho:', err);
-                showNotification('Erro ao registrar desempenho: ' + err.message, true);
             }
         }
 
@@ -2226,6 +2225,7 @@
                 if (error) throw error;
 
                 const registros = data || [];
+                console.log('Dados carregados do Monitor:', registros, 'Data inicio:', dataInicio);
 
                 const agrupado = {};
                 ['Jordan', 'Sirlene', 'Ingrid'].forEach(c => {
@@ -2363,5 +2363,20 @@
 
 </body>
 </html>
-    
+        // ============================================
+        // FINANCEIRO
+        // ============================================
+        function carregarFinanceiro() {
+            // Placeholder para carregamento de dados financeiros
+            // Será integrado com nova planilha de controle de boletos
+            document.getElementById('card-vencidos').innerText = '0';
+            document.getElementById('card-30dias').innerText = '0';
+            document.getElementById('card-ativos').innerText = '0';
+            document.getElementById('card-inativos').innerText = '0';
+        }
+
+        function filtrarFinanceiro() {
+            // Função de filtro para a aba Financeiro
+            // Será implementada quando a planilha de boletos for integrada
+        }
 
