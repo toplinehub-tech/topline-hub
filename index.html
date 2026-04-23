@@ -190,10 +190,14 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         Patricia
                     </button>
-                    <button onclick="selecionarUsuario('Sirlene')" class="login-btn-item">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        Sirlene
-                    </button>
+                        <button onclick="selecionarUsuario('Sirlene')" class="login-btn-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            Sirlene
+                        </button>
+                        <button onclick="selecionarUsuario('Brenda')" class="login-btn-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            Brenda
+                        </button>
                 </div>
             </div>
 
@@ -249,6 +253,7 @@
                         <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
                         <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
                         <button onclick="switchTab('avisos')" id="tab-avisos" class="text-[10px] font-bold uppercase pb-1 text-slate-400 relative">Avisos<span id="avisos-badge" class="badge-avisos badge-blue">0</span></button>
+                        <button onclick="switchTab('financeiro')" id="tab-financeiro" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Financeiro</button>
                         <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
                         <button onclick="switchTab('logs')" id="tab-logs" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
 
@@ -506,6 +511,7 @@
                             <option value="Jordan">Jordan</option>
                             <option value="Patricia">Patricia</option>
                             <option value="Sirlene">Sirlene</option>
+                            <option value="Brenda">Brenda</option>
                         </select>
                         <select id="filtroDocumento" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
                             <option value="">Todos os documentos</option>
@@ -529,12 +535,11 @@
                                     <th>Colaborador</th>
                                     <th class="col-fixed">Cliente</th>
                                     <th>Documento</th>
-                                    <th>Status</th>
                                     <th>Observação</th>
                                 </tr>
                             </thead>
                             <tbody id="historicoBody">
-                                <tr><td colspan="6" class="text-center py-10 text-slate-400">Carregando histórico...</td></tr>
+                                <tr><td colspan="5" class="text-center py-10 text-slate-400">Carregando histórico...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -559,9 +564,11 @@
                             <h4 id="monitor-chart-title" class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Tarefas Concluídas</h4>
                             <canvas id="monitor-bar-chart" height="80"></canvas>
                         </div>
-                        <div>
+                        <div class="flex flex-col items-center">
                             <h4 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Distribuição</h4>
-                            <canvas id="monitor-pie-chart" height="80"></canvas>
+                            <div style="width: 120px; height: 120px;">
+                                <canvas id="monitor-pie-chart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -602,6 +609,7 @@
                                 <option value="Jordan">Jordan</option>
                                 <option value="Patricia">Patricia</option>
                                 <option value="Sirlene">Sirlene</option>
+                                <option value="Brenda">Brenda</option>
                             </select>
                             <button onclick="carregarLogs()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
                         </div>
@@ -620,6 +628,72 @@
                             </thead>
                             <tbody id="logsBody">
                                 <tr><td colspan="6" class="text-center py-10 text-slate-400">Carregando logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FINANCEIRO -->
+            <div id="view-financeiro" class="hidden">
+                <div class="white-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Controle Financeiro</h2>
+                    </div>
+                    
+                    <!-- Filtros -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <input type="text" id="filtroFinanceiroNome" placeholder="Filtrar por nome..." oninput="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none">
+                        <input type="date" id="filtroFinanceiroData" oninput="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none">
+                        <select id="filtroFinanceiroPagamento" onchange="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
+                            <option value="">Todas as formas</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Cartão">Cartão</option>
+                            <option value="Transferência">Transferência</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                        <button onclick="carregarFinanceiro()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                    </div>
+                    
+                    <!-- Cards de Resumo -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="white-card p-4 border-l-4 border-red-500">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Vencidos</p>
+                            <p class="text-2xl font-black text-red-600" id="card-vencidos">0</p>
+                            <p class="text-[8px] text-slate-400 mt-1">Boletos vencidos</p>
+                        </div>
+                        <div class="white-card p-4 border-l-4 border-amber-500">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">A Vencer (30 dias)</p>
+                            <p class="text-2xl font-black text-amber-600" id="card-30dias">0</p>
+                            <p class="text-[8px] text-slate-400 mt-1">Próximos 30 dias</p>
+                        </div>
+                        <div class="white-card p-4 border-l-4 border-emerald-500">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Clientes Ativos</p>
+                            <p class="text-2xl font-black text-emerald-600" id="card-ativos">0</p>
+                            <p class="text-[8px] text-slate-400 mt-1">Com boletos pendentes</p>
+                        </div>
+                        <div class="white-card p-4 border-l-4 border-slate-400">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Clientes Inativos</p>
+                            <p class="text-2xl font-black text-slate-600" id="card-inativos">0</p>
+                            <p class="text-[8px] text-slate-400 mt-1">Sem movimentação</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabela de Boletos -->
+                    <div class="scroll-container" style="max-height: 60vh;">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Vencimento</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                    <th>Forma de Pagamento</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="financeiro-body">
+                                <tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhum boleto cadastrado. Aguardando integração com planilha de controle financeiro.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -694,7 +768,8 @@
             'Ingrid':   'ToplineNK2026',
             'Jordan':   'NKTOP2026',
             'Patricia': 'NKTOP2026',
-            'Sirlene':  'NKTOP2026'
+            'Sirlene':  'NKTOP2026',
+            'Brenda':   'NoahNK2026'
         };
 
         // Perfis com acesso a Logs
@@ -703,6 +778,8 @@
         const PERFIS_MONITOR = ['Nikolas', 'Ingrid'];
         // Perfis que podem realizar sorteios
         const PERFIS_SORTEIO = ['Ingrid'];
+        // Perfis com acesso a Financeiro
+        const PERFIS_FINANCEIRO = ['Nikolas', 'Brenda'];
 
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
@@ -917,6 +994,9 @@
             const tabLogs = document.getElementById('tab-logs');
             if (PERFIS_LOGS.includes(currentUser)) { tabLogs.classList.remove('hidden'); } else { tabLogs.classList.add('hidden'); }
             
+            const tabFinanceiro = document.getElementById('tab-financeiro');
+            if (PERFIS_FINANCEIRO.includes(currentUser)) { tabFinanceiro.classList.remove('hidden'); } else { tabFinanceiro.classList.add('hidden'); }
+            
             const avisosControls = document.getElementById('admin-avisos-controls');
             if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
             
@@ -1002,7 +1082,7 @@
                 renderizarLogs(logsData);
             } catch(e) {
                 console.error('Erro ao carregar logs:', e);
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
             }
         }
 
@@ -1078,7 +1158,7 @@
                 renderizarHistorico(historicoData);
             } catch(e) {
                 console.error('Erro ao carregar histórico:', e);
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
             }
         }
 
@@ -1086,23 +1166,19 @@
             const tbody = document.getElementById('historicoBody');
             if (!tbody) return;
             if (!dados || dados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhuma observação registrada ainda.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma observação registrada ainda.</td></tr>';
                 return;
             }
-            const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600' };
-            const coresStatus = { 'analise': 'bg-orange-100 text-orange-700', 'andamento': 'bg-purple-100 text-purple-700', 'data': 'bg-emerald-100 text-emerald-700', 'concluido': 'bg-green-100 text-green-700' };
+            const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600', Brenda: 'text-indigo-600' };
             tbody.innerHTML = dados.map(h => {
                 const dt = new Date(h.created_at);
                 const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 const corUser = coresUsuario[h.usuario] || 'text-slate-600';
-                const corStatus = coresStatus[h.status_novo] || 'bg-slate-100 text-slate-600';
-                const statusLabel = h.status_novo === 'analise' ? 'Análise' : h.status_novo === 'andamento' ? 'Andamento' : h.status_novo === 'data' ? 'Data' : (h.status_novo || '-');
                 return `<tr>
                     <td class="font-mono text-[10px] text-slate-500">${dataStr}</td>
                     <td class="font-bold ${corUser}">${h.usuario || '-'}</td>
                     <td class="font-bold text-slate-700 col-fixed">${h.cliente || '-'}</td>
                     <td class="text-xs text-emerald-600 font-bold">${h.documento || '-'}</td>
-                    <td><span class="px-2 py-1 rounded-full text-[9px] font-bold ${corStatus}">${statusLabel}</span></td>
                     <td class="text-xs text-slate-600 max-w-xs">${h.observacao || '-'}</td>
                 </tr>`;
             }).join('');
@@ -1711,7 +1787,7 @@
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','tasks','senhas','comm','atalhos','historico','avisos','monitor','logs'];
+            const allTabs = ['dash','tasks','senhas','comm','atalhos','historico','avisos','monitor','logs','financeiro'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -1744,6 +1820,10 @@
                 carregarLogs();
             }
             if (tab === 'historico') carregarHistorico();
+            if (tab === 'financeiro') {
+                if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
+                carregarFinanceiro();
+            }
         }
 
         function closeModal() { 
@@ -1767,13 +1847,22 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`);
         }
 
+        let notificationTimeout = null;
         function showNotification(message, isError = false, cliente = '') {
+            // Limpar timeout anterior para evitar múltiplos popups
+            if (notificationTimeout) clearTimeout(notificationTimeout);
+            
             const toast = document.getElementById('notification-toast');
             document.getElementById('notif-message').innerHTML = (isError ? '⚠️ ' : '✓ ') + message;
             document.getElementById('notif-cliente').innerHTML = isError ? 'Tente novamente em alguns segundos' : (cliente || 'Atualização concluída');
             toast.style.borderLeftColor = isError ? '#ef4444' : '#10b981';
             toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 4000);
+            
+            // Duração de 2 segundos
+            notificationTimeout = setTimeout(() => { 
+                toast.classList.remove('show');
+                notificationTimeout = null;
+            }, 2000);
         }
 
         // ============================================
@@ -2212,12 +2301,23 @@
                         datasets: [{
                             data: dataPie,
                             backgroundColor: bgBar,
-                            borderWidth: 2
+                            borderWidth: 1
                         }]
                     },
                     options: {
                         responsive: true,
-                        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } }
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { 
+                                position: 'bottom', 
+                                labels: { 
+                                    boxWidth: 8,
+                                    font: { size: 8 },
+                                    padding: 5
+                                } 
+                            } 
+                        },
+                        cutout: '60%'
                     }
                 });
 
@@ -2263,3 +2363,20 @@
 
 </body>
 </html>
+        // ============================================
+        // FINANCEIRO
+        // ============================================
+        function carregarFinanceiro() {
+            // Placeholder para carregamento de dados financeiros
+            // Será integrado com nova planilha de controle de boletos
+            document.getElementById('card-vencidos').innerText = '0';
+            document.getElementById('card-30dias').innerText = '0';
+            document.getElementById('card-ativos').innerText = '0';
+            document.getElementById('card-inativos').innerText = '0';
+        }
+
+        function filtrarFinanceiro() {
+            // Função de filtro para a aba Financeiro
+            // Será implementada quando a planilha de boletos for integrada
+        }
+
