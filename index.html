@@ -1600,20 +1600,22 @@
                 const countSpan = document.getElementById(`count-${resp.toLowerCase()}`);
                 const tarefas = distribuicaoAtual[resp] || [];
                 if (container && countSpan) {
-                    countSpan.innerText = tarefas.length;
-                    container.innerHTML = '';
-                    tarefas.forEach(t => {
+                    // Filtra apenas tarefas que ainda não foram processadas
+                    const tarefasPendentes = tarefas.filter(t => {
                         const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
                         const isConcluida = statusTarefa === 'concluido';
-                        // Considera como "realizada" se foi modificada (analise, andamento ou data)
                         const foiRealizada = isAtividadeRealizada(t.rowIndex, t.documento);
+                        return !isConcluida && !foiRealizada;
+                    });
+                    
+                    // Atualiza o contador apenas com tarefas pendentes
+                    countSpan.innerText = tarefasPendentes.length;
+                    container.innerHTML = '';
+                    tarefasPendentes.forEach(t => {
                         const card = document.createElement('div');
-                        card.className = `p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm ${(isConcluida || foiRealizada) ? 'opacity-60' : ''}`;
+                        card.className = `p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm`;
                         card.onclick = () => { openEditCell(t.rowIndex, t.documento); };
-                        let badge = '';
-                        if (isConcluida) badge = '<span class="text-emerald-500 text-[8px]">✓ CONCLUÍDA</span>';
-                        else if (foiRealizada) badge = '<span class="text-blue-500 text-[8px]">✓ REALIZADA</span>';
-                        card.innerHTML = `<div class="font-black text-slate-800 uppercase flex justify-between">${t.cliente}${badge}</div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">${t.documento}</span><span class="text-slate-400 font-mono font-bold">${t.prazo}</span></div>`;
+                        card.innerHTML = `<div class="font-black text-slate-800 uppercase flex justify-between">${t.cliente}</div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">${t.documento}</span><span class="text-slate-400 font-mono font-bold">${t.prazo}</span></div>`;
                         container.appendChild(card);
                     });
                 }
@@ -2382,3 +2384,20 @@
 
 </body>
 </html>
+        // ============================================
+        // FINANCEIRO
+        // ============================================
+        function carregarFinanceiro() {
+            // Placeholder para carregamento de dados financeiros
+            // Será integrado com nova planilha de controle de boletos
+            document.getElementById('card-vencidos').innerText = '0';
+            document.getElementById('card-30dias').innerText = '0';
+            document.getElementById('card-ativos').innerText = '0';
+            document.getElementById('card-inativos').innerText = '0';
+        }
+
+        function filtrarFinanceiro() {
+            // Função de filtro para a aba Financeiro
+            // Será implementada quando a planilha de boletos for integrada
+        }
+
