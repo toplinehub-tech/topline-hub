@@ -147,31 +147,6 @@
         .login-btn-item svg { width: 16px; height: 16px; color: #64748b; }
         .login-btn-item:hover svg { color: #10b981; }
     
-        /* DARK MODE STYLES - HIGH CONTRAST */
-        body.dark-mode { background-color: #0a0e27 !important; color: #ffffff !important; }
-        body.dark-mode .white-card { background: #1a1f3a !important; border-color: rgba(15, 23, 42, 0.5) !important; }
-        body.dark-mode .scroll-container { background: #1a1f3a !important; border-color: #2d3748 !important; }
-        body.dark-mode th { background: #0f172a !important; border-color: #2d3748 !important; color: #ffffff !important; font-weight: 900 !important; }
-        body.dark-mode td { border-color: #2d3748 !important; color: #f0f9ff !important; }
-        body.dark-mode .col-fixed { background: #1a1f3a !important; border-color: #2d3748 !important; color: #ffffff !important; }
-        body.dark-mode input, body.dark-mode textarea, body.dark-mode select { background: #0f172a !important; color: #ffffff !important; border-color: #2d3748 !important; }
-        body.dark-mode .text-slate-300 { color: #e0e7ff !important; }
-        body.dark-mode .text-slate-400 { color: #cbd5e1 !important; }
-        body.dark-mode .text-slate-500 { color: #f1f5f9 !important; }
-        body.dark-mode .text-slate-600 { color: #ffffff !important; }
-        body.dark-mode .text-slate-700 { color: #ffffff !important; }
-        body.dark-mode .text-slate-800 { color: #ffffff !important; }
-        body.dark-mode .text-xs { color: #f1f5f9 !important; }
-        body.dark-mode .text-sm { color: #f1f5f9 !important; }
-        body.dark-mode .text-lg { color: #ffffff !important; }
-        body.dark-mode .white-card p, body.dark-mode .white-card span, body.dark-mode .white-card h2, body.dark-mode .white-card h3, body.dark-mode .white-card h4, body.dark-mode .white-card label { color: #f1f5f9 !important; }
-        body.dark-mode .topline-text { color: #f1f5f9 !important; }
-        body.dark-mode .font-black { color: #ffffff !important; }
-        body.dark-mode .font-bold { color: #f0f9ff !important; }
-        body.dark-mode button { color: #ffffff !important; }
-        body.dark-mode .btn-mini { background: #1a1f3a !important; border-color: #2d3748 !important; color: #ffffff !important; }
-        body.dark-mode .tab-active { color: #10b981 !important; }
-        body.dark-mode .dashboard-card { background: #1a1f3a !important; }
         .cnpj-cell { cursor: pointer; position: relative; }
         .cnpj-tooltip { position: fixed; background: #10b981; color: white; padding: 6px 12px; border-radius: 6px; font-size: 10px; font-weight: 800; pointer-events: none; z-index: 10000; animation: tooltipFade 0.3s ease-in-out; }
         @keyframes tooltipFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -945,7 +920,6 @@
             const avisosControls = document.getElementById('admin-avisos-controls');
             if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
             
-            initDarkMode();
             carregarAvisos();
             
             // Registrar log de login
