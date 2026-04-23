@@ -708,6 +708,31 @@
         </div>
     </div>
 
+    <!-- MODAL ADICIONAR CLIENTE -->
+    <div id="modalAdicionarCliente" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[500] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl">
+            <h3 class="text-lg font-black text-slate-800 uppercase mb-6">Adicionar Novo Cliente</h3>
+            <div class="space-y-4">
+                <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Nome do Cliente</label><input type="text" id="novo-cliente-nome" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Digite o nome da empresa"></div>
+                <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">CNPJ</label><input type="text" id="novo-cliente-cnpj" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500" placeholder="00.000.000/0000-00"></div>
+                <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">CCM</label><input type="text" id="novo-cliente-ccm" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Opcional"></div>
+            </div>
+            <div class="flex gap-3 mt-8"><button onclick="adicionarClienteConfirmar()" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold uppercase text-[9px]">Adicionar</button><button onclick="fecharModalAdicionarCliente()" class="px-5 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold uppercase text-[9px]">Cancelar</button></div>
+        </div>
+    </div>
+
+    <!-- MODAL REMOVER CLIENTE -->
+    <div id="modalRemoverCliente" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[500] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl">
+            <h3 class="text-lg font-black text-slate-800 uppercase mb-6">Remover Cliente</h3>
+            <div class="space-y-4">
+                <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Nome do Cliente a Remover</label><input type="text" id="remover-cliente-nome" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500" placeholder="Digite o nome exato da empresa"></div>
+                <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-[10px] text-red-700">⚠️ <strong>Atenção:</strong> Esta ação não pode ser desfeita. O cliente será removido permanentemente da planilha.</div>
+            </div>
+            <div class="flex gap-3 mt-8"><button onclick="removerClienteConfirmar()" class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold uppercase text-[9px]">Remover</button><button onclick="fecharModalRemoverCliente()" class="px-5 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold uppercase text-[9px]">Cancelar</button></div>
+        </div>
+    </div>
+
 </body>
 
     <script>
@@ -2279,8 +2304,59 @@
         function abrirModalNovoAviso() { document.getElementById('avisoModal').classList.remove('hidden'); }
         function fecharModalAviso() { document.getElementById('avisoModal').classList.add('hidden'); }
         async function salvarAviso() { const titulo = document.getElementById('aviso-titulo').value; const conteudo = document.getElementById('aviso-conteudo').value; if (!titulo || !conteudo) return alert('Preencha todos os campos'); try { await supabaseClient.from('avisos').insert([{ titulo, conteudo, autor: currentUser }]); document.getElementById('aviso-titulo').value = ''; document.getElementById('aviso-conteudo').value = ''; fecharModalAviso(); carregarAvisos(); } catch (e) { alert('Erro ao salvar aviso'); } }
-        function abrirModalAdicionarCliente() { alert('Funcionalidade de adicionar cliente em desenvolvimento. Será integrado com o Google Sheets.'); }
-        function abrirModalRemoverCliente() { alert('Funcionalidade de remover cliente em desenvolvimento. Será integrado com o Google Sheets.'); }
+        function abrirModalAdicionarCliente() { document.getElementById('modalAdicionarCliente').classList.remove('hidden'); }
+        function fecharModalAdicionarCliente() { document.getElementById('modalAdicionarCliente').classList.add('hidden'); document.getElementById('novo-cliente-nome').value = ''; document.getElementById('novo-cliente-cnpj').value = ''; document.getElementById('novo-cliente-ccm').value = ''; }
+        async function adicionarClienteConfirmar() {
+            const nome = document.getElementById('novo-cliente-nome').value.trim();
+            const cnpj = document.getElementById('novo-cliente-cnpj').value.trim();
+            const ccm = document.getElementById('novo-cliente-ccm').value.trim();
+            if (!nome) return alert('Nome do cliente é obrigatório');
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'addClient');
+                params.append('cliente', nome);
+                params.append('CNPJ', cnpj);
+                params.append('CCM', ccm);
+                const response = await fetch(URL_SCRIPT_GOOGLE, { method: 'POST', body: params });
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('✅ Cliente adicionado com sucesso!', false, nome);
+                    fecharModalAdicionarCliente();
+                    registrarLog('Adicionar cliente', null, null, `Cliente ${nome} adicionado ao sistema`);
+                    setTimeout(() => fetchGoogleSheets(true), 1000);
+                } else {
+                    alert('Erro ao adicionar cliente: ' + (result.error || 'Desconhecido'));
+                }
+            } catch (e) {
+                console.error('Erro ao adicionar cliente:', e);
+                alert('Erro ao adicionar cliente: ' + e.message);
+            }
+        }
+        function abrirModalRemoverCliente() { document.getElementById('modalRemoverCliente').classList.remove('hidden'); }
+        function fecharModalRemoverCliente() { document.getElementById('modalRemoverCliente').classList.add('hidden'); document.getElementById('remover-cliente-nome').value = ''; }
+        async function removerClienteConfirmar() {
+            const nome = document.getElementById('remover-cliente-nome').value.trim();
+            if (!nome) return alert('Nome do cliente é obrigatório');
+            if (!confirm('Tem certeza que deseja remover o cliente ' + nome + '? Esta ação não pode ser desfeita.')) return;
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'removeClient');
+                params.append('cliente', nome);
+                const response = await fetch(URL_SCRIPT_GOOGLE, { method: 'POST', body: params });
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('✅ Cliente removido com sucesso!', false, nome);
+                    fecharModalRemoverCliente();
+                    registrarLog('Remover cliente', null, null, `Cliente ${nome} removido do sistema`);
+                    setTimeout(() => fetchGoogleSheets(true), 1000);
+                } else {
+                    alert('Erro ao remover cliente: ' + (result.error || 'Desconhecido'));
+                }
+            } catch (e) {
+                console.error('Erro ao remover cliente:', e);
+                alert('Erro ao remover cliente: ' + e.message);
+            }
+        }
 </script>
 
 </body>
