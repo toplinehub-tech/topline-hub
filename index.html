@@ -1467,17 +1467,30 @@
                 renderTable();
             }
 
+            // REMOVER TAREFA IMEDIATAMENTE DO ARRAY LOCAL
+            ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                const tarefas = distribuicaoAtual[colab] || [];
+                const idx = tarefas.findIndex(t => t.rowIndex === r && t.documento === c);
+                if (idx >= 0) {
+                    tarefas.splice(idx, 1);
+                    console.log(`Tarefa removida da lista de ${colab}:`, c);
+                }
+            });
+
             // Marcar tarefa como atividade realizada no sorteio do colaborador
             marcarAtividadeRealizada(r, c);
 
             closeModal();
+            
+            // Atualizar interface imediatamente
+            renderizarTarefas();
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
 
             try {
                 await enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar);
                 loadingOverlay.style.display = 'none';
-                showNotification('Atualizado com sucesso no Google Sheets!', false, cliente);
+                showNotificationOnce(`✅ ${cliente} - ${c} atualizado!`, false, `${cliente}-${c}`);
 
                 // Registrar log com valores antigo e novo
                 const detalheLog = `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`;
@@ -1489,7 +1502,10 @@
                 // Registrar no Monitor (desempenho)
                 await registrarDesempenhoMonitor();
 
-                setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 2000);
+                // Forçar atualização imediata
+                renderizarTarefas();
+                atualizarDashboardDesempenho();
+                setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 1500);
             } catch (error) {
                 loadingOverlay.style.display = 'none';
                 showNotification('Erro: ' + error.message, true);
@@ -1873,6 +1889,27 @@
         // ============================================
         // ABA COMUNICAR
         // ============================================
+
+        // Controle global para popups únicos
+        const popupControl = {};
+        
+        function showNotificationOnce(message, isError = false, identifier = '') {
+            const key = identifier || message;
+            if (popupControl[key]) return; // Já foi mostrado
+            popupControl[key] = true;
+            
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg text-white font-bold text-sm shadow-lg transition-all duration-300 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+                delete popupControl[key];
+            }, 2000);
+        }
+
         function setCommDoc(doc) {
             commActiveDoc = (commActiveDoc === doc) ? null : doc;
             document.querySelectorAll('#commDocFilters .comm-filter-btn').forEach(b => b.classList.remove('comm-filter-active'));
@@ -2384,5 +2421,20 @@
 
 </body>
 </html>
+        // ============================================
+        // FINANCEIRO
+        // ============================================
+        function carregarFinanceiro() {
+            // Placeholder para carregamento de dados financeiros
+            // Será integrado com nova planilha de controle de boletos
+            document.getElementById('card-vencidos').innerText = '0';
+            document.getElementById('card-30dias').innerText = '0';
+            document.getElementById('card-ativos').innerText = '0';
+            document.getElementById('card-inativos').innerText = '0';
+        }
 
+        function filtrarFinanceiro() {
+            // Função de filtro para a aba Financeiro
+            // Será implementada quando a planilha de boletos for integrada
+        }
 
