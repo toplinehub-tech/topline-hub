@@ -205,9 +205,18 @@
             <div id="login-step-2" class="hidden">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Bem-vindo(a), <span id="login-nome-exibido" class="text-emerald-600"></span></p>
                 <p class="text-[10px] text-slate-400 mb-4">Digite sua senha para continuar</p>
-                <input type="password" id="login-senha-input" placeholder="Senha" 
-                    class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none mb-4"
-                    onkeydown="if(event.key==='Enter') confirmarLogin()">
+                <div class="relative mb-4">
+                    <input type="password" id="login-senha-input" placeholder="Senha" 
+                        class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none"
+                        onkeydown="if(event.key==='Enter') confirmarLogin()">
+                    <button type="button" onclick="toggleSenhaVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors text-lg">
+                        <span id="senha-eye-icon">👁️</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2 mb-4">
+                    <input type="checkbox" id="salvar-senha-check" class="w-4 h-4 rounded border-slate-300 cursor-pointer">
+                    <label for="salvar-senha-check" class="text-xs text-slate-600 cursor-pointer">Lembrar minha senha</label>
+                </div>
                 <div id="login-erro" class="text-red-500 text-xs mb-3 hidden">Senha incorreta. Tente novamente.</div>
                 <div class="flex gap-3">
                     <button onclick="voltarLogin()" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Voltar</button>
@@ -978,32 +987,49 @@
         }
 
         function selecionarUsuario(nome) {
+            console.log('Selecionando usuário:', nome);
             usuarioSelecionado = nome;
-            document.getElementById('login-step-1').classList.add('hidden');
-            document.getElementById('login-step-2').classList.remove('hidden');
-            document.getElementById('login-nome-exibido').innerText = nome;
-            document.getElementById('login-erro').classList.add('hidden');
+            const step1 = document.getElementById('login-step-1');
+            const step2 = document.getElementById('login-step-2');
+            const nomeExibido = document.getElementById('login-nome-exibido');
+            const erroEl = document.getElementById('login-erro');
+            
+            if (step1) step1.classList.add('hidden');
+            if (step2) step2.classList.remove('hidden');
+            if (nomeExibido) nomeExibido.innerText = nome;
+            if (erroEl) erroEl.classList.add('hidden');
+            
             carregarSenhaLocalStorage(nome);
-            setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
+            setTimeout(() => {
+                const input = document.getElementById('login-senha-input');
+                if (input) input.focus();
+            }, 100);
         }
 
         function voltarLogin() {
-            document.getElementById('login-step-1').classList.remove('hidden');
-            document.getElementById('login-step-2').classList.add('hidden');
+            const step1 = document.getElementById('login-step-1');
+            const step2 = document.getElementById('login-step-2');
+            if (step1) step1.classList.remove('hidden');
+            if (step2) step2.classList.add('hidden');
             usuarioSelecionado = '';
         }
 
         function confirmarLogin() {
-            const senhaDigitada = document.getElementById('login-senha-input').value;
+            const input = document.getElementById('login-senha-input');
+            const senhaDigitada = input ? input.value : '';
             const senhaCorreta = USUARIOS_SENHAS[usuarioSelecionado];
+            const erroEl = document.getElementById('login-erro');
+            
             if (senhaDigitada === senhaCorreta) {
-                document.getElementById('login-erro').classList.add('hidden');
+                if (erroEl) erroEl.classList.add('hidden');
                 salvarSenhaLocalStorage();
                 login(usuarioSelecionado);
             } else {
-                document.getElementById('login-erro').classList.remove('hidden');
-                document.getElementById('login-senha-input').value = '';
-                document.getElementById('login-senha-input').focus();
+                if (erroEl) erroEl.classList.remove('hidden');
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
             }
         }
 
