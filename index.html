@@ -1308,18 +1308,13 @@
         }
 
         async function resetarDistribuicao() {
-            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas a Ingrid pode resetar a distribuição!', true); return; }
-            if (!confirm('⚠️ ATENÇÃO! Isso irá remover TODAS as tarefas atribuídas. Deseja continuar?')) return;
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.style.display = 'flex';
-            try {
+            if (!PERFIS_SORTEIO.includes(currentUser)) {return; }
+            if (!confirm('⚠️ ATENÇÃO! Isso irá remover TODAS as tarefas atribuídas. Deseja continuar?')) return;try {
                 await supabaseClient.from('distribuicao_tarefas').delete().neq('id', 0);
                 distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
                 renderizarTarefas(); atualizarDashboardDesempenho();
-                registrarLog('Resetar distribuição', null, null, 'Todas as tarefas foram removidas');
-                showNotification('✅ Distribuição resetada com sucesso!', false, 'Todas as tarefas foram removidas');
-            } catch (error) { console.error('Erro ao resetar:', error); showNotification('Erro ao resetar distribuição', true); }
-            finally { loadingOverlay.style.display = 'none'; }
+                registrarLog('Resetar distribuição', null, null, 'Todas as tarefas foram removidas');} catch (error) { console.error('Erro ao resetar:', error);}
+            finally {}
         }
 
         // ============================================
@@ -1367,8 +1362,7 @@
 
         function detectChanges(oldData, newData) {
             for (let i = 0; i < newData.length; i++) {
-                if (JSON.stringify(oldData[i]) !== JSON.stringify(newData[i]) && oldData[i]?.CLIENTE) {
-                    showNotification('Dados atualizados!', false, newData[i].CLIENTE); break;
+                if (JSON.stringify(oldData[i]) !== JSON.stringify(newData[i]) && oldData[i]?.CLIENTE) {break;
                 }
             }
         }
@@ -1451,7 +1445,7 @@
             else if (selectedOption === 'andamento') valorParaSalvar = "EM ANDAMENTO";
             else if (selectedOption === 'data') {
                 const dataInput = document.getElementById('dateValue').value;
-                if (!dataInput) { showNotification('Selecione uma data', true); return; }
+                if (!dataInput) {return; }
                 valorParaSalvar = dataInput;
             }
 
@@ -1483,16 +1477,8 @@
             closeModal();
             
             // Atualizar interface imediatamente
-            renderizarTarefas();
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.style.display = 'flex';
-
-            try {
-                await enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar);
-                loadingOverlay.style.display = 'none';
-                showNotificationOnce(`✅ ${cliente} - ${c} atualizado!`, false, `${cliente}-${c}`);
-
-                // Registrar log com valores antigo e novo
+            renderizarTarefas();try {
+                await enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar);// Registrar log com valores antigo e novo
                 const detalheLog = `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`;
                 await registrarLog(`Alteração: ${selectedOption}`, cliente, c, detalheLog, valorAnterior, valorParaSalvar);
 
@@ -1506,10 +1492,7 @@
                 renderizarTarefas();
                 atualizarDashboardDesempenho();
                 setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 1500);
-            } catch (error) {
-                loadingOverlay.style.display = 'none';
-                showNotification('Erro: ' + error.message, true);
-            }
+            } catch (error) {}
         }
 
         // ============================================
@@ -1788,19 +1771,15 @@
 
         function salvarSenha(cliente, campo) {
             const novoValor = document.getElementById('senhaInput').value.trim();
-            if (!novoValor) { showNotification('Preencha a senha', true); return; }
-            enviarParaGoogleSheets(cliente, campo, 'senha', novoValor).then(() => {
-                showNotification('Senha atualizada com sucesso!', false, cliente);
-                registrarLog('Alteração de senha', cliente, campo, `Senha do campo ${campo} foi alterada`);
+            if (!novoValor) {return; }
+            enviarParaGoogleSheets(cliente, campo, 'senha', novoValor).then(() => {registrarLog('Alteração de senha', cliente, campo, `Senha do campo ${campo} foi alterada`);
                 closeModal();
                 setTimeout(() => fetchGoogleSheets(false), 1000);
             }).catch(err => showNotification('Erro ao salvar: ' + err.message, true));
         }
 
         function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification('Senha copiada para a área de transferência!');
-                closeModal();
+            navigator.clipboard.writeText(text).then(() => {closeModal();
             });
         }
 
@@ -1837,12 +1816,12 @@
             if (savedUser) { login(savedUser, true); }
             if (tab === 'monitor') carregarMonitor();
             if (tab === 'logs') {
-                if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito aos administradores.', true); return; }
+                if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash');return; }
                 carregarLogs();
             }
             if (tab === 'historico') carregarHistorico();
             if (tab === 'financeiro') {
-                if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
+                if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash');return; }
                 carregarFinanceiro();
             }
         }
@@ -1868,22 +1847,7 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`);
         }
 
-        let notificationTimeout = null;
-        function showNotification(message, isError = false, cliente = '') {
-            // Limpar timeout anterior para evitar múltiplos popups
-            if (notificationTimeout) clearTimeout(notificationTimeout);
-            
-            const toast = document.getElementById('notification-toast');
-            document.getElementById('notif-message').innerHTML = (isError ? '⚠️ ' : '✓ ') + message;
-            document.getElementById('notif-cliente').innerHTML = isError ? 'Tente novamente em alguns segundos' : (cliente || 'Atualização concluída');
-            toast.style.borderLeftColor = isError ? '#ef4444' : '#10b981';
-            toast.classList.add('show');
-            
-            // Duração de 2 segundos
-            notificationTimeout = setTimeout(() => { 
-                toast.classList.remove('show');
-                notificationTimeout = null;
-            }, 2000);
+        let notificationTimeout = null;, 2000);
         }
 
         // ============================================
@@ -2026,7 +1990,7 @@
         let gmailWindow = null;
 
         function enviarWhatsApp(rowIndex, documento, whatsapp) {
-            if (!whatsapp || whatsapp === '-') { showNotification('Número de WhatsApp não configurado para este cliente', true); return; }
+            if (!whatsapp || whatsapp === '-') {return; }
             const row = rawData[rowIndex];
             
             let dataDoc = 'N/A';
@@ -2057,9 +2021,7 @@
             const emailReal = emailCol ? (String(row[emailCol] || '').trim()) : '';
             const emailFinal = (email && email !== '-' && email.includes('@')) ? email : emailReal;
 
-            if (!emailFinal || !emailFinal.includes('@')) {
-                showNotification('E-mail não cadastrado para este cliente', true);
-                return;
+            if (!emailFinal || !emailFinal.includes('@')) {return;
             }
 
             let dataDoc = 'N/A';
@@ -2089,16 +2051,14 @@
         let bulkRunning = false;
 
         async function envioEmMassa(canal) {
-            if (bulkRunning) { showNotification('Envio em massa já em andamento. Aguarde.', true); return; }
-            if (commFilteredData.length === 0) { showNotification('Nenhum cliente na lista. Selecione filtros primeiro.', true); return; }
+            if (bulkRunning) {return; }
+            if (commFilteredData.length === 0) {return; }
 
             const lista = canal === 'whatsapp'
                 ? commFilteredData.filter(i => i.whatsapp !== '-' && i.whatsapp.length > 5)
                 : commFilteredData.filter(i => i.email !== '-' && i.email.includes('@'));
 
-            if (lista.length === 0) {
-                showNotification(`Nenhum cliente com ${canal === 'whatsapp' ? 'WhatsApp' : 'e-mail'} cadastrado.`, true);
-                return;
+            if (lista.length === 0) {return;
             }
 
             const confirmar = confirm(`Enviar mensagem para ${lista.length} cliente(s) via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}?\n\nCada mensagem será aberta na mesma janela. Você precisará confirmar o envio em cada uma.`);
@@ -2129,10 +2089,7 @@
 
             statusText.textContent = `✓ Concluído: ${lista.length} mensagens abertas`;
             progressBar.style.width = '100%';
-            bulkRunning = false;
-            showNotification(`✅ Envio em massa concluído: ${lista.length} mensagens`, false, `Via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}`);
-
-            // Registrar log
+            bulkRunning = false;// Registrar log
             registrarLog(`Envio em massa ${canal}`, null, null, `${lista.length} mensagens enviadas via ${canal}`);
 
             setTimeout(() => { statusDiv.classList.add('hidden'); progressBar.style.width = '0%'; }, 5000);
@@ -2142,10 +2099,7 @@
         // SORTEIO
         // ============================================
         async function distribuirTarefas(statusAlvo) {
-            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true); return; }
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.style.display = 'flex';
-            try {
+            if (!PERFIS_SORTEIO.includes(currentUser)) {return; }try {
                 const empresasComTarefas = new Map();
                 for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
                     const row = rawData[rowIndex];
@@ -2161,9 +2115,7 @@
                     if (tarefasDaEmpresa.length > 0) empresasComTarefas.set(clienteNome, tarefasDaEmpresa);
                 }
                 if (empresasComTarefas.size === 0) {
-                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
-                    showNotification(`⚠️ Nenhuma tarefa para: ${n[statusAlvo]||statusAlvo}`, true);
-                    loadingOverlay.style.display = 'none'; return;
+                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };return;
                 }
                 let arr = Array.from(empresasComTarefas.entries());
                 arr.sort((a, b) => b[1].length - a[1].length);
@@ -2180,10 +2132,8 @@
                 await salvarDistribuicaoNoServidor(statusAlvo);
                 await carregarDistribuicaoGlobal();
                 const n2 = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
-                registrarLog('Sorteio realizado', null, null, `Sorteio para ${n2[statusAlvo]||statusAlvo}: J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
-                showNotification(`✅ Distribuição concluída! ${empresasComTarefas.size} empresas para ${n2[statusAlvo]||statusAlvo}`, false, `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
-            } catch (error) { showNotification('Erro ao realizar sorteio: ' + error.message, true); }
-            finally { loadingOverlay.style.display = 'none'; }
+                registrarLog('Sorteio realizado', null, null, `Sorteio para ${n2[statusAlvo]||statusAlvo}: J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);} catch (error) {}
+            finally {}
         }
 
         // ============================================
@@ -2421,20 +2371,3 @@
 
 </body>
 </html>
-        // ============================================
-        // FINANCEIRO
-        // ============================================
-        function carregarFinanceiro() {
-            // Placeholder para carregamento de dados financeiros
-            // Será integrado com nova planilha de controle de boletos
-            document.getElementById('card-vencidos').innerText = '0';
-            document.getElementById('card-30dias').innerText = '0';
-            document.getElementById('card-ativos').innerText = '0';
-            document.getElementById('card-inativos').innerText = '0';
-        }
-
-        function filtrarFinanceiro() {
-            // Função de filtro para a aba Financeiro
-            // Será implementada quando a planilha de boletos for integrada
-        }
-
