@@ -2184,10 +2184,29 @@
             });
 
             try {
-                await supabaseClient.from('monitor_desempenho').delete().eq('data', hoje);
-                const { error } = await supabaseClient.from('monitor_desempenho').insert(registros);
-                if (error) throw error;
-                console.log('Desempenho atualizado no Monitor para', hoje);
+                console.log('Preparando para salvar Monitor:', registros);
+                
+                // Primeiro, apagar registros do dia para evitar conflitos de UNIQUE constraint
+                const { error: deleteError } = await supabaseClient
+                    .from('monitor_desempenho')
+                    .delete()
+                    .eq('data', hoje);
+                
+                if (deleteError) {
+                    console.warn('Aviso ao deletar registros antigos:', deleteError);
+                }
+                
+                // Depois, inserir os novos registros
+                const { data, error: insertError } = await supabaseClient
+                    .from('monitor_desempenho')
+                    .insert(registros);
+                
+                if (insertError) {
+                    console.error('Erro ao inserir desempenho:', insertError);
+                    throw insertError;
+                }
+                
+                console.log('Desempenho atualizado com sucesso no Monitor para', hoje, ':', data);
             } catch (err) {
                 console.error('Erro ao registrar desempenho:', err);
             }
