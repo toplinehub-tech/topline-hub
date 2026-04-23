@@ -153,7 +153,6 @@
         .badge-avisos { position: absolute; top: -12px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 10px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .badge-red { background: #ef4444; }
         .badge-blue { background: #3b82f6; }
-        .hidden { display: none !important; }
 
     </style>
 </head>
@@ -206,18 +205,9 @@
             <div id="login-step-2" class="hidden">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Bem-vindo(a), <span id="login-nome-exibido" class="text-emerald-600"></span></p>
                 <p class="text-[10px] text-slate-400 mb-4">Digite sua senha para continuar</p>
-                <div class="relative mb-4">
-                    <input type="password" id="login-senha-input" placeholder="Senha" 
-                        class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none"
-                        onkeydown="if(event.key==='Enter') confirmarLogin()">
-                    <button type="button" onclick="toggleSenhaVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors text-lg">
-                        <span id="senha-eye-icon">👁️</span>
-                    </button>
-                </div>
-                <div class="flex items-center gap-2 mb-4">
-                    <input type="checkbox" id="salvar-senha-check" class="w-4 h-4 rounded border-slate-300 cursor-pointer">
-                    <label for="salvar-senha-check" class="text-xs text-slate-600 cursor-pointer">Lembrar minha senha</label>
-                </div>
+                <input type="password" id="login-senha-input" placeholder="Senha" 
+                    class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none mb-4"
+                    onkeydown="if(event.key==='Enter') confirmarLogin()">
                 <div id="login-erro" class="text-red-500 text-xs mb-3 hidden">Senha incorreta. Tente novamente.</div>
                 <div class="flex gap-3">
                     <button onclick="voltarLogin()" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Voltar</button>
@@ -754,12 +744,9 @@
 
 
 
-    <script>
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            console.error('Erro Global:', msg, 'Linha:', lineNo);
-            return false;
-        };
+</body>
 
+    <script>
         // ============================================
         // CONFIGURAÇÕES
         // ============================================
@@ -767,14 +754,7 @@
         const SUPABASE_KEY = "sb_publishable_GmzLunKnwonGfUcyC4lL7w_HqPsfGIO";
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbzMRx5gVh2y7Yk3JU3Ht1WwDWvZoiLXuItDEMkCryakguKcZDDBAc6qsw5Iz2P9oayv/exec";
         
-        let supabaseClient;
-        try {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch (e) {
-            console.error("Erro ao inicializar Supabase:", e);
-            // Mock para evitar quebras se o Supabase falhar ao carregar
-            supabaseClient = { from: () => ({ insert: () => Promise.resolve({ error: null }), select: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) }) };
-        }
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
         const URL_DADOS_PRINCIPAIS = BASE_URL + "&gid=0";
@@ -941,204 +921,95 @@
         // INIT
         // ============================================
         window.onload = () => {
-            try {
-                const splash = document.getElementById('splash-screen');
-                if (splash) setTimeout(() => { splash.style.display = 'none'; }, 1200);
-                
-                const container = document.getElementById('docButtons');
-                if (container) {
-                    docList.forEach(doc => {
-                        const btn = document.createElement('button');
-                        btn.className = "btn-mini doc-filter-btn";
-                        btn.id = "btn-doc-" + doc; btn.innerText = doc;
-                        btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
-                        container.appendChild(btn);
-                    });
-                }
+            setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; }, 1200);
+            
+            const container = document.getElementById('docButtons');
+            docList.forEach(doc => {
+                const btn = document.createElement('button');
+                btn.className = "btn-mini doc-filter-btn";
+                btn.id = "btn-doc-" + doc; btn.innerText = doc;
+                btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
+                container.appendChild(btn);
+            });
 
-                const commContainer = document.getElementById('commDocFilters');
-                if (commContainer) {
-                    docList.forEach(doc => {
-                        const btn = document.createElement('button');
-                        btn.className = "comm-filter-btn";
-                        btn.id = "comm-doc-" + doc; btn.innerText = doc;
-                        btn.onclick = () => setCommDoc(doc);
-                        commContainer.appendChild(btn);
-                    });
-                }
+            const commContainer = document.getElementById('commDocFilters');
+            docList.forEach(doc => {
+                const btn = document.createElement('button');
+                btn.className = "comm-filter-btn";
+                btn.id = "comm-doc-" + doc; btn.innerText = doc;
+                btn.onclick = () => setCommDoc(doc);
+                commContainer.appendChild(btn);
+            });
 
-                if (typeof renderAtalhos === 'function') renderAtalhos();
-                
-                const savedUser = localStorage.getItem("topline_user");
-                if (savedUser && typeof login === 'function') { login(savedUser, true); }
-            } catch (e) {
-                console.error("Erro ao carregar sistema:", e);
-            }
+            renderAtalhos();
+            const savedUser = localStorage.getItem("topline_user");
+            if (savedUser) { login(savedUser, true); }
         };
 
         // ============================================
         // LOGIN COM SENHA
         // ============================================
-
-        function toggleSenhaVisibility() {
-            const input = document.getElementById('login-senha-input');
-            const icon = document.getElementById('senha-eye-icon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.textContent = '🙈';
-            } else {
-                input.type = 'password';
-                icon.textContent = '👁️';
-            }
-        }
-
-        function salvarSenhaLocalStorage() {
-            const salvarCheck = document.getElementById('salvar-senha-check');
-            if (salvarCheck.checked) {
-                localStorage.setItem('topline_senha_' + usuarioSelecionado, document.getElementById('login-senha-input').value);
-            }
-        }
-
-        function carregarSenhaLocalStorage(nome) {
-            const senhaArmazenada = localStorage.getItem('topline_senha_' + nome);
-            if (senhaArmazenada) {
-                document.getElementById('login-senha-input').value = senhaArmazenada;
-                document.getElementById('salvar-senha-check').checked = true;
-            }
-        }
-
         function selecionarUsuario(nome) {
-            try {
-                console.log('Selecionando usuário:', nome);
-                usuarioSelecionado = nome;
-                const step1 = document.getElementById('login-step-1');
-                const step2 = document.getElementById('login-step-2');
-                const nomeExibido = document.getElementById('login-nome-exibido');
-                const erroEl = document.getElementById('login-erro');
-                
-                if (step1) {
-                    step1.classList.add('hidden');
-                    step1.style.display = 'none';
-                }
-                if (step2) {
-                    step2.classList.remove('hidden');
-                    step2.style.display = 'block';
-                }
-                if (nomeExibido) nomeExibido.innerText = nome;
-                if (erroEl) {
-                    erroEl.classList.add('hidden');
-                    erroEl.style.display = 'none';
-                }
-                
-                carregarSenhaLocalStorage(nome);
-                setTimeout(() => {
-                    const input = document.getElementById('login-senha-input');
-                    if (input) {
-                        input.focus();
-                        input.click();
-                    }
-                }, 200);
-            } catch (e) {
-                console.error("Erro ao selecionar usuário:", e);
-                alert("Erro ao selecionar usuário. Por favor, recarregue a página.");
-            }
+            usuarioSelecionado = nome;
+            document.getElementById('login-step-1').classList.add('hidden');
+            document.getElementById('login-step-2').classList.remove('hidden');
+            document.getElementById('login-nome-exibido').innerText = nome;
+            document.getElementById('login-senha-input').value = '';
+            document.getElementById('login-erro').classList.add('hidden');
+            setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
         }
 
         function voltarLogin() {
-            const step1 = document.getElementById('login-step-1');
-            const step2 = document.getElementById('login-step-2');
-            if (step1) {
-                step1.classList.remove('hidden');
-                step1.style.display = 'block';
-            }
-            if (step2) {
-                step2.classList.add('hidden');
-                step2.style.display = 'none';
-            }
+            document.getElementById('login-step-1').classList.remove('hidden');
+            document.getElementById('login-step-2').classList.add('hidden');
             usuarioSelecionado = '';
         }
 
         function confirmarLogin() {
-            try {
-                const input = document.getElementById('login-senha-input');
-                const senhaDigitada = input ? input.value : '';
-                const senhaCorreta = USUARIOS_SENHAS[usuarioSelecionado];
-                const erroEl = document.getElementById('login-erro');
-                
-                if (senhaDigitada === senhaCorreta) {
-                    if (erroEl) {
-                        erroEl.classList.add('hidden');
-                        erroEl.style.display = 'none';
-                    }
-                    salvarSenhaLocalStorage();
-                    login(usuarioSelecionado);
-                } else {
-                    if (erroEl) {
-                        erroEl.classList.remove('hidden');
-                        erroEl.style.display = 'block';
-                    }
-                    if (input) {
-                        input.value = '';
-                        input.focus();
-                    }
-                }
-            } catch (e) {
-                console.error("Erro ao confirmar login:", e);
-                alert("Erro ao fazer login. Por favor, recarregue a página.");
+            const senhaDigitada = document.getElementById('login-senha-input').value;
+            const senhaCorreta = USUARIOS_SENHAS[usuarioSelecionado];
+            if (senhaDigitada === senhaCorreta) {
+                document.getElementById('login-erro').classList.add('hidden');
+                login(usuarioSelecionado);
+            } else {
+                document.getElementById('login-erro').classList.remove('hidden');
+                document.getElementById('login-senha-input').value = '';
+                document.getElementById('login-senha-input').focus();
             }
         }
 
         function login(userName, isAuto = false) {
-            try {
-                localStorage.setItem("topline_user", userName);
-                currentUser = userName;
-                const userNameEl = document.getElementById('current-user-name');
-                if (userNameEl) userNameEl.innerText = currentUser;
-                
-                const loginScreen = document.getElementById('login-screen');
-                if (loginScreen) loginScreen.style.display = 'none';
-                
-                const mainApp = document.getElementById('main-app');
-                if (mainApp) mainApp.style.display = 'block';
+            localStorage.setItem("topline_user", userName);
+            currentUser = userName;
+            document.getElementById('current-user-name').innerText = currentUser;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
             
-                if (typeof atualizarBotoesSorteio === 'function') atualizarBotoesSorteio();
-                
-                // Controle de visibilidade de abas
-                const tabMonitor = document.getElementById('tab-monitor');
-                if (tabMonitor) {
-                    if (PERFIS_MONITOR.includes(currentUser)) { tabMonitor.classList.remove('hidden'); } else { tabMonitor.classList.add('hidden'); }
-                }
-                
-                const tabLogs = document.getElementById('tab-logs');
-                if (tabLogs) {
-                    if (PERFIS_LOGS.includes(currentUser)) { tabLogs.classList.remove('hidden'); } else { tabLogs.classList.add('hidden'); }
-                }
-                
-                const tabFinanceiro = document.getElementById('tab-financeiro');
-                if (tabFinanceiro) {
-                    if (PERFIS_FINANCEIRO.includes(currentUser)) { tabFinanceiro.classList.remove('hidden'); } else { tabFinanceiro.classList.add('hidden'); }
-                }
-                
-                const avisosControls = document.getElementById('admin-avisos-controls');
-                if (avisosControls) {
-                    if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
-                }
-                
-                if (typeof carregarAvisos === 'function') carregarAvisos();
+            atualizarBotoesSorteio();
             
-                
-                // Registrar log de login
-                if(!isAuto && typeof registrarLog === 'function') registrarLog('Login no sistema', null, null, `Usuário ${currentUser} acessou o sistema`);
+            // Controle de visibilidade de abas
+            const tabMonitor = document.getElementById('tab-monitor');
+            if (PERFIS_MONITOR.includes(currentUser)) { tabMonitor.classList.remove('hidden'); } else { tabMonitor.classList.add('hidden'); }
+            
+            const tabLogs = document.getElementById('tab-logs');
+            if (PERFIS_LOGS.includes(currentUser)) { tabLogs.classList.remove('hidden'); } else { tabLogs.classList.add('hidden'); }
+            
+            const tabFinanceiro = document.getElementById('tab-financeiro');
+            if (PERFIS_FINANCEIRO.includes(currentUser)) { tabFinanceiro.classList.remove('hidden'); } else { tabFinanceiro.classList.add('hidden'); }
+            
+            const avisosControls = document.getElementById('admin-avisos-controls');
+            if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
+            
+            carregarAvisos();
+            
+            // Registrar log de login
+            if(!isAuto) registrarLog('Login no sistema', null, null, `Usuário ${currentUser} acessou o sistema`);
 
-                if (typeof fetchGoogleSheets === 'function') fetchGoogleSheets(true);
-                setInterval(() => { if (typeof fetchGoogleSheets === 'function') fetchGoogleSheets(false); }, 60000);
-                setInterval(() => { if (typeof carregarDistribuicaoGlobal === 'function') carregarDistribuicaoGlobal(); }, 30000);
-                setInterval(() => { if (typeof carregarAvisos === 'function') carregarAvisos(); }, 60000);
-                setTimeout(() => { if (typeof carregarDistribuicaoGlobal === 'function') carregarDistribuicaoGlobal(); }, 2000);
-            } catch (e) {
-                console.error("Erro ao fazer login:", e);
-                alert("Erro ao fazer login. Por favor, recarregue a página.");
-            }
+            fetchGoogleSheets(true);
+            setInterval(() => fetchGoogleSheets(false), 60000);
+            setInterval(() => carregarDistribuicaoGlobal(), 30000);
+            setInterval(() => carregarAvisos(), 60000);
+            setTimeout(() => { carregarDistribuicaoGlobal(); }, 2000);
         }
 
         function logout() {
@@ -2500,4 +2371,3 @@
 
 </body>
 </html>
-        
