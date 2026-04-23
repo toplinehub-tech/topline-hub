@@ -949,13 +949,41 @@
         // ============================================
         // LOGIN COM SENHA
         // ============================================
+
+        function toggleSenhaVisibility() {
+            const input = document.getElementById('login-senha-input');
+            const icon = document.getElementById('senha-eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                icon.textContent = '👁️';
+            }
+        }
+
+        function salvarSenhaLocalStorage() {
+            const salvarCheck = document.getElementById('salvar-senha-check');
+            if (salvarCheck.checked) {
+                localStorage.setItem('topline_senha_' + usuarioSelecionado, document.getElementById('login-senha-input').value);
+            }
+        }
+
+        function carregarSenhaLocalStorage(nome) {
+            const senhaArmazenada = localStorage.getItem('topline_senha_' + nome);
+            if (senhaArmazenada) {
+                document.getElementById('login-senha-input').value = senhaArmazenada;
+                document.getElementById('salvar-senha-check').checked = true;
+            }
+        }
+
         function selecionarUsuario(nome) {
             usuarioSelecionado = nome;
             document.getElementById('login-step-1').classList.add('hidden');
             document.getElementById('login-step-2').classList.remove('hidden');
             document.getElementById('login-nome-exibido').innerText = nome;
-            document.getElementById('login-senha-input').value = '';
             document.getElementById('login-erro').classList.add('hidden');
+            carregarSenhaLocalStorage(nome);
             setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
         }
 
@@ -970,6 +998,7 @@
             const senhaCorreta = USUARIOS_SENHAS[usuarioSelecionado];
             if (senhaDigitada === senhaCorreta) {
                 document.getElementById('login-erro').classList.add('hidden');
+                salvarSenhaLocalStorage();
                 login(usuarioSelecionado);
             } else {
                 document.getElementById('login-erro').classList.remove('hidden');
@@ -2371,3 +2400,4 @@
 
 </body>
 </html>
+        
