@@ -583,20 +583,27 @@
                     </div>
                 </div>
                 <div class="white-card p-6">
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">Histórico de Registros — <span id="monitor-historico-info">Hoje</span></h3>
-                    <div class="scroll-container">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Atividades Extras (Painel) — <span id="monitor-extras-info">Hoje</span></h3>
+                        <div class="flex gap-2">
+                            <input type="date" id="filtroDataExtras" onchange="carregarAtividadesExtras()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 text-[10px] outline-none">
+                            <button onclick="carregarAtividadesExtras()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50 text-[8px] py-1 px-2">Atualizar</button>
+                        </div>
+                    </div>
+                    <div class="scroll-container" style="max-height: 400px;">
                         <table class="w-full text-left">
                             <thead>
                                 <tr>
-                                    <th>Data</th>
+                                    <th>Data/Hora</th>
                                     <th>Colaborador</th>
-                                    <th>Total</th>
-                                    <th>Concluídas</th>
-                                    <th>Progresso</th>
-                                    <th>Registrado por</th>
+                                    <th>Cliente</th>
+                                    <th>Ação Realizada</th>
+                                    <th>Detalhes</th>
                                 </tr>
                             </thead>
-                            <tbody id="monitor-historico-body"></tbody>
+                            <tbody id="monitor-extras-body">
+                                <tr><td colspan="5" class="text-center py-10 text-slate-400 text-xs">Carregando atividades...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -1886,7 +1893,11 @@
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
             if (tab === 'atalhos') renderAtalhos();
-            if (tab === 'monitor') carregarMonitor();
+            if (tab === 'monitor') { 
+                document.getElementById('filtroDataExtras').value = new Date().toISOString().slice(0, 10);
+                carregarMonitor(); 
+                carregarAtividadesExtras(); 
+            }
             if (tab === 'logs') {
                 if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito aos administradores.', true); return; }
                 carregarLogs();
