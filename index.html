@@ -28,9 +28,10 @@
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: #fafbfc; border: 1px solid rgba(16, 185, 129, 0.08); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: #fafbfc; border-radius: 12px; border: 1px solid #e8ecf1; }
-        th { background: #f5f7fa; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #e8ecf1; white-space: nowrap; }
+        th { background: #f5f7fa; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 30; border-bottom: 2px solid #e8ecf1; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #e8ecf1; cursor: pointer; }
         .col-fixed { position: sticky; left: 0; background: #fafbfc !important; z-index: 25; font-weight: 600; border-right: 1px solid #e8ecf1; }
+        th.col-fixed { z-index: 35 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #d4dce5; background: #fafbfc; }
         .card-selected { transform: translateY(-4px) scale(1.02); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
@@ -1493,17 +1494,13 @@
             loadingOverlay.style.display = 'flex';
 
             try {
-                await enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar);
-                
-                // Registrar log com valores antigo e novo
-                const detalheLog = `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`;
-                await registrarLog(`Alteração: ${selectedOption}`, cliente, c, detalheLog, valorAnterior, valorParaSalvar);
-
-                // Salvar observação no histórico (sempre, mesmo que vazia)
-                await salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption);
-
-                // Registrar no Monitor (desempenho) - AGORA ACUMULA DADOS
-                await registrarDesempenhoMonitor();
+                // Executar operações em paralelo para maior rapidez
+                await Promise.all([
+                    enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar),
+                    registrarLog(`Alteração: ${selectedOption}`, cliente, c, `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorParaSalvar),
+                    salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption),
+                    registrarDesempenhoMonitor()
+                ]);
 
                 loadingOverlay.style.display = 'none';
                 showNotificationOnce(`✅ ${cliente} - ${c} atualizado!`, false, `${cliente}-${c}`);
@@ -1511,7 +1508,8 @@
                 // Forçar atualização final
                 renderizarTarefas();
                 atualizarDashboardDesempenho();
-                setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 1500);
+                // Reduzir o tempo de espera para a sincronização final
+                setTimeout(() => { fetchGoogleSheets(false); }, 500);
             } catch (error) {
                 loadingOverlay.style.display = 'none';
                 showNotification('Erro: ' + error.message, true);
@@ -1556,6 +1554,7 @@
         // ============================================
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
+            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO" || strVal === "OK") return 'concluido';
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
             if (row && col && row[col + "_DONE"]) return 'concluido';
@@ -1656,7 +1655,7 @@
             const linha = rawData[rowIndex];
             if (!linha) return 'pendente';
             const strVal = String(linha[documento] || "").toUpperCase();
-            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO") return 'concluido';
+            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO" || strVal === "OK") return 'concluido';
             if (strVal === "EM ANDAMENTO") return 'andamento';
             return 'pendente';
         }
@@ -1670,8 +1669,7 @@
                     const linha = rawData[tarefa.rowIndex];
                     const strValor = String(linha ? linha[tarefa.documento] : "").toUpperCase();
                     // Conta como concluída se: CONCLUIDO, ANALISE ou EM ANDAMENTO (atividade realizada)
-                    if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;
-                });
+                    if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;                });
                 const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
                 const n = colab.toLowerCase();
                 const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `${percentual}%`;
@@ -2260,7 +2258,7 @@
                 tarefas.forEach(t => {
                     const linha = rawData[t.rowIndex];
                     const v = String(linha ? linha[t.documento] : '').toUpperCase();
-                    if (v === 'CONCLUIDO' || v === 'CONCLUÍDO' || v === 'ANALISE' || v === 'EM ANDAMENTO') concluidas++;
+                    if (v === 'CONCLUIDO' || v === 'CONCLUÍDO' || v === 'OK' || v === 'ANALISE' || v === 'EM ANDAMENTO') concluidas++;
                 });
                 registros.push({
                     data: hoje,
