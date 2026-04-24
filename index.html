@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TopLineHub | Gestão Integrada v5.0</title>
+    <title>TopLineHub | Gestão Integrada </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -582,51 +582,22 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- SEÇÃO INFERIOR: TAREFAS EXTRAS E DASHBOARD LARANJA -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <!-- TAREFAS EXTRAS (AUDITORIA) -->
-                    <div class="white-card p-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tarefas Extras (Painel)</h3>
-                            <div class="flex gap-2">
-                                <input type="date" id="filtroDataExtras" onchange="carregarTarefasExtras()" class="bg-slate-50 border border-slate-200 rounded px-2 py-0.5 text-[9px] outline-none">
-                                <button onclick="carregarTarefasExtras()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50 text-[8px] py-1 px-2">↻</button>
-                            </div>
-                        </div>
-                        <div class="scroll-container" style="max-height: 300px;">
-                            <table class="w-full text-left">
-                                <thead class="bg-slate-50">
-                                    <tr>
-                                        <th class="py-2 px-2 text-[8px]">Data/Hora</th>
-                                        <th class="py-2 px-2 text-[8px]">Usuário</th>
-                                        <th class="py-2 px-2 text-[8px]">Cliente</th>
-                                        <th class="py-2 px-2 text-[8px]">Alteração</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="monitor-extras-body" class="text-[9px]">
-                                    <tr><td colspan="4" class="text-center py-10 text-slate-400">Carregando atividades...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- DASHBOARD LARANJA/VERMELHO -->
-                    <div class="white-card p-4">
-                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Resumo de Operações (Hoje)</h3>
-                        <div class="grid grid-cols-2 gap-2 mb-4">
-                            <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
-                                <p class="text-[8px] font-bold text-orange-400 uppercase">Total Painel</p>
-                                <p id="dash-total-painel" class="text-xl font-black text-orange-600">0</p>
-                            </div>
-                            <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
-                                <p class="text-[8px] font-bold text-red-400 uppercase">Feitas Hoje</p>
-                                <p id="dash-feitas-hoje" class="text-xl font-black text-red-600">0</p>
-                            </div>
-                        </div>
-                        <div style="height: 180px;">
-                            <canvas id="chartExtras"></canvas>
-                        </div>
+                <div class="white-card p-6">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">Histórico de Registros — <span id="monitor-historico-info">Hoje</span></h3>
+                    <div class="scroll-container">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Colaborador</th>
+                                    <th>Total</th>
+                                    <th>Concluídas</th>
+                                    <th>Progresso</th>
+                                    <th>Registrado por</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monitor-historico-body"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -1915,13 +1886,7 @@
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
             if (tab === 'atalhos') renderAtalhos();
-            if (tab === 'monitor') { 
-                const dateInput = document.getElementById('filtroDataExtras');
-                if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
-                carregarMonitor(); 
-                carregarTarefasExtras(); 
-                carregarDashboardExtras();
-            }
+            if (tab === 'monitor') carregarMonitor();
             if (tab === 'logs') {
                 if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito aos administradores.', true); return; }
                 carregarLogs();
