@@ -28,9 +28,10 @@
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
         .white-card { background: #fafbfc; border: 1px solid rgba(16, 185, 129, 0.08); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: #fafbfc; border-radius: 12px; border: 1px solid #e8ecf1; }
-        th { background: #f5f7fa; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 20; border-bottom: 2px solid #e8ecf1; white-space: nowrap; }
+        th { background: #f5f7fa; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 30; border-bottom: 2px solid #e8ecf1; white-space: nowrap; }
         td { padding: 8px 10px; font-size: 10.5px; border-bottom: 1px solid #e8ecf1; cursor: pointer; }
-        .col-fixed { position: sticky; left: 0; background: #fafbfc !important; z-index: 10; font-weight: 600; border-right: 1px solid #e8ecf1; }
+        .col-fixed { position: sticky; left: 0; background: #fafbfc !important; z-index: 25; font-weight: 600; border-right: 1px solid #e8ecf1; }
+        th.col-fixed { z-index: 35 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #d4dce5; background: #fafbfc; }
         .card-selected { transform: translateY(-4px) scale(1.02); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
@@ -205,18 +206,9 @@
             <div id="login-step-2" class="hidden">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Bem-vindo(a), <span id="login-nome-exibido" class="text-emerald-600"></span></p>
                 <p class="text-[10px] text-slate-400 mb-4">Digite sua senha para continuar</p>
-                <div class="relative mb-4">
-                    <input type="password" id="login-senha-input" placeholder="Senha" 
-                        class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none"
-                        onkeydown="if(event.key==='Enter') confirmarLogin()">
-                    <button type="button" onclick="toggleSenhaVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors text-lg">
-                        <span id="senha-eye-icon">👁️</span>
-                    </button>
-                </div>
-                <div class="flex items-center gap-2 mb-4">
-                    <input type="checkbox" id="salvar-senha-check" class="w-4 h-4 rounded border-slate-300 cursor-pointer">
-                    <label for="salvar-senha-check" class="text-xs text-slate-600 cursor-pointer">Lembrar minha senha</label>
-                </div>
+                <input type="password" id="login-senha-input" placeholder="Senha" 
+                    class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none mb-4"
+                    onkeydown="if(event.key==='Enter') confirmarLogin()">
                 <div id="login-erro" class="text-red-500 text-xs mb-3 hidden">Senha incorreta. Tente novamente.</div>
                 <div class="flex gap-3">
                     <button onclick="voltarLogin()" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Voltar</button>
@@ -796,10 +788,13 @@
         let currentEditTarget = {};
         let lastKnownDataHash = "";
         let selectedOption = null;
-        let currentUser = ""; localStorage.removeItem("topline_user");
+        let currentUser = "";
         let usuarioSelecionado = "";
         
         let distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
+        
+        // Controle de notificações de conclusão por usuário (para evitar popups duplicados)
+        let notificacoesEnviadasHoje = {};
 
         // Variáveis do Monitor
         let monitorPeriodoAtual = 'diario';
@@ -810,7 +805,7 @@
         let logsData = [];
         let historicoData = [];
         
-        const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA", "CRCE"];
+        const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA"];
 
         const MENSAGENS_PADRAO = {
             vencido: "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline.",
@@ -951,85 +946,40 @@
             });
 
             renderAtalhos();
-            const savedUser = localStorage.getItem("topline_user");
-            if (savedUser) { login(savedUser, true); }
+            // Removido login automático para garantir que a tela de login apareça
+            // const savedUser = localStorage.getItem("topline_user");
+            // if (savedUser) { login(savedUser, true); }
         };
 
         // ============================================
         // LOGIN COM SENHA
         // ============================================
-
-        function toggleSenhaVisibility() {
-            const input = document.getElementById('login-senha-input');
-            const icon = document.getElementById('senha-eye-icon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.textContent = '🙈';
-            } else {
-                input.type = 'password';
-                icon.textContent = '👁️';
-            }
-        }
-
-        function salvarSenhaLocalStorage() {
-            const salvarCheck = document.getElementById('salvar-senha-check');
-            if (salvarCheck.checked) {
-                localStorage.setItem('topline_senha_' + usuarioSelecionado, document.getElementById('login-senha-input').value);
-            }
-        }
-
-        function carregarSenhaLocalStorage(nome) {
-            const senhaArmazenada = localStorage.getItem('topline_senha_' + nome);
-            if (senhaArmazenada) {
-                document.getElementById('login-senha-input').value = senhaArmazenada;
-                document.getElementById('salvar-senha-check').checked = true;
-            }
-        }
-
         function selecionarUsuario(nome) {
-            console.log('Selecionando usuário:', nome);
             usuarioSelecionado = nome;
-            const step1 = document.getElementById('login-step-1');
-            const step2 = document.getElementById('login-step-2');
-            const nomeExibido = document.getElementById('login-nome-exibido');
-            const erroEl = document.getElementById('login-erro');
-            
-            if (step1) step1.classList.add('hidden');
-            if (step2) step2.classList.remove('hidden');
-            if (nomeExibido) nomeExibido.innerText = nome;
-            if (erroEl) erroEl.classList.add('hidden');
-            
-            carregarSenhaLocalStorage(nome);
-            setTimeout(() => {
-                const input = document.getElementById('login-senha-input');
-                if (input) input.focus();
-            }, 100);
+            document.getElementById('login-step-1').classList.add('hidden');
+            document.getElementById('login-step-2').classList.remove('hidden');
+            document.getElementById('login-nome-exibido').innerText = nome;
+            document.getElementById('login-senha-input').value = '';
+            document.getElementById('login-erro').classList.add('hidden');
+            setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
         }
 
         function voltarLogin() {
-            const step1 = document.getElementById('login-step-1');
-            const step2 = document.getElementById('login-step-2');
-            if (step1) step1.classList.remove('hidden');
-            if (step2) step2.classList.add('hidden');
+            document.getElementById('login-step-1').classList.remove('hidden');
+            document.getElementById('login-step-2').classList.add('hidden');
             usuarioSelecionado = '';
         }
 
         function confirmarLogin() {
-            const input = document.getElementById('login-senha-input');
-            const senhaDigitada = input ? input.value : '';
+            const senhaDigitada = document.getElementById('login-senha-input').value;
             const senhaCorreta = USUARIOS_SENHAS[usuarioSelecionado];
-            const erroEl = document.getElementById('login-erro');
-            
             if (senhaDigitada === senhaCorreta) {
-                if (erroEl) erroEl.classList.add('hidden');
-                salvarSenhaLocalStorage();
+                document.getElementById('login-erro').classList.add('hidden');
                 login(usuarioSelecionado);
             } else {
-                if (erroEl) erroEl.classList.remove('hidden');
-                if (input) {
-                    input.value = '';
-                    input.focus();
-                }
+                document.getElementById('login-erro').classList.remove('hidden');
+                document.getElementById('login-senha-input').value = '';
+                document.getElementById('login-senha-input').focus();
             }
         }
 
@@ -1056,6 +1006,8 @@
             if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
             
             carregarAvisos();
+            agendarSorteioAutomatico();
+            agendarRegistroMonitorAutomatico();
             
             // Registrar log de login
             if(!isAuto) registrarLog('Login no sistema', null, null, `Usuário ${currentUser} acessou o sistema`);
@@ -1338,7 +1290,11 @@
                                 const idx = parseInt(rowIndex);
                                 const linha = rawData[idx];
                                 if (linha) {
-                                    dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
+                                    // SÓ ADICIONA SE NÃO ESTIVER CONCLUÍDA NO RAWDATA
+                                    const statusTarefa = obterStatusTarefa(idx, documento);
+                                    if (statusTarefa !== 'concluido') {
+                                        dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
+                                    }
                                 }
                             }
                         };
@@ -1363,13 +1319,18 @@
         }
 
         async function resetarDistribuicao() {
-            if (!PERFIS_SORTEIO.includes(currentUser)) {return; }
-            if (!confirm('⚠️ ATENÇÃO! Isso irá remover TODAS as tarefas atribuídas. Deseja continuar?')) return;try {
+            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas a Ingrid pode resetar a distribuição!', true); return; }
+            if (!confirm('⚠️ ATENÇÃO! Isso irá remover TODAS as tarefas atribuídas. Deseja continuar?')) return;
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            try {
                 await supabaseClient.from('distribuicao_tarefas').delete().neq('id', 0);
                 distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
                 renderizarTarefas(); atualizarDashboardDesempenho();
-                registrarLog('Resetar distribuição', null, null, 'Todas as tarefas foram removidas');} catch (error) { console.error('Erro ao resetar:', error);}
-            finally {}
+                registrarLog('Resetar distribuição', null, null, 'Todas as tarefas foram removidas');
+                showNotification('✅ Distribuição resetada com sucesso!', false, 'Todas as tarefas foram removidas');
+            } catch (error) { console.error('Erro ao resetar:', error); showNotification('Erro ao resetar distribuição', true); }
+            finally { loadingOverlay.style.display = 'none'; }
         }
 
         // ============================================
@@ -1416,10 +1377,9 @@
         }
 
         function detectChanges(oldData, newData) {
-            for (let i = 0; i < newData.length; i++) {
-                if (JSON.stringify(oldData[i]) !== JSON.stringify(newData[i]) && oldData[i]?.CLIENTE) {break;
-                }
-            }
+            // Apenas log silencioso - não mostrar popup a cada sincronização
+            // Os popups de conclusão são mostrados apenas via showNotificationOnce
+            console.log('Dados sincronizados do Google Sheets');
         }
 
         // ============================================
@@ -1500,7 +1460,7 @@
             else if (selectedOption === 'andamento') valorParaSalvar = "EM ANDAMENTO";
             else if (selectedOption === 'data') {
                 const dataInput = document.getElementById('dateValue').value;
-                if (!dataInput) {return; }
+                if (!dataInput) { showNotification('Selecione uma data', true); return; }
                 valorParaSalvar = dataInput;
             }
 
@@ -1531,23 +1491,34 @@
 
             closeModal();
             
-            // Atualizar interface imediatamente
-            renderizarTarefas();try {
-                await enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar);// Registrar log com valores antigo e novo
-                const detalheLog = `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`;
-                await registrarLog(`Alteração: ${selectedOption}`, cliente, c, detalheLog, valorAnterior, valorParaSalvar);
+            // Atualizar interface imediatamente ANTES de salvar
+            renderizarTarefas();
+            atualizarDashboardDesempenho();
+            
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
 
-                // Salvar observação no histórico (sempre, mesmo que vazia)
-                await salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption);
+            try {
+                // Executar operações em paralelo para maior rapidez
+                await Promise.all([
+                    enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar),
+                    registrarLog(`Alteração: ${selectedOption}`, cliente, c, `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorParaSalvar),
+                    salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption),
+                    registrarDesempenhoMonitor()
+                ]);
 
-                // Registrar no Monitor (desempenho)
-                await registrarDesempenhoMonitor();
+                loadingOverlay.style.display = 'none';
+                showNotificationOnce(`✅ ${cliente} - ${c} atualizado!`, false, `${cliente}-${c}`);
 
-                // Forçar atualização imediata
+                // Forçar atualização final
                 renderizarTarefas();
                 atualizarDashboardDesempenho();
-                setTimeout(() => { fetchGoogleSheets(false); renderizarTarefas(); atualizarDashboardDesempenho(); }, 1500);
-            } catch (error) {}
+                // Reduzir o tempo de espera para a sincronização final
+                setTimeout(() => { fetchGoogleSheets(false); }, 500);
+            } catch (error) {
+                loadingOverlay.style.display = 'none';
+                showNotification('Erro: ' + error.message, true);
+            }
         }
 
         // ============================================
@@ -1588,6 +1559,7 @@
         // ============================================
         function getStatus(val, row, col) {
             const strVal = String(val || "").toUpperCase().trim();
+            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO" || strVal === "OK") return 'concluido';
             if (strVal === "EM ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE") return 'analise';
             if (row && col && row[col + "_DONE"]) return 'concluido';
@@ -1688,7 +1660,7 @@
             const linha = rawData[rowIndex];
             if (!linha) return 'pendente';
             const strVal = String(linha[documento] || "").toUpperCase();
-            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO") return 'concluido';
+            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO" || strVal === "OK") return 'concluido';
             if (strVal === "EM ANDAMENTO") return 'andamento';
             return 'pendente';
         }
@@ -1702,8 +1674,7 @@
                     const linha = rawData[tarefa.rowIndex];
                     const strValor = String(linha ? linha[tarefa.documento] : "").toUpperCase();
                     // Conta como concluída se: CONCLUIDO, ANALISE ou EM ANDAMENTO (atividade realizada)
-                    if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;
-                });
+                    if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;                });
                 const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
                 const n = colab.toLowerCase();
                 const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `${percentual}%`;
@@ -1826,15 +1797,19 @@
 
         function salvarSenha(cliente, campo) {
             const novoValor = document.getElementById('senhaInput').value.trim();
-            if (!novoValor) {return; }
-            enviarParaGoogleSheets(cliente, campo, 'senha', novoValor).then(() => {registrarLog('Alteração de senha', cliente, campo, `Senha do campo ${campo} foi alterada`);
+            if (!novoValor) { showNotification('Preencha a senha', true); return; }
+            enviarParaGoogleSheets(cliente, campo, 'senha', novoValor).then(() => {
+                showNotification('Senha atualizada com sucesso!', false, cliente);
+                registrarLog('Alteração de senha', cliente, campo, `Senha do campo ${campo} foi alterada`);
                 closeModal();
                 setTimeout(() => fetchGoogleSheets(false), 1000);
             }).catch(err => showNotification('Erro ao salvar: ' + err.message, true));
         }
 
         function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {closeModal();
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Senha copiada para a área de transferência!');
+                closeModal();
             });
         }
 
@@ -1867,16 +1842,14 @@
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
             if (tab === 'atalhos') renderAtalhos();
-            const savedUser = localStorage.getItem("topline_user");
-            if (savedUser) { login(savedUser, true); }
             if (tab === 'monitor') carregarMonitor();
             if (tab === 'logs') {
-                if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash');return; }
+                if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito aos administradores.', true); return; }
                 carregarLogs();
             }
             if (tab === 'historico') carregarHistorico();
             if (tab === 'financeiro') {
-                if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash');return; }
+                if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
                 carregarFinanceiro();
             }
         }
@@ -1902,7 +1875,22 @@
             XLSX.writeFile(wb, `TopLine_Backup_${new Date().toISOString().slice(0,19)}.xlsx`);
         }
 
-        let notificationTimeout = null;, 2000);
+        let notificationTimeout = null;
+        function showNotification(message, isError = false, cliente = '') {
+            // Limpar timeout anterior para evitar múltiplos popups
+            if (notificationTimeout) clearTimeout(notificationTimeout);
+            
+            const toast = document.getElementById('notification-toast');
+            document.getElementById('notif-message').innerHTML = (isError ? '⚠️ ' : '✓ ') + message;
+            document.getElementById('notif-cliente').innerHTML = isError ? 'Tente novamente em alguns segundos' : (cliente || 'Atualização concluída');
+            toast.style.borderLeftColor = isError ? '#ef4444' : '#10b981';
+            toast.classList.add('show');
+            
+            // Duração de 2 segundos
+            notificationTimeout = setTimeout(() => { 
+                toast.classList.remove('show');
+                notificationTimeout = null;
+            }, 2000);
         }
 
         // ============================================
@@ -2045,7 +2033,7 @@
         let gmailWindow = null;
 
         function enviarWhatsApp(rowIndex, documento, whatsapp) {
-            if (!whatsapp || whatsapp === '-') {return; }
+            if (!whatsapp || whatsapp === '-') { showNotification('Número de WhatsApp não configurado para este cliente', true); return; }
             const row = rawData[rowIndex];
             
             let dataDoc = 'N/A';
@@ -2076,7 +2064,9 @@
             const emailReal = emailCol ? (String(row[emailCol] || '').trim()) : '';
             const emailFinal = (email && email !== '-' && email.includes('@')) ? email : emailReal;
 
-            if (!emailFinal || !emailFinal.includes('@')) {return;
+            if (!emailFinal || !emailFinal.includes('@')) {
+                showNotification('E-mail não cadastrado para este cliente', true);
+                return;
             }
 
             let dataDoc = 'N/A';
@@ -2106,14 +2096,16 @@
         let bulkRunning = false;
 
         async function envioEmMassa(canal) {
-            if (bulkRunning) {return; }
-            if (commFilteredData.length === 0) {return; }
+            if (bulkRunning) { showNotification('Envio em massa já em andamento. Aguarde.', true); return; }
+            if (commFilteredData.length === 0) { showNotification('Nenhum cliente na lista. Selecione filtros primeiro.', true); return; }
 
             const lista = canal === 'whatsapp'
                 ? commFilteredData.filter(i => i.whatsapp !== '-' && i.whatsapp.length > 5)
                 : commFilteredData.filter(i => i.email !== '-' && i.email.includes('@'));
 
-            if (lista.length === 0) {return;
+            if (lista.length === 0) {
+                showNotification(`Nenhum cliente com ${canal === 'whatsapp' ? 'WhatsApp' : 'e-mail'} cadastrado.`, true);
+                return;
             }
 
             const confirmar = confirm(`Enviar mensagem para ${lista.length} cliente(s) via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}?\n\nCada mensagem será aberta na mesma janela. Você precisará confirmar o envio em cada uma.`);
@@ -2144,7 +2136,10 @@
 
             statusText.textContent = `✓ Concluído: ${lista.length} mensagens abertas`;
             progressBar.style.width = '100%';
-            bulkRunning = false;// Registrar log
+            bulkRunning = false;
+            showNotification(`✅ Envio em massa concluído: ${lista.length} mensagens`, false, `Via ${canal === 'whatsapp' ? 'WhatsApp' : 'Gmail'}`);
+
+            // Registrar log
             registrarLog(`Envio em massa ${canal}`, null, null, `${lista.length} mensagens enviadas via ${canal}`);
 
             setTimeout(() => { statusDiv.classList.add('hidden'); progressBar.style.width = '0%'; }, 5000);
@@ -2154,7 +2149,10 @@
         // SORTEIO
         // ============================================
         async function distribuirTarefas(statusAlvo) {
-            if (!PERFIS_SORTEIO.includes(currentUser)) {return; }try {
+            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true); return; }
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            try {
                 const empresasComTarefas = new Map();
                 for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
                     const row = rawData[rowIndex];
@@ -2170,7 +2168,9 @@
                     if (tarefasDaEmpresa.length > 0) empresasComTarefas.set(clienteNome, tarefasDaEmpresa);
                 }
                 if (empresasComTarefas.size === 0) {
-                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };return;
+                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
+                    showNotification(`⚠️ Nenhuma tarefa para: ${n[statusAlvo]||statusAlvo}`, true);
+                    loadingOverlay.style.display = 'none'; return;
                 }
                 let arr = Array.from(empresasComTarefas.entries());
                 arr.sort((a, b) => b[1].length - a[1].length);
@@ -2187,11 +2187,57 @@
                 await salvarDistribuicaoNoServidor(statusAlvo);
                 await carregarDistribuicaoGlobal();
                 const n2 = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
-                registrarLog('Sorteio realizado', null, null, `Sorteio para ${n2[statusAlvo]||statusAlvo}: J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);} catch (error) {}
-            finally {}
+                registrarLog('Sorteio realizado', null, null, `Sorteio para ${n2[statusAlvo]||statusAlvo}: J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
+                showNotification(`✅ Distribuição concluída! ${empresasComTarefas.size} empresas para ${n2[statusAlvo]||statusAlvo}`, false, `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
+            } catch (error) { showNotification('Erro ao realizar sorteio: ' + error.message, true); }
+            finally { loadingOverlay.style.display = 'none'; }
         }
 
+
         // ============================================
+        // SORTEIO AUTOMÁTICO (07h, Seg-Sex)
+        // ============================================
+        function agendarSorteioAutomatico() {
+            // Função chamada no login para agendar sorteios automáticos
+            const verificarSorteio = () => {
+                const agora = new Date();
+                const dia = agora.getDay(); // 0=Dom, 1=Seg, ..., 6=Sab
+                const hora = agora.getHours();
+                const minutos = agora.getMinutes();
+                
+                // Executar apenas Seg-Sex (1-5) às 07:00
+                if (dia >= 1 && dia <= 5 && hora === 7 && minutos === 0) {
+                    console.log('Executando sorteio automático de vencidos às 07h');
+                    distribuirTarefas('vencido');
+                }
+            };
+            
+            // Verificar a cada minuto
+            setInterval(verificarSorteio, 60000);
+        }
+
+        
+        // ============================================
+        // MONITOR AUTOMÁTICO - Registro diário a cada 6 horas
+        // ============================================
+        function agendarRegistroMonitorAutomatico() {
+            // Registra desempenho a cada 6 horas (00h, 06h, 12h, 18h)
+            const verificarRegistro = async () => {
+                const agora = new Date();
+                const hora = agora.getHours();
+                
+                // Registrar a cada 6 horas
+                if (hora % 6 === 0 && agora.getMinutes() === 0) {
+                    console.log(`Registrando Monitor automaticamente às ${hora}h`);
+                    await registrarDesempenhoMonitor();
+                }
+            };
+            
+            // Verificar a cada minuto
+            setInterval(verificarRegistro, 60000);
+        }
+
+                // ============================================
         // ABA MONITOR — Dashboard de Desempenho
         // ============================================
         function setMonitorPeriodo(periodo) {
@@ -2215,7 +2261,7 @@
                 tarefas.forEach(t => {
                     const linha = rawData[t.rowIndex];
                     const v = String(linha ? linha[t.documento] : '').toUpperCase();
-                    if (v === 'CONCLUIDO' || v === 'CONCLUÍDO' || v === 'ANALISE' || v === 'EM ANDAMENTO') concluidas++;
+                    if (v === 'CONCLUIDO' || v === 'CONCLUÍDO' || v === 'OK' || v === 'ANALISE' || v === 'EM ANDAMENTO') concluidas++;
                 });
                 registros.push({
                     data: hoje,
@@ -2223,24 +2269,15 @@
                     total_tarefas: total,
                     concluidas: concluidas,
                     percentual: total > 0 ? Math.round((concluidas / total) * 100) : 0,
-                    registrado_por: currentUser
+                    registrado_por: currentUser,
+                    timestamp: new Date().toISOString()
                 });
             });
 
             try {
                 console.log('Preparando para salvar Monitor:', registros);
                 
-                // Primeiro, apagar registros do dia para evitar conflitos de UNIQUE constraint
-                const { error: deleteError } = await supabaseClient
-                    .from('monitor_desempenho')
-                    .delete()
-                    .eq('data', hoje);
-                
-                if (deleteError) {
-                    console.warn('Aviso ao deletar registros antigos:', deleteError);
-                }
-                
-                // Depois, inserir os novos registros
+                // Inserir novo registro (acumula dados do dia)
                 const { data, error: insertError } = await supabaseClient
                     .from('monitor_desempenho')
                     .insert(registros);
@@ -2294,13 +2331,29 @@
                 ['Jordan', 'Sirlene', 'Ingrid'].forEach(c => {
                     agrupado[c] = { total: 0, concluidas: 0, registros: 0 };
                 });
-                registros.forEach(r => {
-                    if (agrupado[r.colaborador]) {
-                        agrupado[r.colaborador].total += r.total_tarefas;
-                        agrupado[r.colaborador].concluidas += r.concluidas;
-                        agrupado[r.colaborador].registros++;
-                    }
-                });
+                
+                // SE FOR DIÁRIO, USA OS DADOS EM TEMPO REAL DO PAINEL
+                if (monitorPeriodoAtual === 'diario') {
+                    ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                        const tarefasColab = distribuicaoAtual[colab] || [];
+                        const total = tarefasColab.length;
+                        let concluidas = 0;
+                        tarefasColab.forEach(tarefa => {
+                            const linha = rawData[tarefa.rowIndex];
+                            const strValor = String(linha ? linha[tarefa.documento] : "").toUpperCase();
+                            if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;
+                        });
+                        agrupado[colab] = { total: total, concluidas: concluidas, registros: 1 };
+                    });
+                } else {
+                    registros.forEach(r => {
+                        if (agrupado[r.colaborador]) {
+                            agrupado[r.colaborador].total += r.total_tarefas;
+                            agrupado[r.colaborador].concluidas += r.concluidas;
+                            agrupado[r.colaborador].registros++;
+                        }
+                    });
+                }
 
                 const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
                 const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8' };
@@ -2386,10 +2439,34 @@
 
                 // Tabela de histórico
                 const tbody = document.getElementById('monitor-historico-body');
-                if (registros.length === 0) {
+                if (registros.length === 0 && monitorPeriodoAtual !== 'diario') {
                     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
                 } else {
-                    tbody.innerHTML = registros.map(r => {
+                    // SE FOR DIÁRIO, ADICIONA O REGISTRO ATUAL NO TOPO DA TABELA
+                    let html = '';
+                    if (monitorPeriodoAtual === 'diario') {
+                        const hojeStr = hoje.toISOString().slice(0, 10);
+                        ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                            const d = agrupado[colab];
+                            const pctR = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
+                            const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
+                            html += `<tr>
+                                <td class="font-mono text-xs">${new Date(hojeStr + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                <td class="font-bold ${corColab[colab] || ''}">${colab}</td>
+                                <td>${d.total}</td>
+                                <td class="text-emerald-600 font-bold">${d.concluidas}</td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${pctR}%"></div></div>
+                                        <span class="text-xs font-bold">${pctR}%</span>
+                                    </div>
+                                </td>
+                                <td class="text-slate-400 text-xs">Tempo Real</td>
+                            </tr>`;
+                        });
+                    }
+                    
+                    html += registros.map(r => {
                         const pctR = r.total_tarefas > 0 ? Math.round((r.concluidas / r.total_tarefas) * 100) : 0;
                         const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
                         return `<tr>
@@ -2406,6 +2483,7 @@
                             <td class="text-slate-400 text-xs">${r.registrado_por}</td>
                         </tr>`;
                     }).join('');
+                    tbody.innerHTML = html;
                 }
 
             } catch (err) {
