@@ -481,7 +481,11 @@
                 <div class="white-card p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-sm font-black text-slate-700 uppercase tracking-tight">Atalhos Rápidos</h3>
+                        
                         <div class="flex gap-2">
+                            <input type="date" id="filtroDataLog" onchange="filtrarLogs()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
+                            <input type="text" id="searchLogs" oninput="filtrarLogs()" placeholder="Filtrar logs..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[180px] outline-none">
+    
                             <button id="btn-fechar-iframe" onclick="fecharIframe()" class="hidden btn-mini text-red-600 border-red-200">Fechar Visualizador</button>
                             <button onclick="abrirEmNovaAba()" class="btn-mini text-blue-600 border-blue-200">Abrir em Nova Aba</button>
                         </div>
@@ -567,7 +571,31 @@
                             <button id="monitor-btn-mensal" onclick="setMonitorPeriodo('mensal')" class="monitor-tab-btn text-[8px] py-1 px-2">30 Dias</button>
                             <button onclick="registrarDesempenhoHoje()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50 text-[8px] py-1 px-2">+ Hoje</button>
                         </div>
+                    
+                <div class="white-card p-4 mt-4">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">Atividades Fora do Sorteio (Extras)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <canvas id="monitor-extras-chart" height="100"></canvas>
+                        </div>
+                        <div class="scroll-container" style="max-height: 200px;">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr>
+                                        <th>Hora</th>
+                                        <th>Colaborador</th>
+                                        <th>Cliente</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monitor-extras-body">
+                                    <tr><td colspan="4" class="text-center py-4 text-xs text-slate-400">Nenhuma atividade extra hoje</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                </div>
+    </div>
                     <div class="grid grid-cols-3 gap-2 mb-4" id="monitor-cards"></div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
@@ -593,7 +621,7 @@
                                     <th>Total</th>
                                     <th>Concluídas</th>
                                     <th>Progresso</th>
-                                    <th>Registrado por</th>
+                                    
                                 </tr>
                             </thead>
                             <tbody id="monitor-historico-body"></tbody>
@@ -1721,8 +1749,8 @@
                     if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;                });
                 const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
                 const n = colab.toLowerCase();
-                const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `${percentual}%`;
-                const prEl = document.getElementById(`${n}-progress`); if (prEl) prEl.style.width = `${percentual}%`;
+                const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `extras: ${percentual}%`;
+                const prEl = document.getElementById(`${n}-progress`); if (prEl) prEl.style.width = `extras: ${percentual}%`;
                 const cEl = document.getElementById(`${n}-concluidas`); if (cEl) cEl.innerText = concluidas;
                 const tEl = document.getElementById(`${n}-total`); if (tEl) tEl.innerText = total;
             });
@@ -2369,6 +2397,57 @@
                 if (error) throw error;
 
                 const registros = data || [];
+                // --- LÓGICA DE ATIVIDADES EXTRAS ---
+                const hojeStr = hoje.toISOString().slice(0, 10);
+                const extrasAgrupado = {};
+                ['Nikolas', 'Ingrid', 'Jordan', 'Patricia', 'Sirlene', 'Brenda'].forEach(u => extrasAgrupado[u] = 0);
+                
+                let htmlExtras = '';
+                const logsHoje = logsData.filter(l => l.created_at && l.created_at.startsWith(hojeStr));
+                
+                logsHoje.forEach(log => {
+                    if (log.acao && (log.acao.includes('Alteração') || log.acao.includes('Edição') || log.acao.includes('Observação'))) {
+                        if (extrasAgrupado[log.usuario] !== undefined) {
+                            extrasAgrupado[log.usuario]++;
+                        }
+                        const hora = new Date(log.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                        htmlExtras += `<tr>
+                            <td class="text-[10px] text-slate-500">${hora}</td>
+                            <td class="font-bold text-[10px]">${log.usuario}</td>
+                            <td class="text-[10px]">${log.cliente || '-'}</td>
+                            <td class="text-[10px] text-slate-500">${log.acao}</td>
+                        </tr>`;
+                    }
+                });
+                
+                document.getElementById('monitor-extras-body').innerHTML = htmlExtras || '<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400">Nenhuma atividade extra hoje</td></tr>';
+                
+                // Gráfico de Extras
+                const labelsExtras = Object.keys(extrasAgrupado);
+                const dataExtras = labelsExtras.map(l => extrasAgrupado[l]);
+                
+                if (monitorExtrasChart) monitorExtrasChart.destroy();
+                const ctxExtras = document.getElementById('monitor-extras-chart').getContext('2d');
+                monitorExtrasChart = new Chart(ctxExtras, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsExtras,
+                        datasets: [{
+                            label: 'Atividades Extras',
+                            data: dataExtras,
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 8 } } }, y: { ticks: { font: { size: 8 } } } }
+                    }
+                });
+
                 console.log('Dados carregados do Monitor:', registros, 'Data inicio:', dataInicio);
 
                 const agrupado = {};
@@ -2484,7 +2563,7 @@
                 // Tabela de histórico
                 const tbody = document.getElementById('monitor-historico-body');
                 if (registros.length === 0 && monitorPeriodoAtual !== 'diario') {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
                 } else {
                     // SE FOR DIÁRIO, ADICIONA O REGISTRO ATUAL NO TOPO DA TABELA
                     let html = '';
@@ -2505,7 +2584,7 @@
                                         <span class="text-xs font-bold">${pctR}%</span>
                                     </div>
                                 </td>
-                                <td class="text-slate-400 text-xs">Tempo Real</td>
+                                
                             </tr>`;
                         });
                     }
@@ -2524,7 +2603,7 @@
                                     <span class="text-xs font-bold">${pctR}%</span>
                                 </div>
                             </td>
-                            <td class="text-slate-400 text-xs">${r.registrado_por}</td>
+                            
                         </tr>`;
                     }).join('');
                     tbody.innerHTML = html;
