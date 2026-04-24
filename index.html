@@ -512,10 +512,8 @@
                     </div>
                     <div class="grid grid-cols-5 gap-2 mb-4">
                         <input type="text" id="searchHistorico" oninput="filtrarHistorico()" placeholder="Filtrar por cliente..." class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
-                        <input type="date" id="filtroDataInicio" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
-                        <input type="date" id="filtroDataFim" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
-                        <select id="filtroUsuarioHistorico" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
-                            <option value="">Todos os colaboradores</option>
+                        <input type="date" id="filtroDataHistorico" onchange="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
+                        <select id="filtroUsuarioHistorico" onchange="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">                            <option value="">Todos os colaboradores</option>
                             <option value="Nikolas">Nikolas</option>
                             <option value="Ingrid">Ingrid</option>
                             <option value="Jordan">Jordan</option>
@@ -593,11 +591,32 @@
                                     <th>Total</th>
                                     <th>Concluídas</th>
                                     <th>Progresso</th>
-                                    <th>Registrado por</th>
+
                                 </tr>
                             </thead>
                             <tbody id="monitor-historico-body"></tbody>
                         </table>
+                    </div>
+                </div>
+                <div class="white-card p-6 mt-6">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">Atividades Fora do Sorteio</h3>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <h4 class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Atividades por Colaborador</h4>
+                            <canvas id="monitor-extras-chart" height="100"></canvas>
+                        </div>
+                        <div class="scroll-container" style="max-height: 250px;">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr>
+                                        <th>Colaborador</th>
+                                        <th>Atividade</th>
+                                        <th>Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monitor-extras-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -611,7 +630,8 @@
                             <p class="text-[10px] text-slate-400 mt-1">Registro completo de todas as atividades realizadas no sistema</p>
                         </div>
                         <div class="flex gap-2">
-                            <input type="text" id="searchLogs" oninput="filtrarLogs()" placeholder="Filtrar logs..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
+                            <input type="date" id="filtroDataLog" onchange="filtrarLogs()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
+                            <input type="text" id="searchLogs" oninput="filtrarLogs()" placeholder="Filtrar logs..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[150px] outline-none">
                             <select id="filtroUsuarioLog" onchange="filtrarLogs()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
                                 <option value="">Todos os usuários</option>
                                 <option value="Nikolas">Nikolas</option>
@@ -1130,7 +1150,9 @@
                 if (error) { console.error('Erro SQL:', error); throw error; }
                 logsData = data || [];
                 console.log('Logs carregados:', logsData.length, 'registros');
-                renderizarLogs(logsData);
+                const hoje = new Date().toISOString().split('T')[0];
+                const logsHoje = logsData.filter(log => log.created_at.split('T')[0] === hoje);
+                renderizarLogs(logsHoje);
             } catch(e) {
                 console.error('Erro ao carregar logs:', e);
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
@@ -1163,6 +1185,7 @@
         function filtrarLogs() {
             const q = (document.getElementById('searchLogs')?.value || '').toLowerCase();
             const usuarioFiltro = document.getElementById('filtroUsuarioLog')?.value || '';
+            const dataFiltro = document.getElementById('filtroDataLog')?.value || '';
             const filtrado = logsData.filter(log => {
                 const matchQ = !q || 
                     (log.cliente || '').toLowerCase().includes(q) ||
@@ -1170,7 +1193,8 @@
                     (log.detalhes || '').toLowerCase().includes(q) ||
                     (log.documento || '').toLowerCase().includes(q);
                 const matchUser = !usuarioFiltro || log.usuario === usuarioFiltro;
-                return matchQ && matchUser;
+                const matchData = !dataFiltro || log.created_at.split('T')[0] === dataFiltro;
+                return matchQ && matchUser && matchData;
             });
             renderizarLogs(filtrado);
         }
@@ -1206,7 +1230,9 @@
                 if (error) { console.error('Erro SQL:', error); throw error; }
                 historicoData = data || [];
                 console.log('Histórico carregado:', historicoData.length, 'registros');
-                renderizarHistorico(historicoData);
+                const hoje = new Date().toISOString().split('T')[0];
+                const historicoHoje = historicoData.filter(h => h.created_at.split('T')[0] === hoje);
+                renderizarHistorico(historicoHoje);
             } catch(e) {
                 console.error('Erro ao carregar histórico:', e);
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
@@ -1237,18 +1263,12 @@
 
         function filtrarHistorico() {
             const q = (document.getElementById('searchHistorico')?.value || '').toLowerCase();
-            const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
-            const dataFim = document.getElementById('filtroDataFim')?.value || '';
+            const dataFiltro = document.getElementById('filtroDataHistorico')?.value || '';
             const usuarioFiltro = document.getElementById('filtroUsuarioHistorico')?.value || '';
             const documentoFiltro = document.getElementById('filtroDocumento')?.value || '';
             const filtrado = historicoData.filter(h => {
                 const matchTexto = !q || (h.cliente || '').toLowerCase().includes(q) || (h.observacao || '').toLowerCase().includes(q) || (h.usuario || '').toLowerCase().includes(q) || (h.documento || '').toLowerCase().includes(q);
-                let matchData = true;
-                if (dataInicio || dataFim) {
-                    const dataH = new Date(h.created_at).toISOString().slice(0, 10);
-                    if (dataInicio && dataH < dataInicio) matchData = false;
-                    if (dataFim && dataH > dataFim) matchData = false;
-                }
+                const matchData = !dataFiltro || h.created_at.split('T')[0] === dataFiltro;
                 const matchUsuario = !usuarioFiltro || h.usuario === usuarioFiltro;
                 const matchDocumento = !documentoFiltro || h.documento === documentoFiltro;
                 return matchTexto && matchData && matchUsuario && matchDocumento;
@@ -1721,7 +1741,7 @@
                     if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;                });
                 const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
                 const n = colab.toLowerCase();
-                const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `${percentual}%`;
+                const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `extras: ${percentual}%`;
                 const prEl = document.getElementById(`${n}-progress`); if (prEl) prEl.style.width = `${percentual}%`;
                 const cEl = document.getElementById(`${n}-concluidas`); if (cEl) cEl.innerText = concluidas;
                 const tEl = document.getElementById(`${n}-total`); if (tEl) tEl.innerText = total;
@@ -2399,8 +2419,8 @@
                     });
                 }
 
-                const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
-                const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8' };
+                const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899', Patricia: '#10b981', Brenda: '#6366f1' };
+                const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8', Patricia: '#f0fdf4', Brenda: '#f5f3ff' };
 
                 document.getElementById('monitor-cards').innerHTML = ['Jordan', 'Sirlene', 'Ingrid'].map(colab => {
                     const d = agrupado[colab];
@@ -2481,12 +2501,36 @@
                     }
                 });
 
+                // Gráfico de Atividades Extras
+                const labelsExtras = ['Jordan', 'Sirlene', 'Ingrid', 'Patricia', 'Brenda'];
+                const dataExtras = labelsExtras.map(c => extrasAgrupado[c] || 0);
+                const bgExtras = ['#3b82f6', '#a855f7', '#ec4899', '#10b981', '#6366f1'];
+
+                if (window.monitorExtrasChart) window.monitorExtrasChart.destroy();
+                const ctxExtras = document.getElementById('monitor-extras-chart').getContext('2d');
+                window.monitorExtrasChart = new Chart(ctxExtras, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsExtras,
+                        datasets: [{
+                            label: 'Atividades Extras',
+                            data: dataExtras,
+                            backgroundColor: bgExtras,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 8 } }, grid: { display: false } }, x: { ticks: { font: { size: 8 } } } }
+                    }
+                });
+
                 // Tabela de histórico
                 const tbody = document.getElementById('monitor-historico-body');
                 if (registros.length === 0 && monitorPeriodoAtual !== 'diario') {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum registro encontrado.</td></tr>';
                 } else {
-                    // SE FOR DIÁRIO, ADICIONA O REGISTRO ATUAL NO TOPO DA TABELA
                     let html = '';
                     if (monitorPeriodoAtual === 'diario') {
                         const hojeStr = hoje.toISOString().slice(0, 10);
@@ -2513,27 +2557,48 @@
                     html += registros.map(r => {
                         const pctR = r.total_tarefas > 0 ? Math.round((r.concluidas / r.total_tarefas) * 100) : 0;
                         const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
-                        return `<tr>
-                            <td class="font-mono text-xs">${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                            <td class="font-bold ${corColab[r.colaborador] || ''}">${r.colaborador}</td>
-                            <td>${r.total_tarefas}</td>
-                            <td class="text-emerald-600 font-bold">${r.concluidas}</td>
-                            <td>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${pctR}%"></div></div>
-                                    <span class="text-xs font-bold">${pctR}%</span>
+                             return `<tr>
+                        <td class="text-[10px] text-slate-500">${r.data}</td>
+                        <td class="font-bold text-slate-700">${r.colaborador}</td>
+                        <td class="text-xs text-slate-600">${r.total_tarefas}</td>
+                        <td class="text-xs text-emerald-600 font-bold">${r.concluidas}</td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <div class="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                    <div class="bg-emerald-500 h-full" style="width: ${pct}%"></div>
                                 </div>
-                            </td>
-                            <td class="text-slate-400 text-xs">${r.registrado_por}</td>
-                        </tr>`;
-                    }).join('');
-                    tbody.innerHTML = html;
-                }
+                                <span class="text-[10px] font-bold text-slate-500">${pct}%</span>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
 
+                // CARREGAR ATIVIDADES EXTRAS (DIRETO NO PAINEL)
+                const hojeStr = new Date().toISOString().split('T')[0];
+                const extras = logsData.filter(log => 
+                    log.created_at.split('T')[0] === hojeStr && 
+                    (log.acao.includes('Alteração') || log.acao.includes('Edição'))
+                );
+
+                const extrasAgrupado = {};
+                extras.forEach(e => {
+                    extrasAgrupado[e.usuario] = (extrasAgrupado[e.usuario] || 0) + 1;
+                });
+
+                document.getElementById('monitor-extras-body').innerHTML = extras.map(e => `
+                    <tr>
+                        <td class="text-[10px] font-bold text-slate-700">${e.usuario}</td>
+                        <td class="text-[10px] text-slate-600">${e.documento || e.acao}</td>
+                        <td class="text-[10px] text-slate-400 font-mono">${new Date(e.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</td>
+                    </tr>
+                `).join('');
+
+                updateMonitorCharts(agrupado, extrasAgrupado);
             } catch (err) {
                 console.error('Erro ao carregar monitor:', err);
-                document.getElementById('monitor-historico-body').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Erro ao carregar dados. Verifique a tabela no Supabase.</td></tr>';
+                document.getElementById('monitor-historico-body').innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${err.message}</td></tr>`;
             }
+        }     }
         }
     
 
