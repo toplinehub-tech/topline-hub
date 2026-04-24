@@ -582,24 +582,50 @@
                         </div>
                     </div>
                 </div>
-                <div class="white-card p-6">
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-wider">Histórico de Registros — <span id="monitor-historico-info">Hoje</span></h3>
-                    <div class="scroll-container">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Colaborador</th>
-                                    <th>Total</th>
-                                    <th>Concluídas</th>
-                                    <th>Progresso</th>
-                                    <th>Registrado por</th>
-                                </tr>
-                            </thead>
-                            <tbody id="monitor-historico-body"></tbody>
-                        </table>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <!-- TAREFAS EXTRAS (AUDITORIA) -->
+                    <div class="white-card p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tarefas Extras (Painel)</h3>
+                            <input type="date" id="filtroDataExtras" onchange="carregarTarefasExtras()" class="bg-slate-50 border border-slate-200 rounded px-2 py-0.5 text-[9px] outline-none">
+                        </div>
+                        <div class="scroll-container" style="max-height: 350px;">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="py-2 px-2 text-[8px]">Data/Hora</th>
+                                        <th class="py-2 px-2 text-[8px]">Usuário</th>
+                                        <th class="py-2 px-2 text-[8px]">Cliente</th>
+                                        <th class="py-2 px-2 text-[8px]">Alteração</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monitor-extras-body" class="text-[9px]">
+                                    <tr><td colspan="4" class="text-center py-10 text-slate-400">Carregando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- DASHBOARD LARANJA/VERMELHO -->
+                    <div class="white-card p-4">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Resumo de Operações</h3>
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
+                                <p class="text-[8px] font-bold text-orange-400 uppercase">Total Painel</p>
+                                <p id="dash-total-painel" class="text-xl font-black text-orange-600">0</p>
+                            </div>
+                            <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
+                                <p class="text-[8px] font-bold text-red-400 uppercase">Feitas Hoje</p>
+                                <p id="dash-feitas-hoje" class="text-xl font-black text-red-600">0</p>
+                            </div>
+                        </div>
+                        <div style="height: 200px;">
+                            <canvas id="chartExtras"></canvas>
+                        </div>
                     </div>
                 </div>
+            </div>
             </div>
 
             <!-- ABA LOGS -->
@@ -1890,7 +1916,7 @@
                 document.getElementById('filtroDataExtras').value = new Date().toISOString().slice(0, 10);
                 carregarMonitor(); 
                 carregarTarefasExtras(); 
-                carregarDashboardDesempenhoDiario(); 
+                carregarDashboardExtras();
             }
             if (tab === 'logs') {
                 if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito aos administradores.', true); return; }
