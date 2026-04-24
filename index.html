@@ -583,12 +583,15 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                     <!-- TAREFAS EXTRAS (AUDITORIA) -->
                     <div class="white-card p-4">
                         <div class="flex justify-between items-center mb-3">
                             <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tarefas Extras (Painel)</h3>
-                            <input type="date" id="filtroDataExtras" onchange="carregarTarefasExtras()" class="bg-slate-50 border border-slate-200 rounded px-2 py-0.5 text-[9px] outline-none">
+                            <div class="flex gap-2">
+                                <input type="date" id="filtroDataExtras" onchange="carregarTarefasExtras()" class="bg-slate-50 border border-slate-200 rounded px-2 py-0.5 text-[9px] outline-none">
+                                <button onclick="carregarTarefasExtras()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50 text-[8px] py-1 px-2">↻</button>
+                            </div>
                         </div>
                         <div class="scroll-container" style="max-height: 350px;">
                             <table class="w-full text-left">
@@ -601,7 +604,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="monitor-extras-body" class="text-[9px]">
-                                    <tr><td colspan="4" class="text-center py-10 text-slate-400">Carregando...</td></tr>
+                                    <tr><td colspan="4" class="text-center py-10 text-slate-400">Carregando atividades...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -609,14 +612,14 @@
 
                     <!-- DASHBOARD LARANJA/VERMELHO -->
                     <div class="white-card p-4">
-                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Resumo de Operações</h3>
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-wider">Desempenho Geral do Dia</h3>
                         <div class="grid grid-cols-2 gap-2 mb-4">
                             <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
-                                <p class="text-[8px] font-bold text-orange-400 uppercase">Total Painel</p>
+                                <p class="text-[8px] font-bold text-orange-400 uppercase">Total de Tarefas</p>
                                 <p id="dash-total-painel" class="text-xl font-black text-orange-600">0</p>
                             </div>
                             <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
-                                <p class="text-[8px] font-bold text-red-400 uppercase">Feitas Hoje</p>
+                                <p class="text-[8px] font-bold text-red-400 uppercase">Concluídas Hoje</p>
                                 <p id="dash-feitas-hoje" class="text-xl font-black text-red-600">0</p>
                             </div>
                         </div>
