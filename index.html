@@ -946,8 +946,9 @@
             });
 
             renderAtalhos();
-            const savedUser = localStorage.getItem("topline_user");
-            if (savedUser) { login(savedUser, true); }
+            // Removido login automático para garantir que a tela de login apareça
+            // const savedUser = localStorage.getItem("topline_user");
+            // if (savedUser) { login(savedUser, true); }
         };
 
         // ============================================
@@ -1289,7 +1290,11 @@
                                 const idx = parseInt(rowIndex);
                                 const linha = rawData[idx];
                                 if (linha) {
-                                    dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
+                                    // SÓ ADICIONA SE NÃO ESTIVER CONCLUÍDA NO RAWDATA
+                                    const statusTarefa = obterStatusTarefa(idx, documento);
+                                    if (statusTarefa !== 'concluido') {
+                                        dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
+                                    }
                                 }
                             }
                         };
@@ -1837,8 +1842,6 @@
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
             if (tab === 'atalhos') renderAtalhos();
-            const savedUser = localStorage.getItem("topline_user");
-            if (savedUser) { login(savedUser, true); }
             if (tab === 'monitor') carregarMonitor();
             if (tab === 'logs') {
                 if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito aos administradores.', true); return; }
@@ -2328,13 +2331,29 @@
                 ['Jordan', 'Sirlene', 'Ingrid'].forEach(c => {
                     agrupado[c] = { total: 0, concluidas: 0, registros: 0 };
                 });
-                registros.forEach(r => {
-                    if (agrupado[r.colaborador]) {
-                        agrupado[r.colaborador].total += r.total_tarefas;
-                        agrupado[r.colaborador].concluidas += r.concluidas;
-                        agrupado[r.colaborador].registros++;
-                    }
-                });
+                
+                // SE FOR DIÁRIO, USA OS DADOS EM TEMPO REAL DO PAINEL
+                if (monitorPeriodoAtual === 'diario') {
+                    ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                        const tarefasColab = distribuicaoAtual[colab] || [];
+                        const total = tarefasColab.length;
+                        let concluidas = 0;
+                        tarefasColab.forEach(tarefa => {
+                            const linha = rawData[tarefa.rowIndex];
+                            const strValor = String(linha ? linha[tarefa.documento] : "").toUpperCase();
+                            if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;
+                        });
+                        agrupado[colab] = { total: total, concluidas: concluidas, registros: 1 };
+                    });
+                } else {
+                    registros.forEach(r => {
+                        if (agrupado[r.colaborador]) {
+                            agrupado[r.colaborador].total += r.total_tarefas;
+                            agrupado[r.colaborador].concluidas += r.concluidas;
+                            agrupado[r.colaborador].registros++;
+                        }
+                    });
+                }
 
                 const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
                 const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8' };
@@ -2420,10 +2439,34 @@
 
                 // Tabela de histórico
                 const tbody = document.getElementById('monitor-historico-body');
-                if (registros.length === 0) {
+                if (registros.length === 0 && monitorPeriodoAtual !== 'diario') {
                     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
                 } else {
-                    tbody.innerHTML = registros.map(r => {
+                    // SE FOR DIÁRIO, ADICIONA O REGISTRO ATUAL NO TOPO DA TABELA
+                    let html = '';
+                    if (monitorPeriodoAtual === 'diario') {
+                        const hojeStr = hoje.toISOString().slice(0, 10);
+                        ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                            const d = agrupado[colab];
+                            const pctR = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
+                            const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
+                            html += `<tr>
+                                <td class="font-mono text-xs">${new Date(hojeStr + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                <td class="font-bold ${corColab[colab] || ''}">${colab}</td>
+                                <td>${d.total}</td>
+                                <td class="text-emerald-600 font-bold">${d.concluidas}</td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${pctR}%"></div></div>
+                                        <span class="text-xs font-bold">${pctR}%</span>
+                                    </div>
+                                </td>
+                                <td class="text-slate-400 text-xs">Tempo Real</td>
+                            </tr>`;
+                        });
+                    }
+                    
+                    html += registros.map(r => {
                         const pctR = r.total_tarefas > 0 ? Math.round((r.concluidas / r.total_tarefas) * 100) : 0;
                         const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
                         return `<tr>
@@ -2440,6 +2483,7 @@
                             <td class="text-slate-400 text-xs">${r.registrado_por}</td>
                         </tr>`;
                     }).join('');
+                    tbody.innerHTML = html;
                 }
 
             } catch (err) {
