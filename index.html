@@ -1886,7 +1886,12 @@
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
             if (tab === 'atalhos') renderAtalhos();
-            if (tab === 'monitor') carregarMonitor();
+            if (tab === 'monitor') { 
+                document.getElementById('filtroDataExtras').value = new Date().toISOString().slice(0, 10);
+                carregarMonitor(); 
+                carregarTarefasExtras(); 
+                carregarDashboardDesempenhoDiario(); 
+            }
             if (tab === 'logs') {
                 if (!PERFIS_LOGS.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito aos administradores.', true); return; }
                 carregarLogs();
