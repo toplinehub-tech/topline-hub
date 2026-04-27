@@ -2646,70 +2646,45 @@
 </html>
         
 
-<!-- ===== AJUSTES PROGRESSO + FUSO ===== -->
+<!-- ===== FIX FUSO HORÁRIO GLOBAL ===== -->
 <script>
 
-// 📊 REGISTRO DE CONCLUÍDAS
-let tarefasConcluidas = {};
-
-// 🔥 MARCAR CONCLUÍDA
-function marcarComoConcluida(tarefa, usuario){
-    if(!tarefasConcluidas[usuario]){
-        tarefasConcluidas[usuario] = [];
-    }
-
-    tarefasConcluidas[usuario].push({
-        ...tarefa,
-        concluidoEm: new Date().toISOString()
-    });
-
-    // salvar no Supabase (opcional)
-    if (typeof supabaseClient !== "undefined") {
-        supabaseClient.from('tarefas_concluidas').insert({
-            usuario: usuario,
-            tarefa: tarefa,
-            concluido_em: new Date()
-        });
-    }
-}
-
-// 🔥 EXEMPLO DE USO (INTERCEPTAR REMOÇÃO)
-function removerTarefaComControle(tarefa, usuario, lista){
-    marcarComoConcluida(tarefa, usuario);
-
-    const index = lista.indexOf(tarefa);
-    if(index > -1){
-        lista.splice(index,1);
-    }
-}
-
-// 📊 CALCULO DE PROGRESSO
-function calcularProgresso(usuario, distribuicaoAtual){
-    const feitas = (tarefasConcluidas[usuario] || []).length;
-    const pendentes = (distribuicaoAtual[usuario] || []).length;
-
-    const total = feitas + pendentes;
-
-    const progresso = total > 0 
-        ? Math.round((feitas / total) * 100)
-        : 0;
-
-    return {feitas, pendentes, progresso};
-}
-
-// 🕒 FUSO HORÁRIO BR
+// 🔥 FUNÇÃO GLOBAL PADRÃO (SUBSTITUI TODAS EXIBIÇÕES)
 function formatarDataBR(dataISO) {
+    if (!dataISO) return "";
+
     const data = new Date(dataISO);
 
     return data.toLocaleString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        dateStyle: 'short',
+        timeStyle: 'medium'
     });
 }
+
+// 🔥 FORÇAR USO NA EXIBIÇÃO DO SORTEIO
+function mostrarUltimoSorteio(sorteio){
+    const dataFormatada = formatarDataBR(sorteio.created_at);
+
+    const el = document.getElementById("ultimoSorteioInfo");
+    if(el){
+        el.innerText = `Último sorteio: ${dataFormatada} - Status: Vencidas`;
+    }
+}
+
+// 🔥 PATCH AUTOMÁTICO (caso já exista renderização antiga)
+setTimeout(()=>{
+    const el = document.getElementById("ultimoSorteioInfo");
+    if(el && el.innerText.includes("Último sorteio")){
+        try{
+            const partes = el.innerText.split(" - ");
+            if(partes[0]){
+                const raw = partes[0].replace("Último sorteio:","").trim();
+                const corrigido = formatarDataBR(raw);
+                el.innerText = `Último sorteio: ${corrigido} - Status: Vencidas`;
+            }
+        }catch(e){}
+    }
+},2000);
 
 </script>
