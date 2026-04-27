@@ -2645,3 +2645,88 @@
 </body>
 </html>
         
+
+
+<!-- ====== MELHORIAS IA + SORTEIO ====== -->
+<script>
+// CORREÇÃO VENCIDOS
+function isVencido(dataStr){
+    if(!dataStr) return false;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const venc = new Date(dataStr); venc.setHours(0,0,0,0);
+    return venc < hoje;
+}
+
+// SORTEIO GLOBAL
+async function executarSorteioGlobal(usuario){
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const { data } = await supabase
+        .from('sorteios')
+        .select('*')
+        .eq('data', hoje)
+        .maybeSingle();
+
+    if(data){
+        aplicarResultadoSorteio(data.resultado);
+        return;
+    }
+
+    const vencidos = allData.filter(t=>isVencido(t.vencimento));
+    if(vencidos.length === 0) return;
+
+    const resultado = distribuirTarefas(vencidos);
+
+    await supabase.from('sorteios').insert({
+        data: hoje,
+        resultado,
+        criado_por: usuario
+    });
+
+    aplicarResultadoSorteio(resultado);
+}
+
+// REALTIME
+supabase.channel('sorteios')
+.on('postgres_changes',{
+    event:'INSERT',
+    schema:'public',
+    table:'sorteios'
+},payload=>{
+    aplicarResultadoSorteio(payload.new.resultado);
+}).subscribe();
+
+
+// IA SIMPLES
+async function perguntarIA(){
+    const pergunta = document.getElementById("ia-input").value;
+
+    const vencidos = allData.filter(t=>isVencido(t.vencimento));
+    const contexto = "Clientes vencidos: " + vencidos.map(v=>v.cliente).join(", ");
+
+    const prompt = pergunta + "\n" + contexto;
+
+    const r = await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer SUA_OPENAI_KEY"
+        },
+        body:JSON.stringify({
+            model:"gpt-4o-mini",
+            messages:[{role:"user",content:prompt}]
+        })
+    });
+
+    const d = await r.json();
+    document.getElementById("ia-resposta").innerText =
+        d.choices?.[0]?.message?.content || "Erro";
+}
+</script>
+
+<div style="position:fixed; bottom:20px; right:20px; background:#fff; padding:10px; border-radius:10px; width:300px;">
+<input id="ia-input" placeholder="Perguntar IA..." style="width:100%" />
+<button onclick="perguntarIA()">OK</button>
+<div id="ia-resposta"></div>
+</div>
+
