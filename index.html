@@ -2646,86 +2646,77 @@
 </html>
         
 
+<!-- ===== ABA IA PADRÃO ===== -->
+<style>
+#abaIA {display:none; padding:20px;}
+.chat-wrap{display:flex; gap:10px;}
+.chat{flex:1; border:1px solid #ccc; border-radius:8px; padding:10px; height:300px; overflow:auto;}
+</style>
 
-<!-- ====== MELHORIAS IA + SORTEIO ====== -->
+<button onclick="abrirIA()" style="position:fixed;top:10px;right:10px;z-index:9999;">IA</button>
+
+<div id="abaIA">
+<h2>Inteligência Artificial</h2>
+<input id="iaPergunta" placeholder="Digite..." style="width:60%">
+<button onclick="perguntarIA()">Perguntar</button>
+
+<div class="chat-wrap">
+<div>
+<h3>ChatGPT</h3>
+<div id="chatGPT" class="chat"></div>
+</div>
+
+<div>
+<h3>Gemini</h3>
+<div id="chatGemini" class="chat"></div>
+</div>
+</div>
+</div>
+
 <script>
-// CORREÇÃO VENCIDOS
-function isVencido(dataStr){
-    if(!dataStr) return false;
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const venc = new Date(dataStr); venc.setHours(0,0,0,0);
-    return venc < hoje;
+function abrirIA(){
+ document.getElementById("abaIA").style.display="block";
 }
 
-// SORTEIO GLOBAL
-async function executarSorteioGlobal(usuario){
-    const hoje = new Date().toISOString().split('T')[0];
-
-    const { data } = await supabase
-        .from('sorteios')
-        .select('*')
-        .eq('data', hoje)
-        .maybeSingle();
-
-    if(data){
-        aplicarResultadoSorteio(data.resultado);
-        return;
-    }
-
-    const vencidos = allData.filter(t=>isVencido(t.vencimento));
-    if(vencidos.length === 0) return;
-
-    const resultado = distribuirTarefas(vencidos);
-
-    await supabase.from('sorteios').insert({
-        data: hoje,
-        resultado,
-        criado_por: usuario
-    });
-
-    aplicarResultadoSorteio(resultado);
+function addMsg(id,txt){
+ let d=document.createElement("div");
+ d.innerText=txt;
+ document.getElementById(id).appendChild(d);
 }
 
-// REALTIME
-supabase.channel('sorteios')
-.on('postgres_changes',{
-    event:'INSERT',
-    schema:'public',
-    table:'sorteios'
-},payload=>{
-    aplicarResultadoSorteio(payload.new.resultado);
-}).subscribe();
-
-
-// IA SIMPLES
 async function perguntarIA(){
-    const pergunta = document.getElementById("ia-input").value;
+ let q=document.getElementById("iaPergunta").value;
 
-    const vencidos = allData.filter(t=>isVencido(t.vencimento));
-    const contexto = "Clientes vencidos: " + vencidos.map(v=>v.cliente).join(", ");
+ let vencidos = (typeof allData !== "undefined") 
+   ? allData.filter(t=> new Date(t.vencimento) < new Date()) : [];
 
-    const prompt = pergunta + "\n" + contexto;
+ let contexto = "Vencidos: "+ vencidos.map(v=>v.cliente||"").join(",");
 
-    const r = await fetch("https://api.openai.com/v1/chat/completions",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization":"Bearer SUA_OPENAI_KEY"
-        },
-        body:JSON.stringify({
-            model:"gpt-4o-mini",
-            messages:[{role:"user",content:prompt}]
-        })
-    });
+ let prompt = q + "\n" + contexto;
 
-    const d = await r.json();
-    document.getElementById("ia-resposta").innerText =
-        d.choices?.[0]?.message?.content || "Erro";
+ addMsg("chatGPT","Você: "+q);
+ addMsg("chatGemini","Você: "+q);
+
+ let r1 = await fetch("https://api.openai.com/v1/chat/completions",{
+ method:"POST",
+ headers:{
+  "Content-Type":"application/json",
+  "Authorization":"Bearer SUA_OPENAI_KEY"
+ },
+ body:JSON.stringify({
+  model:"gpt-4o-mini",
+  messages:[{role:"user",content:prompt}]
+ })
+});
+let d1=await r1.json();
+addMsg("chatGPT", d1.choices?.[0]?.message?.content || "erro");
+
+let r2 = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=SUA_GEMINI_KEY",{
+ method:"POST",
+ headers:{"Content-Type":"application/json"},
+ body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+});
+let d2=await r2.json();
+addMsg("chatGemini", d2.candidates?.[0]?.content?.parts?.[0]?.text || "erro");
 }
 </script>
-
-<div style="position:fixed; bottom:20px; right:20px; background:#fff; padding:10px; border-radius:10px; width:300px;">
-<input id="ia-input" placeholder="Perguntar IA..." style="width:100%" />
-<button onclick="perguntarIA()">OK</button>
-<div id="ia-resposta"></div>
-</div>
