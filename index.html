@@ -2646,77 +2646,120 @@
 </html>
         
 
-<!-- ===== ABA IA PADRÃO ===== -->
-<style>
-#abaIA {display:none; padding:20px;}
-.chat-wrap{display:flex; gap:10px;}
-.chat{flex:1; border:1px solid #ccc; border-radius:8px; padding:10px; height:300px; overflow:auto;}
-</style>
 
-<button onclick="abrirIA()" style="position:fixed;top:10px;right:10px;z-index:9999;">IA</button>
-
-<div id="abaIA">
-<h2>Inteligência Artificial</h2>
-<input id="iaPergunta" placeholder="Digite..." style="width:60%">
-<button onclick="perguntarIA()">Perguntar</button>
-
-<div class="chat-wrap">
-<div>
-<h3>ChatGPT</h3>
-<div id="chatGPT" class="chat"></div>
-</div>
-
-<div>
-<h3>Gemini</h3>
-<div id="chatGemini" class="chat"></div>
-</div>
-</div>
-</div>
-
+<!-- ====== AJUSTE AVANÇADO DE SORTEIO ====== -->
 <script>
-function abrirIA(){
- document.getElementById("abaIA").style.display="block";
+
+// 🔥 VENCIDOS CORRETO
+function isVencido(dataStr){
+    if(!dataStr) return false;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const venc = new Date(dataStr); venc.setHours(0,0,0,0);
+    return venc < hoje;
 }
 
-function addMsg(id,txt){
- let d=document.createElement("div");
- d.innerText=txt;
- document.getElementById(id).appendChild(d);
+// 🔥 AGRUPAR POR CLIENTE
+function agruparPorCliente(tarefas){
+    const grupos = {};
+    tarefas.forEach(t=>{
+        if(!grupos[t.cliente]) grupos[t.cliente]=[];
+        grupos[t.cliente].push(t);
+    });
+    return Object.values(grupos);
 }
 
-async function perguntarIA(){
- let q=document.getElementById("iaPergunta").value;
-
- let vencidos = (typeof allData !== "undefined") 
-   ? allData.filter(t=> new Date(t.vencimento) < new Date()) : [];
-
- let contexto = "Vencidos: "+ vencidos.map(v=>v.cliente||"").join(",");
-
- let prompt = q + "\n" + contexto;
-
- addMsg("chatGPT","Você: "+q);
- addMsg("chatGemini","Você: "+q);
-
- let r1 = await fetch("https://api.openai.com/v1/chat/completions",{
- method:"POST",
- headers:{
-  "Content-Type":"application/json",
-  "Authorization":"Bearer SUA_OPENAI_KEY"
- },
- body:JSON.stringify({
-  model:"gpt-4o-mini",
-  messages:[{role:"user",content:prompt}]
- })
-});
-let d1=await r1.json();
-addMsg("chatGPT", d1.choices?.[0]?.message?.content || "erro");
-
-let r2 = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=SUA_GEMINI_KEY",{
- method:"POST",
- headers:{"Content-Type":"application/json"},
- body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
-});
-let d2=await r2.json();
-addMsg("chatGemini", d2.candidates?.[0]?.content?.parts?.[0]?.text || "erro");
+// 🔥 ORDENAR POR ATRASO
+function ordenarPorAtraso(tarefas){
+    return tarefas.sort((a,b)=> new Date(a.prazo)-new Date(b.prazo));
 }
+
+// 🔥 DISTRIBUIÇÃO INTELIGENTE
+function distribuirComRegras(tarefasVencidas, distribuicaoAtual){
+
+    const usuarios = ['Jordan','Sirlene','Ingrid'];
+    let carga = {};
+
+    usuarios.forEach(u=>{
+        carga[u]=(distribuicaoAtual[u]||[]).length;
+    });
+
+    tarefasVencidas = ordenarPorAtraso(tarefasVencidas);
+    const grupos = agruparPorCliente(tarefasVencidas);
+
+    grupos.forEach(grupo=>{
+        const user = usuarios.reduce((a,b)=> carga[a]<=carga[b]?a:b);
+
+        grupo.forEach(t=>{
+            t.responsavel = user;
+            if(!distribuicaoAtual[user]) distribuicaoAtual[user]=[];
+            distribuicaoAtual[user].push(t);
+        });
+
+        carga[user]+=grupo.length;
+    });
+
+    return distribuicaoAtual;
+}
+
+// 🔥 SORTEIO GLOBAL CORRIGIDO
+async function executarSorteioGlobal(usuario){
+
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const { data } = await supabaseClient
+        .from('sorteios')
+        .select('*')
+        .eq('data', hoje)
+        .maybeSingle();
+
+    if(data){
+        distribuicaoAtual = data.resultado;
+        renderizarTarefas();
+        return;
+    }
+
+    let tarefasVencidas = [];
+
+    rawData.forEach((row, rowIndex)=>{
+        Object.keys(row).forEach(col=>{
+            if(col==='CLIENTE') return;
+
+            const valor = row[col];
+
+            if(valor instanceof Date && isVencido(valor)){
+                tarefasVencidas.push({
+                    cliente: row.CLIENTE,
+                    documento: col,
+                    prazo: valor,
+                    rowIndex
+                });
+            }
+        });
+    });
+
+    const jaDistribuidas = new Set();
+
+    Object.values(distribuicaoAtual).forEach(lista=>{
+        lista.forEach(t=>{
+            jaDistribuidas.add(t.rowIndex+'-'+t.documento);
+        });
+    });
+
+    tarefasVencidas = tarefasVencidas.filter(t=>
+        !jaDistribuidas.has(t.rowIndex+'-'+t.documento)
+    );
+
+    if(tarefasVencidas.length===0) return;
+
+    distribuicaoAtual = distribuirComRegras(tarefasVencidas, distribuicaoAtual);
+
+    await supabaseClient.from('sorteios').insert({
+        data: hoje,
+        resultado: distribuicaoAtual,
+        criado_por: usuario
+    });
+
+    renderizarTarefas();
+}
+
 </script>
