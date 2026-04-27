@@ -17,7 +17,71 @@
         .topline-text { color: #334155; }
         .hub-text { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         #splash-screen { position: fixed; inset: 0; z-index: 9999; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        #login-screen { position: fixed; inset: 0; z-index: 10000; background: linear-gradient(135deg, #1e3a1f 0%, #0f5132 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        #login-screen { 
+            position: fixed; 
+            inset: 0; 
+            z-index: 10000; 
+            background: url('https://files.manuscdn.com/user_upload_by_module/session_file/310519663587739417/kDgTxneNvMuhfFqh.png') no-repeat center center; 
+            background-size: cover; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            transition: opacity 0.5s ease; 
+            overflow: hidden;
+        }
+        
+        /* Water effect background for login screen */
+        #login-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.15) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #login-screen.water-effect::before {
+            opacity: 1;
+        }
+
+        /* Liquid button animation keyframes */
+        @keyframes liquidWave {
+            0% { clip-path: polygon(0% 50%, 2% 45%, 4% 42%, 6% 40%, 8% 42%, 10% 45%, 12% 50%, 14% 55%, 16% 58%, 18% 60%, 20% 58%, 22% 55%, 24% 50%, 26% 45%, 28% 42%, 30% 40%, 32% 42%, 34% 45%, 36% 50%, 38% 55%, 40% 58%, 42% 60%, 44% 58%, 46% 55%, 48% 50%, 50% 45%, 52% 42%, 54% 40%, 56% 42%, 58% 45%, 60% 50%, 62% 55%, 64% 58%, 66% 60%, 68% 58%, 70% 55%, 72% 50%, 74% 45%, 76% 42%, 78% 40%, 80% 42%, 82% 45%, 84% 50%, 86% 55%, 88% 58%, 90% 60%, 92% 58%, 94% 55%, 96% 50%, 98% 45%, 100% 42%, 100% 100%, 0% 100%); }
+            50% { clip-path: polygon(0% 45%, 2% 40%, 4% 35%, 6% 32%, 8% 35%, 10% 40%, 12% 45%, 14% 52%, 16% 58%, 18% 62%, 20% 58%, 22% 52%, 24% 45%, 26% 40%, 28% 35%, 30% 32%, 32% 35%, 34% 40%, 36% 45%, 38% 52%, 40% 58%, 42% 62%, 44% 58%, 46% 52%, 48% 45%, 50% 40%, 52% 35%, 54% 32%, 56% 35%, 58% 40%, 60% 45%, 62% 52%, 64% 58%, 66% 62%, 68% 58%, 70% 52%, 72% 45%, 74% 40%, 76% 35%, 78% 32%, 80% 35%, 82% 40%, 84% 45%, 86% 52%, 88% 58%, 90% 62%, 92% 58%, 94% 52%, 96% 45%, 98% 40%, 100% 35%, 100% 100%, 0% 100%); }
+            100% { clip-path: polygon(0% 50%, 2% 45%, 4% 42%, 6% 40%, 8% 42%, 10% 45%, 12% 50%, 14% 55%, 16% 58%, 18% 60%, 20% 58%, 22% 55%, 24% 50%, 26% 45%, 28% 42%, 30% 40%, 32% 42%, 34% 45%, 36% 50%, 38% 55%, 40% 58%, 42% 60%, 44% 58%, 46% 55%, 48% 50%, 50% 45%, 52% 42%, 54% 40%, 56% 42%, 58% 45%, 60% 50%, 62% 55%, 64% 58%, 66% 60%, 68% 58%, 70% 55%, 72% 50%, 74% 45%, 76% 42%, 78% 40%, 80% 42%, 82% 45%, 84% 50%, 86% 55%, 88% 58%, 90% 60%, 92% 58%, 94% 55%, 96% 50%, 98% 45%, 100% 42%, 100% 100%, 0% 100%); }
+        }
+
+        @keyframes liquidShine {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .login-btn-item.active::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            background-size: 200% 100%;
+            animation: liquidShine 0.6s ease-in-out;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .login-btn-item.active {
+            animation: liquidWave 0.8s ease-in-out;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-color: #047857;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4), inset 0 -2px 6px rgba(0,0,0,0.1);
+        }
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
         .vence-60 { background-color: #e6fffa !important; color: #047481 !important; }
@@ -137,15 +201,16 @@
         .hist-item { border-left: 3px solid #10b981; padding-left: 12px; margin-bottom: 12px; }
 
         /* Login - botões alinhados */
-        .login-buttons-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+        .login-buttons-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
         .login-btn-item {
-            display: flex; flex-direction: column; align-items: center; gap: 3px;
-            padding: 10px 12px; border-radius: 10px; font-size: 8px; font-weight: 800;
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            padding: 8px 10px; border-radius: 8px; font-size: 7px; font-weight: 800;
             background: white; color: #334155; border: 1.5px solid #e2e8f0;
-            cursor: pointer; transition: all 0.2s; min-width: 60px; text-transform: uppercase;
+            cursor: pointer; transition: all 0.3s ease; min-width: 52px; text-transform: uppercase;
+            position: relative;
         }
         .login-btn-item:hover { background: #f0fdf4; border-color: #10b981; color: #065f46; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
-        .login-btn-item svg { width: 16px; height: 16px; color: #64748b; }
+        .login-btn-item svg { width: 14px; height: 14px; color: #64748b; }
         .login-btn-item:hover svg { color: #10b981; }
     
         .cnpj-cell { cursor: pointer; position: relative; }
@@ -167,7 +232,7 @@
 
     <!-- TELA DE LOGIN COM SENHA -->
     <div id="login-screen">
-        <div class="p-8 max-w-lg w-full mx-4 text-center" style="background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <div class="p-6 max-w-sm w-full mx-4 text-center" style="background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); position: relative; z-index: 2;">
             <div class="brand-name text-3xl justify-center mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
             <p class="text-slate-500 text-xs mb-6 uppercase tracking-wide">Acesso ao sistema</p>
             
@@ -997,14 +1062,45 @@
             }
         }
 
+        
+        // ============================================
+        // WATER EFFECT ON LOGIN SCREEN
+        // ============================================
+        const loginScreen = document.getElementById('login-screen');
+        let waterEffectTimeout;
+
+        document.addEventListener('mousemove', (e) => {
+            if (loginScreen && loginScreen.style.display !== 'none') {
+                const x = (e.clientX / window.innerWidth) * 100;
+                const y = (e.clientY / window.innerHeight) * 100;
+                loginScreen.style.setProperty('--mouse-x', x + '%');
+                loginScreen.style.setProperty('--mouse-y', y + '%');
+                
+                loginScreen.classList.add('water-effect');
+                
+                clearTimeout(waterEffectTimeout);
+                waterEffectTimeout = setTimeout(() => {
+                    loginScreen.classList.remove('water-effect');
+                }, 300);
+            }
+        });
+
         function selecionarUsuario(nome) {
             usuarioSelecionado = nome;
-            document.getElementById('login-step-1').classList.add('hidden');
-            document.getElementById('login-step-2').classList.remove('hidden');
-            document.getElementById('login-nome-exibido').innerText = nome;
-            document.getElementById('login-erro').classList.add('hidden');
-            carregarSenhaLocalStorage(nome);
-            setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
+            
+            // Liquid animation effect
+            const btn = event.currentTarget;
+            btn.classList.add('active');
+            
+            setTimeout(() => {
+                document.getElementById('login-step-1').classList.add('hidden');
+                document.getElementById('login-step-2').classList.remove('hidden');
+                document.getElementById('login-nome-exibido').innerText = nome;
+                document.getElementById('login-erro').classList.add('hidden');
+                carregarSenhaLocalStorage(nome);
+                setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
+                btn.classList.remove('active');
+            }, 600);
         }
 
         function voltarLogin() {
