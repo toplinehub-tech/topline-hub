@@ -2646,120 +2646,70 @@
 </html>
         
 
-
-<!-- ====== AJUSTE AVANÇADO DE SORTEIO ====== -->
+<!-- ===== AJUSTES PROGRESSO + FUSO ===== -->
 <script>
 
-// 🔥 VENCIDOS CORRETO
-function isVencido(dataStr){
-    if(!dataStr) return false;
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const venc = new Date(dataStr); venc.setHours(0,0,0,0);
-    return venc < hoje;
-}
+// 📊 REGISTRO DE CONCLUÍDAS
+let tarefasConcluidas = {};
 
-// 🔥 AGRUPAR POR CLIENTE
-function agruparPorCliente(tarefas){
-    const grupos = {};
-    tarefas.forEach(t=>{
-        if(!grupos[t.cliente]) grupos[t.cliente]=[];
-        grupos[t.cliente].push(t);
-    });
-    return Object.values(grupos);
-}
-
-// 🔥 ORDENAR POR ATRASO
-function ordenarPorAtraso(tarefas){
-    return tarefas.sort((a,b)=> new Date(a.prazo)-new Date(b.prazo));
-}
-
-// 🔥 DISTRIBUIÇÃO INTELIGENTE
-function distribuirComRegras(tarefasVencidas, distribuicaoAtual){
-
-    const usuarios = ['Jordan','Sirlene','Ingrid'];
-    let carga = {};
-
-    usuarios.forEach(u=>{
-        carga[u]=(distribuicaoAtual[u]||[]).length;
-    });
-
-    tarefasVencidas = ordenarPorAtraso(tarefasVencidas);
-    const grupos = agruparPorCliente(tarefasVencidas);
-
-    grupos.forEach(grupo=>{
-        const user = usuarios.reduce((a,b)=> carga[a]<=carga[b]?a:b);
-
-        grupo.forEach(t=>{
-            t.responsavel = user;
-            if(!distribuicaoAtual[user]) distribuicaoAtual[user]=[];
-            distribuicaoAtual[user].push(t);
-        });
-
-        carga[user]+=grupo.length;
-    });
-
-    return distribuicaoAtual;
-}
-
-// 🔥 SORTEIO GLOBAL CORRIGIDO
-async function executarSorteioGlobal(usuario){
-
-    const hoje = new Date().toISOString().split('T')[0];
-
-    const { data } = await supabaseClient
-        .from('sorteios')
-        .select('*')
-        .eq('data', hoje)
-        .maybeSingle();
-
-    if(data){
-        distribuicaoAtual = data.resultado;
-        renderizarTarefas();
-        return;
+// 🔥 MARCAR CONCLUÍDA
+function marcarComoConcluida(tarefa, usuario){
+    if(!tarefasConcluidas[usuario]){
+        tarefasConcluidas[usuario] = [];
     }
 
-    let tarefasVencidas = [];
+    tarefasConcluidas[usuario].push({
+        ...tarefa,
+        concluidoEm: new Date().toISOString()
+    });
 
-    rawData.forEach((row, rowIndex)=>{
-        Object.keys(row).forEach(col=>{
-            if(col==='CLIENTE') return;
-
-            const valor = row[col];
-
-            if(valor instanceof Date && isVencido(valor)){
-                tarefasVencidas.push({
-                    cliente: row.CLIENTE,
-                    documento: col,
-                    prazo: valor,
-                    rowIndex
-                });
-            }
+    // salvar no Supabase (opcional)
+    if (typeof supabaseClient !== "undefined") {
+        supabaseClient.from('tarefas_concluidas').insert({
+            usuario: usuario,
+            tarefa: tarefa,
+            concluido_em: new Date()
         });
+    }
+}
+
+// 🔥 EXEMPLO DE USO (INTERCEPTAR REMOÇÃO)
+function removerTarefaComControle(tarefa, usuario, lista){
+    marcarComoConcluida(tarefa, usuario);
+
+    const index = lista.indexOf(tarefa);
+    if(index > -1){
+        lista.splice(index,1);
+    }
+}
+
+// 📊 CALCULO DE PROGRESSO
+function calcularProgresso(usuario, distribuicaoAtual){
+    const feitas = (tarefasConcluidas[usuario] || []).length;
+    const pendentes = (distribuicaoAtual[usuario] || []).length;
+
+    const total = feitas + pendentes;
+
+    const progresso = total > 0 
+        ? Math.round((feitas / total) * 100)
+        : 0;
+
+    return {feitas, pendentes, progresso};
+}
+
+// 🕒 FUSO HORÁRIO BR
+function formatarDataBR(dataISO) {
+    const data = new Date(dataISO);
+
+    return data.toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
     });
-
-    const jaDistribuidas = new Set();
-
-    Object.values(distribuicaoAtual).forEach(lista=>{
-        lista.forEach(t=>{
-            jaDistribuidas.add(t.rowIndex+'-'+t.documento);
-        });
-    });
-
-    tarefasVencidas = tarefasVencidas.filter(t=>
-        !jaDistribuidas.has(t.rowIndex+'-'+t.documento)
-    );
-
-    if(tarefasVencidas.length===0) return;
-
-    distribuicaoAtual = distribuirComRegras(tarefasVencidas, distribuicaoAtual);
-
-    await supabaseClient.from('sorteios').insert({
-        data: hoje,
-        resultado: distribuicaoAtual,
-        criado_por: usuario
-    });
-
-    renderizarTarefas();
 }
 
 </script>
