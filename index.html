@@ -2646,45 +2646,74 @@
 </html>
         
 
-<!-- ===== FIX FUSO HORÁRIO GLOBAL ===== -->
+<!-- ===== PATCH FINAL SISTEMA ===== -->
 <script>
 
-// 🔥 FUNÇÃO GLOBAL PADRÃO (SUBSTITUI TODAS EXIBIÇÕES)
-function formatarDataBR(dataISO) {
-    if (!dataISO) return "";
+// 🔥 REMOVER TEXTO "ÚLTIMO SORTEIO"
+setInterval(()=>{
+  const el = document.getElementById("ultimoSorteioInfo");
+  if(el){ el.remove(); }
+},1000);
 
-    const data = new Date(dataISO);
+// 🔥 FILTRO GARANTIDO VENCIDOS
+function isVencido(dataStr){
+    if(!dataStr) return false;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const venc = new Date(dataStr); venc.setHours(0,0,0,0);
+    return venc < hoje;
+}
 
-    return data.toLocaleString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        dateStyle: 'short',
-        timeStyle: 'medium'
+// 🔥 FORÇAR BOTÃO VENCIDOS CORRETO
+function filtrarSomenteVencidos(lista){
+    return lista.filter(t => isVencido(t.prazo || t.vencimento));
+}
+
+// 🔥 INTERCEPTAR USO NO SORTEIO
+function aplicarFiltroVencidosSeguro(tarefas){
+    return tarefas.filter(t => isVencido(t.prazo || t.vencimento));
+}
+
+// 🔥 AUTO SORTEIO NO LOGIN (garante execução)
+async function iniciarSistema(usuario){
+    if(typeof executarSorteioGlobal === "function"){
+        await executarSorteioGlobal(usuario);
+    }
+}
+
+// 🔥 REMOÇÃO = CONCLUSÃO AUTOMÁTICA
+function removerTarefaComControle(tarefa, usuario, lista){
+
+    if(!window.tarefasConcluidas){
+        window.tarefasConcluidas = {};
+    }
+
+    if(!tarefasConcluidas[usuario]){
+        tarefasConcluidas[usuario] = [];
+    }
+
+    tarefasConcluidas[usuario].push({
+        ...tarefa,
+        concluidoEm: new Date().toISOString()
     });
+
+    const i = lista.indexOf(tarefa);
+    if(i > -1){
+        lista.splice(i,1);
+    }
+
+    atualizarPainelProgresso(usuario);
 }
 
-// 🔥 FORÇAR USO NA EXIBIÇÃO DO SORTEIO
-function mostrarUltimoSorteio(sorteio){
-    const dataFormatada = formatarDataBR(sorteio.created_at);
+// 🔥 ATUALIZAR PAINEL
+function atualizarPainelProgresso(usuario){
 
-    const el = document.getElementById("ultimoSorteioInfo");
-    if(el){
-        el.innerText = `Último sorteio: ${dataFormatada} - Status: Vencidas`;
-    }
+    const feitas = (tarefasConcluidas?.[usuario] || []).length;
+    const pendentes = (distribuicaoAtual?.[usuario] || []).length;
+    const total = feitas + pendentes;
+
+    const progresso = total > 0 ? Math.round((feitas/total)*100) : 0;
+
+    console.log("PROGRESSO:", usuario, progresso+"%");
 }
-
-// 🔥 PATCH AUTOMÁTICO (caso já exista renderização antiga)
-setTimeout(()=>{
-    const el = document.getElementById("ultimoSorteioInfo");
-    if(el && el.innerText.includes("Último sorteio")){
-        try{
-            const partes = el.innerText.split(" - ");
-            if(partes[0]){
-                const raw = partes[0].replace("Último sorteio:","").trim();
-                const corrigido = formatarDataBR(raw);
-                el.innerText = `Último sorteio: ${corrigido} - Status: Vencidas`;
-            }
-        }catch(e){}
-    }
-},2000);
 
 </script>
