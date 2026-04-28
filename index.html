@@ -430,6 +430,12 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
+<!-- NOVO BOTÃO PARCELAMENTO -->
+<button onclick="toggleParcelamento()" class="white-card border-l-8 border-blue-300 p-4 text-left hover:scale-[1.02]">
+<span class="block text-[8px] font-black text-blue-500 uppercase">Filtro</span>
+<span class="text-xs font-bold text-slate-700">Parcelamento</span>
+</button>
+
                     <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
                     <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
                     <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
@@ -2646,74 +2652,48 @@
 </html>
         
 
-<!-- ===== PATCH FINAL SISTEMA ===== -->
 <script>
+let filtroParcelamento = null;
+let statusParcelamento = null;
 
-// 🔥 REMOVER TEXTO "ÚLTIMO SORTEIO"
-setInterval(()=>{
-  const el = document.getElementById("ultimoSorteioInfo");
-  if(el){ el.remove(); }
-},1000);
-
-// 🔥 FILTRO GARANTIDO VENCIDOS
-function isVencido(dataStr){
-    if(!dataStr) return false;
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const venc = new Date(dataStr); venc.setHours(0,0,0,0);
-    return venc < hoje;
+function toggleParcelamento(){
+    filtroParcelamento = true;
+    renderTable();
+    renderParcelamentoButtons();
 }
 
-// 🔥 FORÇAR BOTÃO VENCIDOS CORRETO
-function filtrarSomenteVencidos(lista){
-    return lista.filter(t => isVencido(t.prazo || t.vencimento));
+function renderParcelamentoButtons(){
+    const container = document.getElementById('docButtons');
+    container.innerHTML = `
+        <button onclick="setParcelamentoStatus('ativo')" class="btn-mini">Ativo</button>
+        <button onclick="setParcelamentoStatus('inativo')" class="btn-mini">Inativo</button>
+    `;
 }
 
-// 🔥 INTERCEPTAR USO NO SORTEIO
-function aplicarFiltroVencidosSeguro(tarefas){
-    return tarefas.filter(t => isVencido(t.prazo || t.vencimento));
+function setParcelamentoStatus(status){
+    statusParcelamento = status;
+    renderTable();
 }
 
-// 🔥 AUTO SORTEIO NO LOGIN (garante execução)
-async function iniciarSistema(usuario){
-    if(typeof executarSorteioGlobal === "function"){
-        await executarSorteioGlobal(usuario);
-    }
-}
-
-// 🔥 REMOÇÃO = CONCLUSÃO AUTOMÁTICA
-function removerTarefaComControle(tarefa, usuario, lista){
-
-    if(!window.tarefasConcluidas){
-        window.tarefasConcluidas = {};
+const originalRenderTable = window.renderTable;
+window.renderTable = function(){
+    if(!filtroParcelamento){
+        return originalRenderTable();
     }
 
-    if(!tarefasConcluidas[usuario]){
-        tarefasConcluidas[usuario] = [];
-    }
+    const body = document.getElementById('tableBody');
+    body.innerHTML = '';
 
-    tarefasConcluidas[usuario].push({
-        ...tarefa,
-        concluidoEm: new Date().toISOString()
+    data.forEach(row=>{
+        if(statusParcelamento && row.PARCELAMENTOS !== statusParcelamento) return;
+
+        body.innerHTML += `
+            <tr>
+                <td>${row.empresa}</td>
+                <td>${row.cnpj}</td>
+                <td style="background:#dbeafe">${row.PARCELAMENTOS}</td>
+            </tr>
+        `;
     });
-
-    const i = lista.indexOf(tarefa);
-    if(i > -1){
-        lista.splice(i,1);
-    }
-
-    atualizarPainelProgresso(usuario);
 }
-
-// 🔥 ATUALIZAR PAINEL
-function atualizarPainelProgresso(usuario){
-
-    const feitas = (tarefasConcluidas?.[usuario] || []).length;
-    const pendentes = (distribuicaoAtual?.[usuario] || []).length;
-    const total = feitas + pendentes;
-
-    const progresso = total > 0 ? Math.round((feitas/total)*100) : 0;
-
-    console.log("PROGRESSO:", usuario, progresso+"%");
-}
-
 </script>
