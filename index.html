@@ -219,6 +219,14 @@
         .badge-avisos { position: absolute; top: -12px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 10px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .badge-red { background: #ef4444; }
 
+        .parcelamento-status-pill { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; font-size:9px; font-weight:900; text-transform:uppercase; }
+        .parcelamento-status-pill.ativos { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+        .parcelamento-status-pill.inativos { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+        .parcelamento-status-pill.sem-status { background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; }
+        .empresas-filter-active { color:white !important; box-shadow:0 6px 14px -8px rgba(15,23,42,.45); transform:translateY(-1px); }
+        .empresas-row { cursor:pointer; transition:all .15s ease; }
+        .empresas-row:hover { background:#f8fafc; }
+
         /* Filtro PARCELAMENTOS e destaque de colunas por filtro */
         .parcelamentos-subfilters { display: none; align-items: center; gap: 6px; padding-left: 8px; border-left: 1px solid #e2e8f0; }
         .parcelamentos-subfilters.show { display: flex; }
@@ -338,6 +346,7 @@
                         <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
                         <button onclick="switchTab('avisos')" id="tab-avisos" class="text-[10px] font-bold uppercase pb-1 text-slate-400 relative">Avisos<span id="avisos-badge" class="badge-avisos badge-blue">0</span></button>
                         <button onclick="switchTab('financeiro')" id="tab-financeiro" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Financeiro</button>
+                        <button onclick="switchTab('empresasparcelamentos')" id="tab-empresasparcelamentos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Empresas/Parcelamentos</button>
                         <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
                         <button onclick="switchTab('logs')" id="tab-logs" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
 
@@ -450,6 +459,31 @@
                 <div class="white-card overflow-hidden">
                     <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody">
                     </tbody></table></div>
+                </div>
+            </div>
+
+            <!-- EMPRESAS / PARCELAMENTOS -->
+            <div id="view-empresasparcelamentos" class="hidden">
+                <div class="white-card p-6 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Empresas / Parcelamentos</h2>
+                            <p class="text-[10px] text-slate-400 mt-1">Mapeamento das empresas ativas e inativas da coluna PARCELAMENTOS.</p>
+                        </div>
+                        <div id="empresasParcelamentosCounter" class="text-[10px] font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full uppercase">0 empresas</div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button onclick="setEmpresasParcelamentosFiltro('todos')" id="emp-parc-btn-todos" class="btn-mini text-slate-700 border-slate-200 bg-slate-50">TODAS</button>
+                        <button onclick="setEmpresasParcelamentosFiltro('ativos')" id="emp-parc-btn-ativos" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">ATIVOS</button>
+                        <button onclick="setEmpresasParcelamentosFiltro('inativos')" id="emp-parc-btn-inativos" class="btn-mini text-red-700 border-red-200 bg-red-50">INATIVOS</button>
+                    </div>
+                    <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ ou status..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                    <div class="scroll-container">
+                        <table class="w-full text-left border-collapse">
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>PARCELAMENTOS</th><th>AÇÕES</th></tr></thead>
+                            <tbody id="empresasParcelamentosBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -868,6 +902,7 @@
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
         let activeParcelamentos = false, activeParcelamentosStatus = null;
+        let empresasParcelamentosFiltro = 'todos';
         let commActiveDoc = null, commActiveStatus = null;
         let currentEditTarget = {};
         let lastKnownDataHash = "";
@@ -1518,6 +1553,7 @@
                         if (rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable(); renderizarTarefas(); atualizarDashboardDesempenho();
                         if (!document.getElementById('view-comm').classList.contains('hidden')) renderCommTable();
+                        if (!document.getElementById('view-empresasparcelamentos').classList.contains('hidden')) renderEmpresasParcelamentos();
                     }
                 });
                 if (isFirstLoad) {
@@ -1845,12 +1881,23 @@
             };
         }
 
+        function getVisibleHeadersForCurrentFilter() {
+            const base = ['CLIENTE', 'CNPJ'];
+            let filtroColuna = null;
+            if (activeParcelamentos) filtroColuna = 'PARCELAMENTOS';
+            else if (activeDoc) filtroColuna = activeDoc;
+            else if (activeStatus) return headers;
+            if (!filtroColuna) return headers;
+            return base.concat([filtroColuna]).filter((h, idx, arr) => headers.includes(h) && arr.indexOf(h) === idx);
+        }
+
         function renderTable() {
             const head = document.getElementById('tableHeader');
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if (!headers.length) return;
-            head.innerHTML = `<tr>${headers.map(h => {
+            const visibleHeaders = getVisibleHeadersForCurrentFilter();
+            head.innerHTML = `<tr>${visibleHeaders.map(h => {
                 const hi = getHighlightAttrs(getColumnHighlight(h));
                 return `<th class="${h==='CLIENTE'?'col-fixed':''}${hi.cls}" style="${hi.style}">${h}</th>`;
             }).join('')}</tr>`;
@@ -1865,7 +1912,7 @@
                 if (activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
             });
-            body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
+            body.innerHTML = filtered.map(row => `<tr>${visibleHeaders.map(h => {
                 const s = getStatus(row[h], row, h);
                 const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                 const hi = getHighlightAttrs(getColumnHighlight(h, row));
@@ -2069,10 +2116,70 @@
         }
 
         // ============================================
+        // EMPRESAS / PARCELAMENTOS
+        // ============================================
+        function setEmpresasParcelamentosFiltro(status) {
+            empresasParcelamentosFiltro = status || 'todos';
+            renderEmpresasParcelamentos();
+        }
+
+        function getParcelamentosStatusLabel(status) {
+            if (status === 'ativos') return 'ATIVOS';
+            if (status === 'inativos') return 'INATIVOS';
+            return 'SEM STATUS';
+        }
+
+        function updateEmpresasParcelamentosButtons() {
+            ['todos','ativos','inativos'].forEach(st => {
+                const btn = document.getElementById('emp-parc-btn-' + st);
+                if (!btn) return;
+                btn.classList.remove('empresas-filter-active', 'bg-slate-600', 'bg-emerald-600', 'bg-red-600');
+                if (empresasParcelamentosFiltro === st) {
+                    btn.classList.add('empresas-filter-active');
+                    if (st === 'ativos') btn.classList.add('bg-emerald-600');
+                    else if (st === 'inativos') btn.classList.add('bg-red-600');
+                    else btn.classList.add('bg-slate-600');
+                }
+            });
+        }
+
+        function renderEmpresasParcelamentos() {
+            const tbody = document.getElementById('empresasParcelamentosBody');
+            const counter = document.getElementById('empresasParcelamentosCounter');
+            if (!tbody) return;
+            updateEmpresasParcelamentosButtons();
+            const q = (document.getElementById('searchEmpresasParcelamentos')?.value || '').toLowerCase();
+            const linhas = rawData.map((row, index) => ({ row, index, status: getParcelamentosStatus(row.PARCELAMENTOS) }))
+                .filter(item => item.row && item.row.CLIENTE)
+                .filter(item => empresasParcelamentosFiltro === 'todos' ? !!item.status : item.status === empresasParcelamentosFiltro)
+                .filter(item => {
+                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.PARCELAMENTOS || ''}`.toLowerCase();
+                    return !q || texto.includes(q);
+                });
+            if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
+            if (!linhas.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = linhas.map(item => {
+                const row = item.row;
+                const status = item.status || 'sem-status';
+                const statusLabel = getParcelamentosStatusLabel(item.status);
+                const valor = row.PARCELAMENTOS instanceof Date ? row.PARCELAMENTOS.toLocaleDateString('pt-BR') : (row.PARCELAMENTOS || '-');
+                return `<tr class="empresas-row" onclick="openEditCell(${item.index}, 'PARCELAMENTOS')">
+                    <td class="col-fixed font-bold text-slate-700">${row.CLIENTE || '-'}</td>
+                    <td class="cnpj-cell" onclick="copiarCNPJ('${row.CNPJ || '-'}', event)">${row.CNPJ || '-'}</td>
+                    <td><span class="parcelamento-status-pill ${status}">${statusLabel}</span><span class="ml-2 text-[10px] text-slate-500">${valor}</span></td>
+                    <td><button onclick="event.stopPropagation(); openEditCell(${item.index}, 'PARCELAMENTOS')" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Abrir modal</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ============================================
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','tasks','senhas','comm','atalhos','historico','avisos','monitor','logs','financeiro'];
+            const allTabs = ['dash','tasks','senhas','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -2103,6 +2210,7 @@
                 carregarLogs();
             }
             if (tab === 'historico') carregarHistorico();
+            if (tab === 'empresasparcelamentos') renderEmpresasParcelamentos();
             if (tab === 'financeiro') {
                 if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
                 carregarFinanceiro();
