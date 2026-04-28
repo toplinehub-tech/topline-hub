@@ -57,30 +57,36 @@
             100% { clip-path: polygon(0% 50%, 2% 45%, 4% 42%, 6% 40%, 8% 42%, 10% 45%, 12% 50%, 14% 55%, 16% 58%, 18% 60%, 20% 58%, 22% 55%, 24% 50%, 26% 45%, 28% 42%, 30% 40%, 32% 42%, 34% 45%, 36% 50%, 38% 55%, 40% 58%, 42% 60%, 44% 58%, 46% 55%, 48% 50%, 50% 45%, 52% 42%, 54% 40%, 56% 42%, 58% 45%, 60% 50%, 62% 55%, 64% 58%, 66% 60%, 68% 58%, 70% 55%, 72% 50%, 74% 45%, 76% 42%, 78% 40%, 80% 42%, 82% 45%, 84% 50%, 86% 55%, 88% 58%, 90% 60%, 92% 58%, 94% 55%, 96% 50%, 98% 45%, 100% 42%, 100% 100%, 0% 100%); }
         }
 
-        @keyframes liquidShine {
-            0% { background-position: -200% center; }
-            100% { background-position: 200% center; }
+        @keyframes loginSelectPop {
+            0% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(16,185,129,0); }
+            45% { transform: translateY(-4px) scale(1.06); box-shadow: 0 12px 28px rgba(16,185,129,0.32); }
+            100% { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 20px rgba(16,185,129,0.24); }
+        }
+
+        @keyframes loginSoftGlow {
+            0% { opacity: 0; transform: scale(0.85); }
+            50% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 0; transform: scale(1.22); }
         }
 
         .login-btn-item.active::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            background-size: 200% 100%;
-            animation: liquidShine 0.6s ease-in-out;
-            border-radius: 10px;
+            inset: -6px;
+            border-radius: 14px;
+            background: radial-gradient(circle, rgba(16,185,129,0.22), transparent 68%);
+            animation: loginSoftGlow 0.52s cubic-bezier(.2,.8,.2,1);
             pointer-events: none;
         }
 
         .login-btn-item.active {
-            animation: liquidWave 0.8s ease-in-out;
+            animation: loginSelectPop 0.52s cubic-bezier(.2,.8,.2,1) forwards;
             position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-color: #047857;
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4), inset 0 -2px 6px rgba(0,0,0,0.1);
+            overflow: visible;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            color: #047857;
+            border-color: #10b981;
+            box-shadow: 0 8px 20px rgba(16,185,129,0.24);
         }
         .vencido { background-color: #ffe5e5 !important; color: #b91c1c !important; }
         .vence-30 { background-color: #fff9db !important; color: #92400e !important; }
@@ -212,10 +218,10 @@
             display: flex; flex-direction: column; align-items: center; gap: 2px;
             padding: 8px 10px; border-radius: 8px; font-size: 7px; font-weight: 800;
             background: white; color: #334155; border: 1.5px solid #e2e8f0;
-            cursor: pointer; transition: all 0.3s ease; min-width: 52px; text-transform: uppercase;
+            cursor: pointer; transition: transform 0.22s cubic-bezier(.2,.8,.2,1), box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease, color 0.22s ease; min-width: 52px; text-transform: uppercase;
             position: relative;
         }
-        .login-btn-item:hover { background: #f0fdf4; border-color: #10b981; color: #065f46; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
+        .login-btn-item:hover { background: #f0fdf4; border-color: #10b981; color: #065f46; transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 18px rgba(16,185,129,0.18); }
         .login-btn-item svg { width: 14px; height: 14px; color: #64748b; }
         .login-btn-item:hover svg { color: #10b981; }
     
@@ -405,10 +411,6 @@
                 <div id="search-bar-wrapper" class="visible topline-toolbar">
                     <input type="text" id="searchInput" oninput="renderTable(); atualizarBuscaGlobalEspelho(this.value)" placeholder="Pesquisar cliente ou CNPJ no Painel..." class="flex-1 min-w-[220px]">
                     <input type="text" id="globalSearchInput" oninput="executarBuscaGlobal(this.value)" placeholder="Busca global: cliente, CNPJ ou observação..." class="flex-1 min-w-[260px]">
-                    <select id="globalQuickJump" onchange="atalhoGlobal(this.value); this.value=''">
-                        <option value="">Atalhos rápidos</option>
-                        <option value="dash">Painel</option><option value="tasks">Tarefas</option><option value="senhas">Senhas</option><option value="comm">Comunicar</option><option value="historico">Histórico</option><option value="empresasparcelamentos">Empresas/Parcelamentos</option>
-                    </select>
                     <button onclick="resetAllFilters()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar filtros</button>
                     <div id="activeFilterTags" class="flex gap-1 flex-wrap"></div>
                 </div>
@@ -596,7 +598,7 @@
             <!-- SENHAS -->
             <div id="view-senhas" class="hidden">
                 <div class="white-card p-6">
-                    <div class="topline-toolbar mb-4"><input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="flex-1"><button onclick="limparBuscaSenha()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button><span id="senhasCounter" class="filter-tag">0 registros</span></div>
+                    <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                     <div class="scroll-container">
                         <table class="w-full text-left">
                             <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
@@ -1248,7 +1250,7 @@
         function selecionarUsuario(nome) {
             usuarioSelecionado = nome;
             
-            // Liquid animation effect
+            // Animação suave de seleção do usuário
             const btn = event.currentTarget;
             btn.classList.add('active');
             
@@ -1260,7 +1262,7 @@
                 carregarSenhaLocalStorage(nome);
                 setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
                 btn.classList.remove('active');
-            }, 600);
+            }, 520);
         }
 
         function voltarLogin() {
@@ -3267,22 +3269,6 @@ renderizarTarefas = function() {
         });
     });
 };
-
-const _renderSenhasBase = typeof renderSenhas === 'function' ? renderSenhas : null;
-renderSenhas = function() {
-    const q = normalizarTexto(document.getElementById('searchSenhas')?.value || '');
-    if (!passwordData.length) return;
-    const filtrados = passwordData.filter(p => normalizarTexto([p.CLIENTE,p.CNPJ].join(' ')).includes(q));
-    setTextSafe('senhasCounter', filtrados.length + ' registros');
-    document.getElementById('senhasBody').innerHTML = filtrados.map(p => {
-        const cols = ["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => {
-            const val = p[c] || ''; const isSenha = !!val;
-            return `<td class="${isSenha ? 'bg-amber-50/50' : 'bg-red-50/40'}"><button onclick="abrirModalSenha('${escapeAttr(p.CLIENTE)}', '${c}', '${escapeAttr(val)}')" class="${isSenha ? 'font-black text-amber-600 hover:text-amber-700' : 'text-red-400 italic'} transition-all">${isSenha ? 'Ver / copiar' : '(vazio)'}</button></td>`;
-        }).join('');
-        return `<tr><td class="col-fixed font-bold text-slate-700">${escapeHtml(p.CLIENTE||'-')}</td><td class="text-[10px] text-slate-500">${escapeHtml(p.CNPJ||'-')}</td><td class="text-[10px] text-slate-500">${escapeHtml(p.CCM||'-')}</td>${cols}</tr>`;
-    }).join('');
-};
-function limparBuscaSenha() { const el = document.getElementById('searchSenhas'); if (el) el.value = ''; renderSenhas(); }
 
 const _renderCommBase = typeof renderCommTable === 'function' ? renderCommTable : null;
 renderCommTable = function() { if (_renderCommBase) _renderCommBase(); atualizarPreviewComunicado(); };
