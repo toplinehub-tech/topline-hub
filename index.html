@@ -97,7 +97,13 @@
         .col-fixed { position: sticky; left: 0; background: #fafbfc !important; z-index: 25; font-weight: 600; border-right: 1px solid #e8ecf1; }
         th.col-fixed { z-index: 35 !important; }
         .btn-mini { padding: 4px 12px; font-size: 9px; border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: 800; cursor: pointer; height: 32px; display: flex; align-items: center; border: 1px solid #d4dce5; background: #fafbfc; }
-        .card-selected { transform: translateY(-4px) scale(1.02); border: 2px solid #10b981 !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
+        .card-selected { transform: translateY(-4px) scale(1.02); border-width: 2px !important; box-shadow: 0 14px 24px -10px rgba(15, 23, 42, 0.28), 0 0 0 4px rgba(148, 163, 184, 0.14); }
+        #btn-vencido.card-selected { background:#fef2f2 !important; border-color:#f87171 !important; box-shadow:0 14px 24px -10px rgba(248,113,113,.45),0 0 0 4px rgba(248,113,113,.14); }
+        #btn-30.card-selected { background:#fffbeb !important; border-color:#fbbf24 !important; box-shadow:0 14px 24px -10px rgba(251,191,36,.45),0 0 0 4px rgba(251,191,36,.14); }
+        #btn-60.card-selected { background:#ecfdf5 !important; border-color:#34d399 !important; box-shadow:0 14px 24px -10px rgba(52,211,153,.45),0 0 0 4px rgba(52,211,153,.14); }
+        #btn-90.card-selected { background:#f0f9ff !important; border-color:#38bdf8 !important; box-shadow:0 14px 24px -10px rgba(56,189,248,.45),0 0 0 4px rgba(56,189,248,.14); }
+        #btn-andamento.card-selected { background:#faf5ff !important; border-color:#c084fc !important; box-shadow:0 14px 24px -10px rgba(192,132,252,.45),0 0 0 4px rgba(192,132,252,.14); }
+        #btn-analise.card-selected { background:#fff7ed !important; border-color:#fb923c !important; box-shadow:0 14px 24px -10px rgba(251,146,60,.45),0 0 0 4px rgba(251,146,60,.14); }
         .doc-btn-active { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
         .option-card { transition: all 0.2s ease; cursor: pointer; }
         .option-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -226,6 +232,18 @@
         .empresas-filter-active { color:white !important; box-shadow:0 6px 14px -8px rgba(15,23,42,.45); transform:translateY(-1px); }
         .empresas-row { cursor:pointer; transition:all .15s ease; }
         .empresas-row:hover { background:#f8fafc; }
+        .parcelamento-qty-select { width:100%; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 12px; font-size:12px; font-weight:800; color:#334155; background:white; outline:none; }
+        .parcelamento-qty-select:focus { border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.12); }
+
+        .kpi-card { background:white; border:1px solid #e2e8f0; border-radius:14px; padding:14px; transition:all .2s ease; }
+        .kpi-card:hover { transform:translateY(-2px); box-shadow:0 10px 18px -12px rgba(15,23,42,.35); }
+        .kpi-number { font-size:22px; line-height:1; font-weight:900; color:#0f172a; }
+        .kpi-label { font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+        .last-obs-chip { display:block; max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:9px; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; border-radius:999px; padding:4px 8px; }
+        .quick-link-card { cursor:pointer; transition:all .2s ease; }
+        .quick-link-card:hover { transform:translateY(-2px); box-shadow:0 12px 18px -14px rgba(14,165,233,.45); }
+        .empresas-toolbar-select { border:1px solid #e2e8f0; border-radius:12px; padding:8px 10px; font-size:10px; font-weight:800; color:#334155; background:white; outline:none; min-height:36px; }
+        .empresas-toolbar-select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
 
         /* Filtro PARCELAMENTOS e destaque de colunas por filtro */
         .parcelamentos-subfilters { display: none; align-items: center; gap: 6px; padding-left: 8px; border-left: 1px solid #e2e8f0; }
@@ -455,6 +473,21 @@
                     <button onclick="toggleStatusFilter('andamento')" id="btn-andamento" class="white-card border-l-8 border-purple-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-purple-500 uppercase">Status</span><span class="text-xs font-bold text-slate-700">Andamento</span></button>
                     <button onclick="toggleStatusFilter('analise')" id="btn-analise" class="white-card border-l-8 border-orange-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-orange-500 uppercase">Triagem</span><span class="text-xs font-bold text-slate-700">Análise</span></button>
                 </div>
+                <div class="white-card p-4 mb-6 border-l-8 border-sky-400">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+                        <div>
+                            <h3 class="text-[10px] font-black uppercase text-slate-700 tracking-wider">Resumo de Parcelamentos</h3>
+                            <p class="text-[9px] text-slate-400">Acompanhamento rápido das empresas mapeadas na coluna PARCELAMENTOS.</p>
+                        </div>
+                        <button onclick="switchTab('empresasparcelamentos')" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Abrir Empresas/Parcelamentos</button>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="dashParcelamentosResumo">
+                        <div class="kpi-card"><div class="kpi-number" id="dash-parc-total">0</div><div class="kpi-label">Total mapeadas</div></div>
+                        <div class="kpi-card"><div class="kpi-number text-emerald-600" id="dash-parc-ativos">0</div><div class="kpi-label">Ativos</div></div>
+                        <div class="kpi-card"><div class="kpi-number text-red-600" id="dash-parc-inativos">0</div><div class="kpi-label">Inativos</div></div>
+                        <div class="kpi-card"><div class="kpi-number text-sky-600" id="dash-parc-com-qtd">0</div><div class="kpi-label">Com quantidade</div></div>
+                    </div>
+                </div>
                 <div class="white-card p-3 mb-6 flex flex-wrap gap-2" id="docButtons"></div>
                 <div class="white-card overflow-hidden">
                     <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="tableHeader"></thead><tbody id="tableBody">
@@ -468,19 +501,30 @@
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
                         <div>
                             <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Empresas / Parcelamentos</h2>
-                            <p class="text-[10px] text-slate-400 mt-1">Mapeamento das empresas ativas e inativas da coluna PARCELAMENTOS.</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Mapeamento das empresas ativas e inativas da coluna PARCELAMENTOS, com histórico e observações.</p>
                         </div>
                         <div id="empresasParcelamentosCounter" class="text-[10px] font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full uppercase">0 empresas</div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="empresasParcelamentosKpis">
+                        <div class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosFiltro('todos')"><div class="kpi-number" id="emp-parc-kpi-total">0</div><div class="kpi-label">Total</div></div>
+                        <div class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosFiltro('ativos')"><div class="kpi-number text-emerald-600" id="emp-parc-kpi-ativos">0</div><div class="kpi-label">Ativas</div></div>
+                        <div class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosFiltro('inativos')"><div class="kpi-number text-red-600" id="emp-parc-kpi-inativos">0</div><div class="kpi-label">Inativas</div></div>
+                        <div class="kpi-card"><div class="kpi-number text-sky-600" id="emp-parc-kpi-com-qtd">0</div><div class="kpi-label">Com quantidade</div></div>
                     </div>
                     <div class="flex flex-wrap gap-2 mb-4">
                         <button onclick="setEmpresasParcelamentosFiltro('todos')" id="emp-parc-btn-todos" class="btn-mini text-slate-700 border-slate-200 bg-slate-50">TODAS</button>
                         <button onclick="setEmpresasParcelamentosFiltro('ativos')" id="emp-parc-btn-ativos" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">ATIVOS</button>
                         <button onclick="setEmpresasParcelamentosFiltro('inativos')" id="emp-parc-btn-inativos" class="btn-mini text-red-700 border-red-200 bg-red-50">INATIVOS</button>
+                        <select id="filtroQuantidadeParcelamentos" onchange="setEmpresasParcelamentosQuantidadeFiltro(this.value)" class="empresas-toolbar-select">
+                            <option value="">Todas as quantidades</option>
+                            <option value="1">1 parcelamento</option><option value="2">2 parcelamentos</option><option value="3">3 parcelamentos</option><option value="4">4 parcelamentos</option><option value="5">5 parcelamentos</option><option value="6">6 parcelamentos</option><option value="7">7 parcelamentos</option><option value="8">8 parcelamentos</option><option value="9">9 parcelamentos</option><option value="10">10 parcelamentos</option><option value="11">11 parcelamentos</option><option value="12">12 parcelamentos</option><option value="13">13 parcelamentos</option><option value="14">14 parcelamentos</option><option value="15">15 parcelamentos</option><option value="16">16 parcelamentos</option><option value="17">17 parcelamentos</option><option value="18">18 parcelamentos</option><option value="19">19 parcelamentos</option><option value="20">20 parcelamentos</option><option value="21">21 parcelamentos</option><option value="22">22 parcelamentos</option><option value="23">23 parcelamentos</option><option value="24">24 parcelamentos</option><option value="25">25 parcelamentos</option><option value="26">26 parcelamentos</option><option value="27">27 parcelamentos</option><option value="28">28 parcelamentos</option><option value="29">29 parcelamentos</option><option value="30">30 parcelamentos</option>
+                        </select>
+                        <button onclick="limparFiltrosEmpresasParcelamentos()" class="btn-mini text-slate-600 border-slate-200 bg-white">Limpar filtros</button>
                     </div>
-                    <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ ou status..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                    <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, status, quantidade ou observação..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>PARCELAMENTOS</th><th>AÇÕES</th></tr></thead>
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>STATUS</th><th>QTD.</th><th>ÚLTIMA OBSERVAÇÃO</th><th>AÇÕES</th></tr></thead>
                             <tbody id="empresasParcelamentosBody"></tbody>
                         </table>
                     </div>
@@ -903,6 +947,8 @@
         let activeDoc = null, activeStatus = null;
         let activeParcelamentos = false, activeParcelamentosStatus = null;
         let empresasParcelamentosFiltro = 'todos';
+        let empresasParcelamentosQuantidadeFiltro = '';
+        let historicoParcelamentosCarregado = false;
         let commActiveDoc = null, commActiveStatus = null;
         let currentEditTarget = {};
         let lastKnownDataHash = "";
@@ -1551,7 +1597,7 @@
                         rawData = newData;
                         lastKnownDataHash = csvDados;
                         if (rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
-                        renderTable(); renderizarTarefas(); atualizarDashboardDesempenho();
+                        renderTable(); renderizarTarefas(); atualizarDashboardDesempenho(); atualizarResumoParcelamentos();
                         if (!document.getElementById('view-comm').classList.contains('hidden')) renderCommTable();
                         if (!document.getElementById('view-empresasparcelamentos').classList.contains('hidden')) renderEmpresasParcelamentos();
                     }
@@ -2123,6 +2169,25 @@
             renderEmpresasParcelamentos();
         }
 
+        function setEmpresasParcelamentosQuantidadeFiltro(qtd) {
+            empresasParcelamentosQuantidadeFiltro = qtd || '';
+            renderEmpresasParcelamentos();
+        }
+
+        function limparFiltrosEmpresasParcelamentos() {
+            empresasParcelamentosFiltro = 'todos';
+            empresasParcelamentosQuantidadeFiltro = '';
+            const busca = document.getElementById('searchEmpresasParcelamentos');
+            const qtd = document.getElementById('filtroQuantidadeParcelamentos');
+            if (busca) busca.value = '';
+            if (qtd) qtd.value = '';
+            renderEmpresasParcelamentos();
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         function getParcelamentosStatusLabel(status) {
             if (status === 'ativos') return 'ATIVOS';
             if (status === 'inativos') return 'INATIVOS';
@@ -2141,6 +2206,171 @@
                     else btn.classList.add('bg-slate-600');
                 }
             });
+            const qtd = document.getElementById('filtroQuantidadeParcelamentos');
+            if (qtd && qtd.value !== empresasParcelamentosQuantidadeFiltro) qtd.value = empresasParcelamentosQuantidadeFiltro;
+        }
+
+        function escapeAttr(value) {
+            return String(value || '').replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function getParcelamentoQuantidadeAtual(valor) {
+            const match = String(valor || '').match(/(?:PARCELAMENTO\s*)?(\d{1,2})/i);
+            if (!match) return '';
+            const n = parseInt(match[1], 10);
+            return n >= 1 && n <= 30 ? String(n) : '';
+        }
+
+        function getParcelamentoStatusPrefix(valorAtual) {
+            const status = getParcelamentosStatus(valorAtual);
+            if (status === 'inativos') return 'INATIVO';
+            if (status === 'ativos') return 'ATIVO';
+            return 'ATIVO';
+        }
+
+        function getParcelamentosBase() {
+            return rawData.map((row, index) => ({ row, index, status: getParcelamentosStatus(row.PARCELAMENTOS), qtd: getParcelamentoQuantidadeAtual(row.PARCELAMENTOS) }))
+                .filter(item => item.row && item.row.CLIENTE)
+                .filter(item => !!item.status);
+        }
+
+        function getUltimaObservacaoParcelamento(cliente) {
+            const nome = String(cliente || '').trim().toLowerCase();
+            if (!nome || !historicoData || !historicoData.length) return null;
+            return historicoData.find(h => String(h.cliente || '').trim().toLowerCase() === nome && String(h.documento || '').toUpperCase() === 'PARCELAMENTOS') || null;
+        }
+
+        function atualizarResumoParcelamentos() {
+            const base = getParcelamentosBase();
+            const ativos = base.filter(i => i.status === 'ativos').length;
+            const inativos = base.filter(i => i.status === 'inativos').length;
+            const comQtd = base.filter(i => !!i.qtd).length;
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            set('dash-parc-total', base.length);
+            set('dash-parc-ativos', ativos);
+            set('dash-parc-inativos', inativos);
+            set('dash-parc-com-qtd', comQtd);
+            set('emp-parc-kpi-total', base.length);
+            set('emp-parc-kpi-ativos', ativos);
+            set('emp-parc-kpi-inativos', inativos);
+            set('emp-parc-kpi-com-qtd', comQtd);
+        }
+
+        async function carregarHistoricoParcelamentosSilencioso() {
+            if (historicoParcelamentosCarregado) return;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('historico_observacoes')
+                    .select('*')
+                    .eq('documento', 'PARCELAMENTOS')
+                    .order('created_at', { ascending: false })
+                    .limit(500);
+                if (error) throw error;
+                const outros = (historicoData || []).filter(h => String(h.documento || '').toUpperCase() !== 'PARCELAMENTOS');
+                historicoData = [...(data || []), ...outros];
+                historicoParcelamentosCarregado = true;
+                if (!document.getElementById('view-empresasparcelamentos')?.classList.contains('hidden')) renderEmpresasParcelamentos();
+            } catch(e) {
+                console.warn('Não foi possível carregar histórico de parcelamentos:', e);
+            }
+        }
+
+        function abrirListaParcelamento() {
+            selectedOption = 'parcelamento';
+            const card = document.getElementById('option-parcelamento');
+            const box = document.getElementById('parcelamentoQuantidadeContainer');
+            if (card) card.classList.add('option-selected');
+            if (box) box.classList.remove('hidden');
+        }
+
+        function openParcelamentoInfoModal(r) {
+            const c = 'PARCELAMENTOS';
+            if (!rawData[r]) return;
+            currentEditTarget = { r, c };
+            selectedOption = null;
+            const cliente = rawData[r].CLIENTE || '';
+            const valorAtual = rawData[r][c];
+            const quantidadeAtual = getParcelamentoQuantidadeAtual(valorAtual);
+            const ultimaObs = getUltimaObservacaoParcelamento(cliente);
+            const valorExibicao = valorAtual instanceof Date ? valorAtual.toLocaleDateString('pt-BR') : (valorAtual ? escapeHtml(String(valorAtual)) : '<span class="text-slate-300 italic">vazio</span>');
+            const opcoes = Array.from({ length: 30 }, (_, i) => {
+                const n = String(i + 1);
+                return `<option value="${n}" ${quantidadeAtual === n ? 'selected' : ''}>${n}</option>`;
+            }).join('');
+
+            document.getElementById('modalTitle').innerHTML = `${escapeHtml(cliente)} - Informações de Parcelamento`;
+            document.getElementById('modalContent').innerHTML = `
+                <div class="mb-2">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Valor atual no Sheets</label>
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-[10px] font-mono text-slate-600 break-all">${valorExibicao}</div>
+                </div>
+                ${ultimaObs ? `<div class="mb-2 bg-amber-50 border border-amber-100 rounded-lg p-2"><div class="text-[8px] font-black text-amber-700 uppercase mb-1">Última observação</div><div class="text-[10px] text-slate-700">${escapeHtml(ultimaObs.observacao || '')}</div></div>` : ''}
+                <div>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Informação</label>
+                    <div id="option-parcelamento" onclick="abrirListaParcelamento()" class="option-card bg-sky-50 border-2 border-sky-200 rounded-lg p-3 text-center cursor-pointer hover:bg-sky-100 transition">
+                        <div class="text-lg mb-1">📄</div>
+                        <div class="text-[9px] font-black text-sky-700 uppercase">Parcelamento</div>
+                        <div class="text-[8px] text-sky-500 mt-0.5">Selecionar quantidade</div>
+                    </div>
+                </div>
+                <div id="parcelamentoQuantidadeContainer" class="${quantidadeAtual ? '' : 'hidden'} mt-3">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Quantidade de parcelamento</label>
+                    <select id="parcelamentoQuantidade" class="parcelamento-qty-select">${opcoes}</select>
+                </div>
+                <div class="mt-2">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Observação <span class="text-slate-300 font-normal normal-case">(opcional)</span></label>
+                    <textarea id="modalObservacao" rows="2" placeholder="Inclua alterações ou informações importantes..." class="w-full border border-slate-200 p-2 rounded-lg text-[9px] focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"></textarea>
+                </div>
+                <div class="mt-2">
+                    <button onclick="abrirHistoricoModal('${escapeAttr(cliente)}', 'PARCELAMENTOS')" class="w-full py-1.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-lg font-bold text-[8px] hover:bg-slate-100 transition flex items-center justify-center gap-1">
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Ver Histórico
+                    </button>
+                </div>
+            `;
+            if (quantidadeAtual) abrirListaParcelamento();
+            document.getElementById('modalSaveBtn').classList.remove('hidden');
+            document.getElementById('modalSaveBtn').onclick = saveParcelamentoInfo;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        async function saveParcelamentoInfo() {
+            const { r, c } = currentEditTarget || {};
+            if (r === undefined || !rawData[r]) return;
+            if (selectedOption !== 'parcelamento') { showNotification('Selecione Parcelamento para abrir a lista', true); return; }
+            const quantidade = document.getElementById('parcelamentoQuantidade')?.value;
+            if (!quantidade) { showNotification('Selecione a quantidade de parcelamento', true); return; }
+
+            const cliente = rawData[r].CLIENTE;
+            const valorAnterior = rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : (rawData[r][c] || 'vazio');
+            const statusPrefix = getParcelamentoStatusPrefix(rawData[r][c]);
+            const valorParaSalvar = `${statusPrefix} - PARCELAMENTO ${quantidade}`;
+            const observacao = document.getElementById('modalObservacao')?.value || '';
+
+            rawData[r][c] = valorParaSalvar;
+            renderEmpresasParcelamentos();
+            atualizarResumoParcelamentos();
+            if (!document.getElementById('view-dash')?.classList.contains('hidden')) renderTable();
+            closeModal();
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            try {
+                await Promise.all([
+                    enviarParaGoogleSheets(cliente, c, 'parcelamento', valorParaSalvar),
+                    registrarLog('Informações de parcelamento', cliente, c, `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorParaSalvar),
+                    salvarObservacao(cliente, c, observacao || `Quantidade de parcelamento definida para ${quantidade}`, valorParaSalvar)
+                ]);
+                historicoParcelamentosCarregado = false;
+                await carregarHistoricoParcelamentosSilencioso();
+                loadingOverlay.style.display = 'none';
+                showNotificationOnce(`✅ ${cliente} - parcelamento atualizado!`, false, `${cliente}-parcelamento`);
+                setTimeout(() => { fetchGoogleSheets(false); }, 500);
+            } catch (error) {
+                loadingOverlay.style.display = 'none';
+                showNotification('Erro: ' + error.message, true);
+                setTimeout(() => { fetchGoogleSheets(false); }, 500);
+            }
         }
 
         function renderEmpresasParcelamentos() {
@@ -2148,17 +2378,19 @@
             const counter = document.getElementById('empresasParcelamentosCounter');
             if (!tbody) return;
             updateEmpresasParcelamentosButtons();
+            atualizarResumoParcelamentos();
             const q = (document.getElementById('searchEmpresasParcelamentos')?.value || '').toLowerCase();
-            const linhas = rawData.map((row, index) => ({ row, index, status: getParcelamentosStatus(row.PARCELAMENTOS) }))
-                .filter(item => item.row && item.row.CLIENTE)
-                .filter(item => empresasParcelamentosFiltro === 'todos' ? !!item.status : item.status === empresasParcelamentosFiltro)
+            const linhas = getParcelamentosBase()
+                .filter(item => empresasParcelamentosFiltro === 'todos' ? true : item.status === empresasParcelamentosFiltro)
+                .filter(item => empresasParcelamentosQuantidadeFiltro ? item.qtd === empresasParcelamentosQuantidadeFiltro : true)
                 .filter(item => {
-                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.PARCELAMENTOS || ''}`.toLowerCase();
+                    const ultimaObs = getUltimaObservacaoParcelamento(item.row.CLIENTE);
+                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${ultimaObs?.observacao || ''}`.toLowerCase();
                     return !q || texto.includes(q);
                 });
             if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
             if (!linhas.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
                 return;
             }
             tbody.innerHTML = linhas.map(item => {
@@ -2166,14 +2398,20 @@
                 const status = item.status || 'sem-status';
                 const statusLabel = getParcelamentosStatusLabel(item.status);
                 const valor = row.PARCELAMENTOS instanceof Date ? row.PARCELAMENTOS.toLocaleDateString('pt-BR') : (row.PARCELAMENTOS || '-');
-                return `<tr class="empresas-row" onclick="openEditCell(${item.index}, 'PARCELAMENTOS')">
-                    <td class="col-fixed font-bold text-slate-700">${row.CLIENTE || '-'}</td>
-                    <td class="cnpj-cell" onclick="copiarCNPJ('${row.CNPJ || '-'}', event)">${row.CNPJ || '-'}</td>
-                    <td><span class="parcelamento-status-pill ${status}">${statusLabel}</span><span class="ml-2 text-[10px] text-slate-500">${valor}</span></td>
-                    <td><button onclick="event.stopPropagation(); openEditCell(${item.index}, 'PARCELAMENTOS')" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Abrir modal</button></td>
+                const ultimaObs = getUltimaObservacaoParcelamento(row.CLIENTE);
+                const obsTexto = ultimaObs ? escapeHtml(ultimaObs.observacao || '-') : '<span class="text-slate-300 italic">Sem observação</span>';
+                const qtd = item.qtd ? `${item.qtd}/${30}` : '-';
+                return `<tr class="empresas-row" onclick="openParcelamentoInfoModal(${item.index})">
+                    <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
+                    <td class="cnpj-cell" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
+                    <td><span class="parcelamento-status-pill ${status}">${statusLabel}</span><span class="ml-2 text-[10px] text-slate-500">${escapeHtml(valor)}</span></td>
+                    <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
+                    <td><span class="last-obs-chip" title="${escapeAttr(ultimaObs?.observacao || '')}">${obsTexto}</span></td>
+                    <td><button onclick="event.stopPropagation(); openParcelamentoInfoModal(${item.index})" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Informações</button></td>
                 </tr>`;
             }).join('');
         }
+
 
         // ============================================
         // SWITCH TAB
@@ -2210,7 +2448,7 @@
                 carregarLogs();
             }
             if (tab === 'historico') carregarHistorico();
-            if (tab === 'empresasparcelamentos') renderEmpresasParcelamentos();
+            if (tab === 'empresasparcelamentos') { renderEmpresasParcelamentos(); carregarHistoricoParcelamentosSilencioso(); }
             if (tab === 'financeiro') {
                 if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
                 carregarFinanceiro();
