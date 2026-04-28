@@ -218,6 +218,15 @@
         @keyframes tooltipFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .badge-avisos { position: absolute; top: -12px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 10px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .badge-red { background: #ef4444; }
+
+        /* Filtro PARCELAMENTOS e destaque de colunas por filtro */
+        .parcelamentos-subfilters { display: none; align-items: center; gap: 6px; padding-left: 8px; border-left: 1px solid #e2e8f0; }
+        .parcelamentos-subfilters.show { display: flex; }
+        .parcelamento-filter-active { background-color: #0ea5e9 !important; color: white !important; border-color: #0284c7 !important; box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.35); }
+        .parcelamento-sub-active { background-color: #2563eb !important; color: white !important; border-color: #1d4ed8 !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.35); }
+        th.filter-column-highlight, td.filter-column-highlight { box-shadow: inset 0 0 0 9999px var(--filter-column-bg, rgba(16,185,129,0.08)); }
+        th.filter-column-highlight { color: var(--filter-column-text, #065f46) !important; border-bottom-color: var(--filter-column-border, #10b981) !important; }
+        td.filter-column-highlight { color: var(--filter-column-text, inherit); font-weight: 700; }
         .badge-blue { background: #3b82f6; }
 
     </style>
@@ -430,12 +439,6 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-6 gap-4 mb-6" id="statusCards">
-<!-- NOVO BOTÃO PARCELAMENTO -->
-<button onclick="toggleParcelamento()" class="white-card border-l-8 border-blue-300 p-4 text-left hover:scale-[1.02]">
-<span class="block text-[8px] font-black text-blue-500 uppercase">Filtro</span>
-<span class="text-xs font-bold text-slate-700">Parcelamento</span>
-</button>
-
                     <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
                     <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
                     <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
@@ -825,107 +828,6 @@
 
 
 
-
-<script>
-// ===== PARCELAMENTO FINAL =====
-let filtroParcelamento = false;
-let statusParcelamento = null;
-
-// nomes corretos da planilha
-const COL_CLIENTE = 'CLIENTES';
-const COL_PARCELAMENTO = 'PARCELAMENTOS';
-
-function toggleParcelamento(){
-    filtroParcelamento = true;
-    statusParcelamento = null;
-    aplicarEstiloColuna('blue');
-    renderParcelamentoButtons();
-    renderTable();
-}
-
-function renderParcelamentoButtons(){
-    const container = document.getElementById('docButtons');
-    container.innerHTML = `
-        <button onclick="setParcelamentoStatus('ATIVO')" class="btn-mini bg-blue-100">Ativo</button>
-        <button onclick="setParcelamentoStatus('INATIVO')" class="btn-mini bg-slate-200">Inativo</button>
-    `;
-}
-
-function setParcelamentoStatus(status){
-    statusParcelamento = status;
-    renderTable();
-}
-
-function aplicarEstiloColuna(color){
-    document.querySelectorAll('td').forEach(td=>{
-        td.style.background = '';
-    });
-}
-
-// override renderTable mantendo original
-const _renderTableOriginal = window.renderTable;
-
-window.renderTable = function(){
-    if(!filtroParcelamento){
-        return _renderTableOriginal();
-    }
-
-    const body = document.getElementById('tableBody');
-    const header = document.getElementById('tableHeader');
-
-    header.innerHTML = `
-        <tr>
-            <th class="col-fixed">EMPRESA</th>
-            <th>CNPJ</th>
-            <th style="background:#dbeafe">PARCELAMENTOS</th>
-        </tr>
-    `;
-
-    body.innerHTML = '';
-
-    data.forEach(row=>{
-        let parcel = (row[COL_PARCELAMENTO] || '').toUpperCase();
-
-        if(statusParcelamento && parcel !== statusParcelamento) return;
-
-        body.innerHTML += `
-            <tr>
-                <td class="col-fixed">${row[COL_CLIENTE] || ''}</td>
-                <td>${row.cnpj || ''}</td>
-                <td style="background:#dbeafe; font-weight:bold">${parcel}</td>
-            </tr>
-        `;
-    });
-}
-
-// ===== HISTÓRICO AUTOMÁTICO =====
-function salvarHistoricoParcelamento(cliente, valor){
-    const historico = JSON.parse(localStorage.getItem('historicoParcelamento') || '[]');
-
-    historico.push({
-        cliente: cliente,
-        valor: valor,
-        usuario: localStorage.getItem('usuarioLogado') || 'Sistema',
-        data: new Date().toISOString()
-    });
-
-    localStorage.setItem('historicoParcelamento', JSON.stringify(historico));
-}
-
-// Hook simples: sempre que alterar parcelamento
-function atualizarParcelamento(cliente, novoValor){
-    salvarHistoricoParcelamento(cliente, novoValor);
-}
-
-// ===== ANIMAÇÃO =====
-document.addEventListener('click', function(e){
-    if(e.target.innerText === 'Parcelamento'){
-        e.target.classList.add('card-selected');
-        setTimeout(()=> e.target.classList.remove('card-selected'), 300);
-    }
-});
-</script>
-
 </body>
 
     <script>
@@ -965,6 +867,7 @@ document.addEventListener('click', function(e){
 
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
+        let activeParcelamentos = false, activeParcelamentosStatus = null;
         let commActiveDoc = null, commActiveStatus = null;
         let currentEditTarget = {};
         let lastKnownDataHash = "";
@@ -986,7 +889,7 @@ document.addEventListener('click', function(e){
         let logsData = [];
         let historicoData = [];
         
-        const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA", "CRCE"];
+        const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA", "CRCE"].filter(doc => doc !== "PARCELAMENTOS");
 
         const MENSAGENS_PADRAO = {
             vencido: "Caro cliente, informamos que o documento {DOC} consta vencido na data de {DATA}. Por gentileza, entrar em contato para regularizarmos o quanto antes.\n\nAtenciosamente, equipe fiscal Topline.",
@@ -1116,6 +1019,23 @@ document.addEventListener('click', function(e){
                 btn.onclick = (e) => { e.preventDefault(); toggleDocFilter(doc); };
                 container.appendChild(btn);
             });
+
+            // Mini botão PARCELAMENTOS com subfiltros ATIVOS/INATIVOS
+            const parcelBtn = document.createElement('button');
+            parcelBtn.className = "btn-mini parcelamento-filter-btn text-sky-700 border-sky-200 bg-sky-50";
+            parcelBtn.id = "btn-parcelamentos";
+            parcelBtn.innerText = "PARCELAMENTOS";
+            parcelBtn.onclick = (e) => { e.preventDefault(); toggleParcelamentosFilter(); };
+            container.appendChild(parcelBtn);
+
+            const parcelSubfilters = document.createElement('div');
+            parcelSubfilters.id = "parcelamentosSubfilters";
+            parcelSubfilters.className = "parcelamentos-subfilters";
+            parcelSubfilters.innerHTML = `
+                <button id="btn-parcelamentos-ativos" onclick="setParcelamentosStatus('ativos')" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">ATIVOS</button>
+                <button id="btn-parcelamentos-inativos" onclick="setParcelamentosStatus('inativos')" class="btn-mini text-red-700 border-red-200 bg-red-50">INATIVOS</button>
+            `;
+            container.appendChild(parcelSubfilters);
 
             const commContainer = document.getElementById('commDocFilters');
             docList.forEach(doc => {
@@ -1841,9 +1761,88 @@ document.addEventListener('click', function(e){
 
         function toggleDocFilter(d) { 
             activeDoc = (activeDoc === d) ? null : d;
+            activeParcelamentos = false;
+            activeParcelamentosStatus = null;
             document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
             if (activeDoc) document.getElementById('btn-doc-'+d).classList.add('doc-btn-active');
+            updateParcelamentosButtons();
             renderTable();
+        }
+
+        function normalizeParcelamentosValue(val) {
+            return String(val || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase().trim();
+        }
+
+        function getParcelamentosStatus(val) {
+            const v = normalizeParcelamentosValue(val);
+            if (!v || v === '-') return null;
+            if (v.includes('INATIV')) return 'inativos';
+            if (v.includes('ATIV')) return 'ativos';
+            return null;
+        }
+
+        function toggleParcelamentosFilter() {
+            activeParcelamentos = !activeParcelamentos;
+            activeDoc = null;
+            if (!activeParcelamentos) activeParcelamentosStatus = null;
+            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
+            updateParcelamentosButtons();
+            renderTable();
+        }
+
+        function setParcelamentosStatus(status) {
+            activeParcelamentos = true;
+            activeParcelamentosStatus = (activeParcelamentosStatus === status) ? null : status;
+            activeDoc = null;
+            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
+            updateParcelamentosButtons();
+            renderTable();
+        }
+
+        function updateParcelamentosButtons() {
+            const mainBtn = document.getElementById('btn-parcelamentos');
+            const sub = document.getElementById('parcelamentosSubfilters');
+            const ativosBtn = document.getElementById('btn-parcelamentos-ativos');
+            const inativosBtn = document.getElementById('btn-parcelamentos-inativos');
+            if (mainBtn) mainBtn.classList.toggle('parcelamento-filter-active', activeParcelamentos);
+            if (sub) sub.classList.toggle('show', activeParcelamentos);
+            if (ativosBtn) ativosBtn.classList.toggle('parcelamento-sub-active', activeParcelamentosStatus === 'ativos');
+            if (inativosBtn) inativosBtn.classList.toggle('parcelamento-sub-active', activeParcelamentosStatus === 'inativos');
+        }
+
+        function getFilterColor(status) {
+            const colors = {
+                vencido: { bg: 'rgba(248, 113, 113, 0.16)', text: '#991b1b', border: '#f87171' },
+                '30': { bg: 'rgba(251, 191, 36, 0.18)', text: '#92400e', border: '#fbbf24' },
+                '60': { bg: 'rgba(52, 211, 153, 0.16)', text: '#065f46', border: '#34d399' },
+                '90': { bg: 'rgba(56, 189, 248, 0.16)', text: '#075985', border: '#38bdf8' },
+                andamento: { bg: 'rgba(192, 132, 252, 0.16)', text: '#5b21b6', border: '#c084fc' },
+                analise: { bg: 'rgba(251, 146, 60, 0.16)', text: '#9a3412', border: '#fb923c' },
+                ativos: { bg: 'rgba(16, 185, 129, 0.16)', text: '#065f46', border: '#10b981' },
+                inativos: { bg: 'rgba(239, 68, 68, 0.14)', text: '#991b1b', border: '#ef4444' },
+                doc: { bg: 'rgba(16, 185, 129, 0.10)', text: '#065f46', border: '#10b981' }
+            };
+            return colors[status] || colors.doc;
+        }
+
+        function getColumnHighlight(h, row = null) {
+            if (activeParcelamentos && h === 'PARCELAMENTOS') {
+                const status = activeParcelamentosStatus || (row ? getParcelamentosStatus(row[h]) : 'ativos');
+                return getFilterColor(status || 'doc');
+            }
+            if (activeDoc && h === activeDoc) return getFilterColor(activeStatus || 'doc');
+            if (!activeDoc && activeStatus && row && getStatus(row[h], row, h) === activeStatus) return getFilterColor(activeStatus);
+            return null;
+        }
+
+        function getHighlightAttrs(color) {
+            if (!color) return { cls: '', style: '' };
+            return {
+                cls: ' filter-column-highlight',
+                style: `--filter-column-bg:${color.bg};--filter-column-text:${color.text};--filter-column-border:${color.border};`
+            };
         }
 
         function renderTable() {
@@ -1851,9 +1850,17 @@ document.addEventListener('click', function(e){
             const body = document.getElementById('tableBody');
             const q = document.getElementById('searchInput').value.toLowerCase();
             if (!headers.length) return;
-            head.innerHTML = `<tr>${headers.map(h => `<th class="${h==='CLIENTE'?'col-fixed':''}">${h}</th>`).join('')}</tr>`;
+            head.innerHTML = `<tr>${headers.map(h => {
+                const hi = getHighlightAttrs(getColumnHighlight(h));
+                return `<th class="${h==='CLIENTE'?'col-fixed':''}${hi.cls}" style="${hi.style}">${h}</th>`;
+            }).join('')}</tr>`;
             const filtered = rawData.filter(row => {
                 if (!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
+                if (activeParcelamentos) {
+                    if (!('PARCELAMENTOS' in row)) return false;
+                    const parcelStatus = getParcelamentosStatus(row.PARCELAMENTOS);
+                    return activeParcelamentosStatus ? parcelStatus === activeParcelamentosStatus : !!parcelStatus;
+                }
                 if (activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
                 if (activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
                 return true;
@@ -1861,8 +1868,9 @@ document.addEventListener('click', function(e){
             body.innerHTML = filtered.map(row => `<tr>${headers.map(h => {
                 const s = getStatus(row[h], row, h);
                 const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-                if(h==='CNPJ') return `<td class="cnpj-cell" style="cursor:pointer" onclick="copiarCNPJ('${val}', event)">${val}</td>`;
-                return `<td class="${h==='CLIENTE'?'col-fixed':(s||'')}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+                const hi = getHighlightAttrs(getColumnHighlight(h, row));
+                if(h==='CNPJ') return `<td class="cnpj-cell${hi.cls}" style="cursor:pointer;${hi.style}" onclick="copiarCNPJ('${val}', event)">${val}</td>`;
+                return `<td class="${h==='CLIENTE'?'col-fixed':(s||'')}${hi.cls}" style="${hi.style}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
             }).join('')}</tr>`).join('');
             updateAnalytics();
         }
@@ -2110,9 +2118,11 @@ document.addEventListener('click', function(e){
         
         function resetAllFilters() {
             activeDoc = null; activeStatus = null;
+            activeParcelamentos = false; activeParcelamentosStatus = null;
             document.getElementById('searchInput').value = "";
             document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected'));
             document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
+            updateParcelamentosButtons();
             renderTable();
         }
 
@@ -2749,153 +2759,6 @@ document.addEventListener('click', function(e){
 
 </script>
 
-
-<script>
-// ===== PARCELAMENTO FINAL =====
-let filtroParcelamento = false;
-let statusParcelamento = null;
-
-// nomes corretos da planilha
-const COL_CLIENTE = 'CLIENTES';
-const COL_PARCELAMENTO = 'PARCELAMENTOS';
-
-function toggleParcelamento(){
-    filtroParcelamento = true;
-    statusParcelamento = null;
-    aplicarEstiloColuna('blue');
-    renderParcelamentoButtons();
-    renderTable();
-}
-
-function renderParcelamentoButtons(){
-    const container = document.getElementById('docButtons');
-    container.innerHTML = `
-        <button onclick="setParcelamentoStatus('ATIVO')" class="btn-mini bg-blue-100">Ativo</button>
-        <button onclick="setParcelamentoStatus('INATIVO')" class="btn-mini bg-slate-200">Inativo</button>
-    `;
-}
-
-function setParcelamentoStatus(status){
-    statusParcelamento = status;
-    renderTable();
-}
-
-function aplicarEstiloColuna(color){
-    document.querySelectorAll('td').forEach(td=>{
-        td.style.background = '';
-    });
-}
-
-// override renderTable mantendo original
-const _renderTableOriginal = window.renderTable;
-
-window.renderTable = function(){
-    if(!filtroParcelamento){
-        return _renderTableOriginal();
-    }
-
-    const body = document.getElementById('tableBody');
-    const header = document.getElementById('tableHeader');
-
-    header.innerHTML = `
-        <tr>
-            <th class="col-fixed">EMPRESA</th>
-            <th>CNPJ</th>
-            <th style="background:#dbeafe">PARCELAMENTOS</th>
-        </tr>
-    `;
-
-    body.innerHTML = '';
-
-    data.forEach(row=>{
-        let parcel = (row[COL_PARCELAMENTO] || '').toUpperCase();
-
-        if(statusParcelamento && parcel !== statusParcelamento) return;
-
-        body.innerHTML += `
-            <tr>
-                <td class="col-fixed">${row[COL_CLIENTE] || ''}</td>
-                <td>${row.cnpj || ''}</td>
-                <td style="background:#dbeafe; font-weight:bold">${parcel}</td>
-            </tr>
-        `;
-    });
-}
-
-// ===== HISTÓRICO AUTOMÁTICO =====
-function salvarHistoricoParcelamento(cliente, valor){
-    const historico = JSON.parse(localStorage.getItem('historicoParcelamento') || '[]');
-
-    historico.push({
-        cliente: cliente,
-        valor: valor,
-        usuario: localStorage.getItem('usuarioLogado') || 'Sistema',
-        data: new Date().toISOString()
-    });
-
-    localStorage.setItem('historicoParcelamento', JSON.stringify(historico));
-}
-
-// Hook simples: sempre que alterar parcelamento
-function atualizarParcelamento(cliente, novoValor){
-    salvarHistoricoParcelamento(cliente, novoValor);
-}
-
-// ===== ANIMAÇÃO =====
-document.addEventListener('click', function(e){
-    if(e.target.innerText === 'Parcelamento'){
-        e.target.classList.add('card-selected');
-        setTimeout(()=> e.target.classList.remove('card-selected'), 300);
-    }
-});
-</script>
-
 </body>
 </html>
         
-
-<script>
-let filtroParcelamento = null;
-let statusParcelamento = null;
-
-function toggleParcelamento(){
-    filtroParcelamento = true;
-    renderTable();
-    renderParcelamentoButtons();
-}
-
-function renderParcelamentoButtons(){
-    const container = document.getElementById('docButtons');
-    container.innerHTML = `
-        <button onclick="setParcelamentoStatus('ativo')" class="btn-mini">Ativo</button>
-        <button onclick="setParcelamentoStatus('inativo')" class="btn-mini">Inativo</button>
-    `;
-}
-
-function setParcelamentoStatus(status){
-    statusParcelamento = status;
-    renderTable();
-}
-
-const originalRenderTable = window.renderTable;
-window.renderTable = function(){
-    if(!filtroParcelamento){
-        return originalRenderTable();
-    }
-
-    const body = document.getElementById('tableBody');
-    body.innerHTML = '';
-
-    data.forEach(row=>{
-        if(statusParcelamento && row.PARCELAMENTOS !== statusParcelamento) return;
-
-        body.innerHTML += `
-            <tr>
-                <td>${row.empresa}</td>
-                <td>${row.cnpj}</td>
-                <td style="background:#dbeafe">${row.PARCELAMENTOS}</td>
-            </tr>
-        `;
-    });
-}
-</script>
