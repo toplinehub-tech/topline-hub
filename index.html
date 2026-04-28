@@ -825,6 +825,107 @@
 
 
 
+
+<script>
+// ===== PARCELAMENTO FINAL =====
+let filtroParcelamento = false;
+let statusParcelamento = null;
+
+// nomes corretos da planilha
+const COL_CLIENTE = 'CLIENTES';
+const COL_PARCELAMENTO = 'PARCELAMENTOS';
+
+function toggleParcelamento(){
+    filtroParcelamento = true;
+    statusParcelamento = null;
+    aplicarEstiloColuna('blue');
+    renderParcelamentoButtons();
+    renderTable();
+}
+
+function renderParcelamentoButtons(){
+    const container = document.getElementById('docButtons');
+    container.innerHTML = `
+        <button onclick="setParcelamentoStatus('ATIVO')" class="btn-mini bg-blue-100">Ativo</button>
+        <button onclick="setParcelamentoStatus('INATIVO')" class="btn-mini bg-slate-200">Inativo</button>
+    `;
+}
+
+function setParcelamentoStatus(status){
+    statusParcelamento = status;
+    renderTable();
+}
+
+function aplicarEstiloColuna(color){
+    document.querySelectorAll('td').forEach(td=>{
+        td.style.background = '';
+    });
+}
+
+// override renderTable mantendo original
+const _renderTableOriginal = window.renderTable;
+
+window.renderTable = function(){
+    if(!filtroParcelamento){
+        return _renderTableOriginal();
+    }
+
+    const body = document.getElementById('tableBody');
+    const header = document.getElementById('tableHeader');
+
+    header.innerHTML = `
+        <tr>
+            <th class="col-fixed">EMPRESA</th>
+            <th>CNPJ</th>
+            <th style="background:#dbeafe">PARCELAMENTOS</th>
+        </tr>
+    `;
+
+    body.innerHTML = '';
+
+    data.forEach(row=>{
+        let parcel = (row[COL_PARCELAMENTO] || '').toUpperCase();
+
+        if(statusParcelamento && parcel !== statusParcelamento) return;
+
+        body.innerHTML += `
+            <tr>
+                <td class="col-fixed">${row[COL_CLIENTE] || ''}</td>
+                <td>${row.cnpj || ''}</td>
+                <td style="background:#dbeafe; font-weight:bold">${parcel}</td>
+            </tr>
+        `;
+    });
+}
+
+// ===== HISTÓRICO AUTOMÁTICO =====
+function salvarHistoricoParcelamento(cliente, valor){
+    const historico = JSON.parse(localStorage.getItem('historicoParcelamento') || '[]');
+
+    historico.push({
+        cliente: cliente,
+        valor: valor,
+        usuario: localStorage.getItem('usuarioLogado') || 'Sistema',
+        data: new Date().toISOString()
+    });
+
+    localStorage.setItem('historicoParcelamento', JSON.stringify(historico));
+}
+
+// Hook simples: sempre que alterar parcelamento
+function atualizarParcelamento(cliente, novoValor){
+    salvarHistoricoParcelamento(cliente, novoValor);
+}
+
+// ===== ANIMAÇÃO =====
+document.addEventListener('click', function(e){
+    if(e.target.innerText === 'Parcelamento'){
+        e.target.classList.add('card-selected');
+        setTimeout(()=> e.target.classList.remove('card-selected'), 300);
+    }
+});
+</script>
+
 </body>
 
     <script>
@@ -2646,6 +2747,107 @@
         function fecharModalAviso() { document.getElementById('avisoModal').classList.add('hidden'); }
         async function salvarAviso() { const titulo = document.getElementById('aviso-titulo').value; const conteudo = document.getElementById('aviso-conteudo').value; if (!titulo || !conteudo) return alert('Preencha todos os campos'); try { await supabaseClient.from('avisos').insert([{ titulo, conteudo, autor: currentUser }]); document.getElementById('aviso-titulo').value = ''; document.getElementById('aviso-conteudo').value = ''; fecharModalAviso(); carregarAvisos(); } catch (e) { alert('Erro ao salvar aviso'); } }
 
+</script>
+
+
+<script>
+// ===== PARCELAMENTO FINAL =====
+let filtroParcelamento = false;
+let statusParcelamento = null;
+
+// nomes corretos da planilha
+const COL_CLIENTE = 'CLIENTES';
+const COL_PARCELAMENTO = 'PARCELAMENTOS';
+
+function toggleParcelamento(){
+    filtroParcelamento = true;
+    statusParcelamento = null;
+    aplicarEstiloColuna('blue');
+    renderParcelamentoButtons();
+    renderTable();
+}
+
+function renderParcelamentoButtons(){
+    const container = document.getElementById('docButtons');
+    container.innerHTML = `
+        <button onclick="setParcelamentoStatus('ATIVO')" class="btn-mini bg-blue-100">Ativo</button>
+        <button onclick="setParcelamentoStatus('INATIVO')" class="btn-mini bg-slate-200">Inativo</button>
+    `;
+}
+
+function setParcelamentoStatus(status){
+    statusParcelamento = status;
+    renderTable();
+}
+
+function aplicarEstiloColuna(color){
+    document.querySelectorAll('td').forEach(td=>{
+        td.style.background = '';
+    });
+}
+
+// override renderTable mantendo original
+const _renderTableOriginal = window.renderTable;
+
+window.renderTable = function(){
+    if(!filtroParcelamento){
+        return _renderTableOriginal();
+    }
+
+    const body = document.getElementById('tableBody');
+    const header = document.getElementById('tableHeader');
+
+    header.innerHTML = `
+        <tr>
+            <th class="col-fixed">EMPRESA</th>
+            <th>CNPJ</th>
+            <th style="background:#dbeafe">PARCELAMENTOS</th>
+        </tr>
+    `;
+
+    body.innerHTML = '';
+
+    data.forEach(row=>{
+        let parcel = (row[COL_PARCELAMENTO] || '').toUpperCase();
+
+        if(statusParcelamento && parcel !== statusParcelamento) return;
+
+        body.innerHTML += `
+            <tr>
+                <td class="col-fixed">${row[COL_CLIENTE] || ''}</td>
+                <td>${row.cnpj || ''}</td>
+                <td style="background:#dbeafe; font-weight:bold">${parcel}</td>
+            </tr>
+        `;
+    });
+}
+
+// ===== HISTÓRICO AUTOMÁTICO =====
+function salvarHistoricoParcelamento(cliente, valor){
+    const historico = JSON.parse(localStorage.getItem('historicoParcelamento') || '[]');
+
+    historico.push({
+        cliente: cliente,
+        valor: valor,
+        usuario: localStorage.getItem('usuarioLogado') || 'Sistema',
+        data: new Date().toISOString()
+    });
+
+    localStorage.setItem('historicoParcelamento', JSON.stringify(historico));
+}
+
+// Hook simples: sempre que alterar parcelamento
+function atualizarParcelamento(cliente, novoValor){
+    salvarHistoricoParcelamento(cliente, novoValor);
+}
+
+// ===== ANIMAÇÃO =====
+document.addEventListener('click', function(e){
+    if(e.target.innerText === 'Parcelamento'){
+        e.target.classList.add('card-selected');
+        setTimeout(()=> e.target.classList.remove('card-selected'), 300);
+    }
+});
 </script>
 
 </body>
