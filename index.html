@@ -255,6 +255,33 @@
         td.filter-column-highlight { color: var(--filter-column-text, inherit); font-weight: 700; }
         .badge-blue { background: #3b82f6; }
 
+
+        /* Melhorias v1.1 - usabilidade global */
+        .topline-toolbar { display:flex; align-items:center; gap:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:10px; flex-wrap:wrap; }
+        .topline-toolbar input, .topline-toolbar select { background:white; border:1px solid #e2e8f0; border-radius:12px; padding:9px 12px; font-size:11px; font-weight:700; outline:none; color:#334155; }
+        .topline-toolbar input:focus, .topline-toolbar select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
+        .soft-card { background:linear-gradient(135deg,#fff,#f8fafc); border:1px solid #e2e8f0; border-radius:16px; padding:14px; }
+        .mini-kpi { background:white; border:1px solid #e2e8f0; border-radius:14px; padding:12px; }
+        .mini-kpi strong { display:block; font-size:20px; line-height:1; font-weight:900; color:#0f172a; }
+        .mini-kpi span { display:block; margin-top:4px; font-size:8px; font-weight:900; text-transform:uppercase; color:#64748b; letter-spacing:.06em; }
+        .filter-tag { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 9px; font-size:8px; font-weight:900; text-transform:uppercase; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+        .table-row-vencido { background:#fff7f7; }
+        .financeiro-vencido { background:#fff1f2 !important; }
+        .log-action-pill { display:inline-flex; padding:3px 8px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; }
+        .log-action-pill.envio { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+        .log-action-pill.alteracao { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+        .log-action-pill.erro { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+        .aviso-prioridade-normal { border-left-color:#3b82f6 !important; }
+        .aviso-prioridade-importante { border-left-color:#f59e0b !important; }
+        .aviso-prioridade-urgente { border-left-color:#ef4444 !important; box-shadow:0 12px 22px -18px rgba(239,68,68,.55); }
+        .priority-pill { padding:3px 7px; border-radius:999px; font-size:7px; font-weight:900; text-transform:uppercase; }
+        .priority-normal { background:#dbeafe; color:#1d4ed8; }
+        .priority-importante { background:#fef3c7; color:#b45309; }
+        .priority-urgente { background:#fee2e2; color:#b91c1c; }
+        .preview-box { background:#f8fafc; border:1px dashed #cbd5e1; border-radius:14px; padding:12px; font-size:11px; color:#475569; white-space:pre-wrap; min-height:68px; }
+        .selected-filter-hint { animation:pulseHint 1.4s ease-in-out infinite; }
+        @keyframes pulseHint { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.2)} 50%{box-shadow:0 0 0 4px rgba(16,185,129,.08)} }
+
     </style>
 </head>
 <body>
@@ -375,9 +402,17 @@
                         <button onclick="logout()" class="p-2 hover:bg-slate-100 rounded-lg transition text-slate-400 hover:text-red-500">Sair</button>
                     </div>
                 </div>
-                <div id="search-bar-wrapper" class="visible flex items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Pesquisar cliente..." class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs flex-1 outline-none">
+                <div id="search-bar-wrapper" class="visible topline-toolbar">
+                    <input type="text" id="searchInput" oninput="renderTable(); atualizarBuscaGlobalEspelho(this.value)" placeholder="Pesquisar cliente ou CNPJ no Painel..." class="flex-1 min-w-[220px]">
+                    <input type="text" id="globalSearchInput" oninput="executarBuscaGlobal(this.value)" placeholder="Busca global: cliente, CNPJ ou observação..." class="flex-1 min-w-[260px]">
+                    <select id="globalQuickJump" onchange="atalhoGlobal(this.value); this.value=''">
+                        <option value="">Atalhos rápidos</option>
+                        <option value="dash">Painel</option><option value="tasks">Tarefas</option><option value="senhas">Senhas</option><option value="comm">Comunicar</option><option value="historico">Histórico</option><option value="empresasparcelamentos">Empresas/Parcelamentos</option>
+                    </select>
+                    <button onclick="resetAllFilters()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar filtros</button>
+                    <div id="activeFilterTags" class="flex gap-1 flex-wrap"></div>
                 </div>
+                <div id="globalSearchResults" class="hidden mt-2 soft-card"></div>
             </header>
 
             
@@ -386,7 +421,7 @@
                 <div class="white-card p-6">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Avisos da Equipe</h2>
-                        <div id="admin-avisos-controls" class="hidden"><button onclick="abrirModalNovoAviso()" class="btn-mini bg-emerald-500 text-white border-emerald-600">➕ Novo Aviso</button></div>
+                        <div class="flex gap-2 items-center"><select id="filtroAvisosLeitura" onchange="carregarAvisos()" class="empresas-toolbar-select"><option value="todos">Todos</option><option value="nao_lidos">Não lidos</option><option value="lidos">Lidos</option></select><div id="admin-avisos-controls" class="hidden"><button onclick="abrirModalNovoAviso()" class="btn-mini bg-emerald-500 text-white border-emerald-600">➕ Novo Aviso</button></div></div>
                     </div>
                     <div id="avisos-lista" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2"></div>
                 </div>
@@ -396,6 +431,13 @@
 
             <!-- PAINEL -->
             <div id="view-dash">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" id="resumoDiaCards">
+                    <div class="mini-kpi"><strong id="resumo-vencidos">0</strong><span>Vencidos</span></div>
+                    <div class="mini-kpi"><strong id="resumo-30">0</strong><span>Próx. 30 dias</span></div>
+                    <div class="mini-kpi"><strong id="resumo-tarefas">0</strong><span>Tarefas abertas</span></div>
+                    <div class="mini-kpi"><strong id="resumo-parc-ativos">0</strong><span>Parcelamentos ativos</span></div>
+                    <div class="mini-kpi"><strong id="resumo-sem-obs">0</strong><span>Sem observação</span></div>
+                </div>
                 <div class="grid grid-cols-3 gap-4 mb-6">
                     <div class="white-card dashboard-card p-5 border-t-8 border-blue-500">
                         <div class="flex justify-between items-start mb-3">
@@ -533,6 +575,12 @@
 
             <!-- TAREFAS -->
             <div id="view-tasks" class="hidden">
+                <div class="topline-toolbar mb-4">
+                    <input type="text" id="searchTarefas" oninput="renderizarTarefas()" placeholder="Buscar tarefa por cliente, CNPJ ou documento..." class="flex-1 min-w-[220px]">
+                    <select id="filtroTarefasPrioridade" onchange="renderizarTarefas()"><option value="">Todas prioridades</option><option value="vencido">Vencidas</option><option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select>
+                    <button onclick="toggleMinhasTarefas()" id="btnMinhasTarefas" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">Somente minhas tarefas</button>
+                    <button onclick="limparFiltrosTarefas()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button>
+                </div>
                 <div class="white-card p-4 mb-8">
                     <div class="flex gap-3 justify-center flex-wrap" id="botoesSorteioTasks"></div>
                     <div id="avisoRestricao" class="text-center text-xs text-slate-400 mt-3 hidden">⚠️ Apenas a Ingrid pode realizar novos sorteios e resetar distribuições</div>
@@ -548,7 +596,7 @@
             <!-- SENHAS -->
             <div id="view-senhas" class="hidden">
                 <div class="white-card p-6">
-                    <input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                    <div class="topline-toolbar mb-4"><input type="text" id="searchSenhas" oninput="renderSenhas()" placeholder="Filtrar por cliente ou CNPJ..." class="flex-1"><button onclick="limparBuscaSenha()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button><span id="senhasCounter" class="filter-tag">0 registros</span></div>
                     <div class="scroll-container">
                         <table class="w-full text-left">
                             <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>CCM</th><th>SENHA WEB</th><th>SENHA GOV</th><th>SENHA 156</th><th>SENHA CRCE</th><th>SIGEP</th></tr></thead>
@@ -590,7 +638,7 @@
                         <div class="white-card p-6 min-h-[600px]">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-sm font-black text-slate-700 uppercase tracking-tight">Clientes para Comunicar</h3>
-                                <div id="comm-counter" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">0 Clientes encontrados</div>
+                                <div id="comm-counter" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">0 Clientes encontrados</div><button onclick="atualizarPreviewComunicado()" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Prévia</button><button onclick="copiarPreviewComunicado()" class="btn-mini text-slate-700 border-slate-200 bg-white">Copiar mensagem</button>
                             </div>
 
                             <!-- Botão de envio em massa apenas via Gmail -->
@@ -606,6 +654,7 @@
                                 </div>
                             </div>
 
+                            <div id="commPreviewBox" class="preview-box mb-3 hidden">Selecione um filtro para visualizar a mensagem.</div>
                             <div class="scroll-container">
                                 <table class="w-full text-left">
                                     <thead>
@@ -662,7 +711,8 @@
                         </div>
                         <button onclick="carregarHistorico()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
                     </div>
-                    <div class="grid grid-cols-5 gap-2 mb-4">
+                    <div class="grid grid-cols-3 gap-3 mb-4"><div class="mini-kpi"><strong id="hist-total">0</strong><span>Total alterações</span></div><div class="mini-kpi"><strong id="hist-hoje">0</strong><span>Alterações hoje</span></div><div class="mini-kpi"><strong id="hist-top-user">-</strong><span>Usuário mais ativo</span></div></div>
+                    <div class="grid grid-cols-6 gap-2 mb-4">
                         <input type="text" id="searchHistorico" oninput="filtrarHistorico()" placeholder="Filtrar por cliente..." class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
                         <input type="date" id="filtroDataInicio" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
                         <input type="date" id="filtroDataFim" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
@@ -675,6 +725,7 @@
                             <option value="Sirlene">Sirlene</option>
                             <option value="Brenda">Brenda</option>
                         </select>
+                        <button onclick="limparFiltrosHistorico()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar filtros</button>
                         <select id="filtroDocumento" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
                             <option value="">Todos os documentos</option>
                             <option value="ATA">ATA</option>
@@ -720,7 +771,7 @@
                             <button onclick="registrarDesempenhoHoje()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50 text-[8px] py-1 px-2">+ Hoje</button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mb-4" id="monitor-cards"></div>
+                    <div class="grid grid-cols-3 gap-2 mb-4" id="monitor-cards"></div><div id="monitorRanking" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4"></div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <h4 id="monitor-chart-title" class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Tarefas Concluídas</h4>
@@ -773,7 +824,7 @@
                                 <option value="Sirlene">Sirlene</option>
                                 <option value="Brenda">Brenda</option>
                             </select>
-                            <button onclick="carregarLogs()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                            <button onclick="exportarLogsCSV()" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Exportar</button><button onclick="carregarLogs()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
                         </div>
                     </div>
                     <div class="scroll-container" style="max-height: 70vh;">
@@ -814,7 +865,7 @@
                             <option value="Transferência">Transferência</option>
                             <option value="Dinheiro">Dinheiro</option>
                         </select>
-                        <button onclick="carregarFinanceiro()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                        <button onclick="limparFiltrosFinanceiro()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button><button onclick="carregarFinanceiro()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
                     </div>
                     
                     <!-- Cards de Resumo -->
@@ -898,7 +949,8 @@
             <h3 class="text-lg font-black text-slate-800 uppercase mb-6">Criar Novo Aviso</h3>
             <div class="space-y-4">
                 <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Título</label><input type="text" id="aviso-titulo" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500"></div>
-                <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Conteúdo</label><textarea id="aviso-conteudo" rows="4" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500"></textarea></div>
+                <div><label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Conteúdo</label><select id="aviso-prioridade" class="w-full p-3 border rounded-xl text-xs mb-3"><option value="normal">Prioridade normal</option><option value="importante">Importante</option><option value="urgente">Urgente</option></select>
+                <textarea id="aviso-conteudo" rows="4" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500"></textarea></div>
             </div>
             <div class="flex gap-3 mt-8"><button onclick="salvarAviso()" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold uppercase text-[9px]">Postar Aviso</button><button onclick="fecharModalAviso()" class="px-5 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold uppercase text-[9px]">Cancelar</button></div>
         </div>
@@ -3102,6 +3154,242 @@
         function abrirModalNovoAviso() { document.getElementById('avisoModal').classList.remove('hidden'); }
         function fecharModalAviso() { document.getElementById('avisoModal').classList.add('hidden'); }
         async function salvarAviso() { const titulo = document.getElementById('aviso-titulo').value; const conteudo = document.getElementById('aviso-conteudo').value; if (!titulo || !conteudo) return alert('Preencha todos os campos'); try { await supabaseClient.from('avisos').insert([{ titulo, conteudo, autor: currentUser }]); document.getElementById('aviso-titulo').value = ''; document.getElementById('aviso-conteudo').value = ''; fecharModalAviso(); carregarAvisos(); } catch (e) { alert('Erro ao salvar aviso'); } }
+
+
+/* ======================================================
+   MELHORIAS GERAIS v1.1 - preserva funcionalidades atuais
+   ====================================================== */
+let mostrarSomenteMinhasTarefas = false;
+
+function setTextSafe(id, value) { const el = document.getElementById(id); if (el) el.innerText = value; }
+function normalizarTexto(v) { return String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function dataHojeISO() { return new Date().toISOString().slice(0,10); }
+
+function atualizarBuscaGlobalEspelho(valor) {
+    const g = document.getElementById('globalSearchInput');
+    if (g && !g.value) executarBuscaGlobal(valor || '');
+}
+
+function atalhoGlobal(tab) { if (tab) switchTab(tab); }
+
+function executarBuscaGlobal(valor) {
+    const q = normalizarTexto(valor);
+    const box = document.getElementById('globalSearchResults');
+    if (!box) return;
+    if (!q || q.length < 2) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+    const resultados = [];
+    rawData.slice(0, 2000).forEach((row, idx) => {
+        const texto = normalizarTexto([row.CLIENTE,row.CNPJ,row.PARCELAMENTOS].join(' '));
+        if (texto.includes(q)) resultados.push({idx, cliente: row.CLIENTE || '-', cnpj: row.CNPJ || '-', tipo:'Planilha'});
+    });
+    (historicoData || []).slice(0, 500).forEach(h => {
+        const texto = normalizarTexto([h.cliente,h.documento,h.observacao].join(' '));
+        if (texto.includes(q)) resultados.push({idx:null, cliente:h.cliente || '-', cnpj:h.documento || '-', tipo:'Histórico'});
+    });
+    const top = resultados.slice(0, 8);
+    box.classList.remove('hidden');
+    box.innerHTML = top.length ? '<div class="text-[9px] font-black text-slate-400 uppercase mb-2">Resultados rápidos</div>' + top.map(r =>
+        '<button class="w-full text-left p-2 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-100" onclick="switchTab(\'' + (r.tipo === 'Histórico' ? 'historico' : 'dash') + '\')"><span class="font-black text-xs text-slate-700">' + escapeHtml(r.cliente) + '</span><span class="ml-2 text-[10px] text-slate-400">' + escapeHtml(r.cnpj) + '</span><span class="float-right filter-tag">' + r.tipo + '</span></button>'
+    ).join('') : '<div class="text-xs text-slate-400">Nenhum resultado encontrado.</div>';
+}
+
+function updateActiveFilterTags() {
+    const box = document.getElementById('activeFilterTags');
+    if (!box) return;
+    const tags = [];
+    if (activeDoc) tags.push('Doc: ' + activeDoc);
+    if (activeStatus) tags.push('Status: ' + activeStatus);
+    if (activeParcelamentos) tags.push('Parcelamentos' + (activeParcelamentosStatus ? ': ' + activeParcelamentosStatus : ''));
+    box.innerHTML = tags.map(t => '<span class="filter-tag selected-filter-hint">' + escapeHtml(t) + '</span>').join('');
+}
+
+function atualizarResumoDia() {
+    let vencidos = 0, prox30 = 0, tarefas = 0;
+    rawData.forEach(row => headers.forEach(col => {
+        if (col === 'CLIENTE' || col === 'CNPJ') return;
+        const st = getStatus(row[col], row, col);
+        if (st === 'vencido') vencidos++;
+        if (st === '30') prox30++;
+    }));
+    Object.values(distribuicaoAtual || {}).forEach(lista => (lista || []).forEach(t => {
+        const st = obterStatusTarefa(t.rowIndex, t.documento);
+        if (st !== 'concluido' && !isAtividadeRealizada(t.rowIndex, t.documento)) tarefas++;
+    }));
+    const parc = getParcelamentosBase ? getParcelamentosBase() : [];
+    const semObs = parc.filter(i => !getUltimaObservacaoParcelamento(i.row.CLIENTE)).length;
+    setTextSafe('resumo-vencidos', vencidos); setTextSafe('resumo-30', prox30); setTextSafe('resumo-tarefas', tarefas);
+    setTextSafe('resumo-parc-ativos', parc.filter(i => i.status === 'ativos').length); setTextSafe('resumo-sem-obs', semObs);
+}
+
+const _updateAnalyticsBase = typeof updateAnalytics === 'function' ? updateAnalytics : null;
+updateAnalytics = function() { if (_updateAnalyticsBase) _updateAnalyticsBase(); atualizarResumoDia(); updateActiveFilterTags(); };
+
+function toggleMinhasTarefas() {
+    mostrarSomenteMinhasTarefas = !mostrarSomenteMinhasTarefas;
+    const b = document.getElementById('btnMinhasTarefas');
+    if (b) b.className = mostrarSomenteMinhasTarefas ? 'btn-mini text-white border-emerald-600 bg-emerald-600' : 'btn-mini text-blue-700 border-blue-200 bg-blue-50';
+    renderizarTarefas();
+}
+function limparFiltrosTarefas() {
+    const s = document.getElementById('searchTarefas'); const p = document.getElementById('filtroTarefasPrioridade');
+    if (s) s.value = ''; if (p) p.value = ''; mostrarSomenteMinhasTarefas = false;
+    const b = document.getElementById('btnMinhasTarefas'); if (b) b.className = 'btn-mini text-blue-700 border-blue-200 bg-blue-50';
+    renderizarTarefas();
+}
+renderizarTarefas = function() {
+    const q = normalizarTexto(document.getElementById('searchTarefas')?.value || '');
+    const prioridade = document.getElementById('filtroTarefasPrioridade')?.value || '';
+    ['Jordan', 'Sirlene', 'Ingrid'].forEach(resp => {
+        const container = document.getElementById('list-' + resp.toLowerCase());
+        const countSpan = document.getElementById('count-' + resp.toLowerCase());
+        const tarefas = distribuicaoAtual[resp] || [];
+        if (!container || !countSpan) return;
+        let tarefasPendentes = tarefas.filter(t => {
+            const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
+            const foiRealizada = isAtividadeRealizada(t.rowIndex, t.documento);
+            const row = rawData[t.rowIndex] || {};
+            const texto = normalizarTexto([t.cliente,row.CNPJ,t.documento,t.prazo].join(' '));
+            const stPrazo = getStatus(row[t.documento], row, t.documento);
+            const passaMinha = !mostrarSomenteMinhasTarefas || resp === currentUser;
+            return statusTarefa !== 'concluido' && !foiRealizada && (!q || texto.includes(q)) && (!prioridade || stPrazo === prioridade) && passaMinha;
+        });
+        countSpan.innerText = tarefasPendentes.length;
+        container.innerHTML = tarefasPendentes.length ? '' : '<div class="text-center py-8 text-[10px] text-slate-400 italic">Nenhuma tarefa para este filtro.</div>';
+        tarefasPendentes.forEach(t => {
+            const row = rawData[t.rowIndex] || {};
+            const stPrazo = getStatus(row[t.documento], row, t.documento);
+            const cor = stPrazo === 'vencido' ? 'border-red-200 bg-red-50' : stPrazo === '30' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white';
+            const card = document.createElement('div');
+            card.className = 'p-3 border rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm ' + cor;
+            card.onclick = () => { openEditCell(t.rowIndex, t.documento); };
+            card.innerHTML = '<div class="font-black text-slate-800 uppercase flex justify-between"><span>' + escapeHtml(t.cliente) + '</span><span class="filter-tag">' + (stPrazo || 'pendente') + '</span></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">' + escapeHtml(t.documento) + '</span><span class="text-slate-400 font-mono font-bold">' + escapeHtml(t.prazo) + '</span></div>';
+            container.appendChild(card);
+        });
+    });
+};
+
+const _renderSenhasBase = typeof renderSenhas === 'function' ? renderSenhas : null;
+renderSenhas = function() {
+    const q = normalizarTexto(document.getElementById('searchSenhas')?.value || '');
+    if (!passwordData.length) return;
+    const filtrados = passwordData.filter(p => normalizarTexto([p.CLIENTE,p.CNPJ].join(' ')).includes(q));
+    setTextSafe('senhasCounter', filtrados.length + ' registros');
+    document.getElementById('senhasBody').innerHTML = filtrados.map(p => {
+        const cols = ["SENHA WEB","SENHA GOV","SENHA 156","SENHA CRCE","SIGEP"].map(c => {
+            const val = p[c] || ''; const isSenha = !!val;
+            return `<td class="${isSenha ? 'bg-amber-50/50' : 'bg-red-50/40'}"><button onclick="abrirModalSenha('${escapeAttr(p.CLIENTE)}', '${c}', '${escapeAttr(val)}')" class="${isSenha ? 'font-black text-amber-600 hover:text-amber-700' : 'text-red-400 italic'} transition-all">${isSenha ? 'Ver / copiar' : '(vazio)'}</button></td>`;
+        }).join('');
+        return `<tr><td class="col-fixed font-bold text-slate-700">${escapeHtml(p.CLIENTE||'-')}</td><td class="text-[10px] text-slate-500">${escapeHtml(p.CNPJ||'-')}</td><td class="text-[10px] text-slate-500">${escapeHtml(p.CCM||'-')}</td>${cols}</tr>`;
+    }).join('');
+};
+function limparBuscaSenha() { const el = document.getElementById('searchSenhas'); if (el) el.value = ''; renderSenhas(); }
+
+const _renderCommBase = typeof renderCommTable === 'function' ? renderCommTable : null;
+renderCommTable = function() { if (_renderCommBase) _renderCommBase(); atualizarPreviewComunicado(); };
+function montarMensagemPreview(item) {
+    if (!item) return 'Selecione documento e prazo para gerar a prévia.';
+    const row = rawData[item.index] || {};
+    const status = getStatus(row[item.documento], row, item.documento);
+    const mensagem = MENSAGENS_PADRAO[status] || MENSAGENS_PADRAO['60'];
+    return mensagem.replace(/{DOC}/g, item.documento).replace(/{CLIENTE}/g, row.CLIENTE || item.cliente || '').replace(/{DATA}/g, item.vencimento || 'N/A');
+}
+function atualizarPreviewComunicado() {
+    const box = document.getElementById('commPreviewBox'); if (!box) return;
+    if (!commFilteredData || !commFilteredData.length) { box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    box.textContent = montarMensagemPreview(commFilteredData[0]);
+}
+function copiarPreviewComunicado() {
+    const msg = montarMensagemPreview((commFilteredData || [])[0]);
+    navigator.clipboard.writeText(msg).then(() => showNotification('Mensagem copiada!'));
+}
+
+function atualizarResumoHistorico(dados) {
+    const lista = dados || historicoData || [];
+    setTextSafe('hist-total', lista.length);
+    const hoje = dataHojeISO();
+    setTextSafe('hist-hoje', lista.filter(h => String(h.created_at || '').slice(0,10) === hoje).length);
+    const cont = {}; lista.forEach(h => { const u = h.usuario || '-'; cont[u] = (cont[u]||0)+1; });
+    const top = Object.entries(cont).sort((a,b)=>b[1]-a[1])[0]; setTextSafe('hist-top-user', top ? top[0] : '-');
+}
+const _renderizarHistoricoBase = typeof renderizarHistorico === 'function' ? renderizarHistorico : null;
+renderizarHistorico = function(dados) { atualizarResumoHistorico(dados); if (_renderizarHistoricoBase) _renderizarHistoricoBase(dados); };
+function limparFiltrosHistorico() {
+    ['searchHistorico','filtroDataInicio','filtroDataFim','filtroUsuarioHistorico','filtroDocumento'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    renderizarHistorico(historicoData || []);
+}
+
+function classificarLogAcao(acao) { const a = normalizarTexto(acao); if (a.includes('erro')) return 'erro'; if (a.includes('envio')) return 'envio'; if (a.includes('alter') || a.includes('salv') || a.includes('inform')) return 'alteracao'; return ''; }
+const _renderizarLogsBase = typeof renderizarLogs === 'function' ? renderizarLogs : null;
+renderizarLogs = function(dados) {
+    const tbody = document.getElementById('logsBody'); if (!tbody) return;
+    if (!dados || !dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log encontrado.</td></tr>'; return; }
+    tbody.innerHTML = dados.map(log => {
+        const dt = new Date(log.created_at); const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        const cls = classificarLogAcao(log.acao);
+        return '<tr class="' + (cls==='erro'?'log-row-error':cls==='alteracao'?'log-row-success':'') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td class="font-bold text-slate-700">' + escapeHtml(log.usuario || '-') + '</td><td><span class="log-action-pill ' + cls + '">' + escapeHtml(log.acao || '-') + '</span></td><td class="font-bold text-slate-700">' + escapeHtml(log.cliente || '-') + '</td><td class="text-xs text-emerald-600 font-bold">' + escapeHtml(log.documento || '-') + '</td><td class="text-xs text-slate-600 max-w-xs">' + escapeHtml(log.detalhes || '-') + '</td></tr>';
+    }).join('');
+};
+function exportarLogsCSV() {
+    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat((logsData || []).map(l => [l.created_at,l.usuario,l.acao,l.cliente,l.documento,l.detalhes]));
+    const csv = linhas.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href=url; link.download='logs_topline.csv'; link.click(); URL.revokeObjectURL(url);
+}
+
+function limparFiltrosFinanceiro() { ['filtroFinanceiroNome','filtroFinanceiroData','filtroFinanceiroPagamento'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; }); if (typeof filtrarFinanceiro === 'function') filtrarFinanceiro(); }
+
+const _carregarMonitorBase = typeof carregarMonitor === 'function' ? carregarMonitor : null;
+carregarMonitor = async function() { if (_carregarMonitorBase) await _carregarMonitorBase(); atualizarRankingMonitor(); };
+function atualizarRankingMonitor() {
+    const box = document.getElementById('monitorRanking'); if (!box) return;
+    const dados = ['Jordan','Sirlene','Ingrid'].map(nome => {
+        const total = parseInt(document.getElementById(nome.toLowerCase() + '-total')?.innerText || '0',10);
+        const concl = parseInt(document.getElementById(nome.toLowerCase() + '-concluidas')?.innerText || '0',10);
+        const pct = total ? Math.round((concl/total)*100) : 0; return {nome,total,concl,pct};
+    }).sort((a,b)=>b.pct-a.pct);
+    box.innerHTML = dados.map((d,i) => '<div class="mini-kpi"><strong>#' + (i+1) + ' ' + d.nome + '</strong><span>' + d.concl + '/' + d.total + ' concluídas • ' + d.pct + '%</span></div>').join('');
+}
+
+const _salvarAvisoBase = typeof salvarAviso === 'function' ? salvarAviso : null;
+salvarAviso = async function() {
+    const titulo = document.getElementById('aviso-titulo')?.value || '';
+    const conteudo = document.getElementById('aviso-conteudo')?.value || '';
+    const prioridade = document.getElementById('aviso-prioridade')?.value || 'normal';
+    if (!titulo || !conteudo) return alert('Preencha todos os campos');
+    try {
+        const { error } = await supabaseClient.from('avisos').insert([{ titulo, conteudo, prioridade, autor: currentUser }]);
+        if (error) throw error;
+    } catch(e) {
+        const { error } = await supabaseClient.from('avisos').insert([{ titulo, conteudo, autor: currentUser }]);
+        if (error) return alert('Erro ao salvar aviso');
+    }
+    document.getElementById('aviso-titulo').value = ''; document.getElementById('aviso-conteudo').value = '';
+    fecharModalAviso(); carregarAvisos();
+};
+
+carregarAvisos = async function() {
+    try {
+        const { data: avisos, error } = await supabaseClient.from('avisos').select('*').order('created_at', { ascending: false }); if (error) throw error;
+        const { data: lidos, error: lidosError } = await supabaseClient.from('avisos_lidos').select('*'); if (lidosError) throw lidosError;
+        const lidosPorAviso = {}; (lidos || []).forEach(l => { if (!lidosPorAviso[l.aviso_id]) lidosPorAviso[l.aviso_id] = []; lidosPorAviso[l.aviso_id].push(l.usuario); });
+        const lidosIds = new Set((lidos || []).filter(l => l.usuario === currentUser).map(l => l.aviso_id));
+        const filtro = document.getElementById('filtroAvisosLeitura')?.value || 'todos';
+        const listaFiltrada = (avisos || []).filter(a => filtro === 'todos' ? true : filtro === 'lidos' ? lidosIds.has(a.id) : !lidosIds.has(a.id));
+        const naoLidosCount = (avisos || []).filter(a => !lidosIds.has(a.id)).length;
+        const badge = document.getElementById('avisos-badge'); if (badge) { badge.innerText = naoLidosCount; badge.className = 'badge-avisos ' + (naoLidosCount > 0 ? 'badge-red' : 'badge-blue'); }
+        const lista = document.getElementById('avisos-lista'); if (!lista) return;
+        if (!listaFiltrada.length) { lista.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs italic">Nenhum aviso neste filtro.</div>'; return; }
+        lista.innerHTML = listaFiltrada.map(a => {
+            const lido = lidosIds.has(a.id); const usuariosQueLeram = lidosPorAviso[a.id] || []; const isAdmin = ['Nikolas','Ingrid'].includes(currentUser); const pr = a.prioridade || 'normal';
+            const botaoLido = !lido ? `<button onclick="marcarComoLido('${a.id}')" class="text-[9px] font-black text-emerald-600 uppercase hover:underline">Marcar como lido</button>` : '<span class="text-[9px] font-bold text-slate-300 uppercase italic">Lido</span>';
+            const blocoAdmin = isAdmin ? `<div class="mb-3 p-2 bg-slate-50 rounded border border-slate-200 max-w-[50%]"><p class="text-[8px] font-bold text-slate-600 mb-1">Lido por (${usuariosQueLeram.length}):</p><div class="flex flex-wrap gap-1">${usuariosQueLeram.map(u => '<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[7px] font-bold">' + escapeHtml(u) + '</span>').join('')}</div></div>` : '';
+            return `<div class="white-card p-4 border-l-4 aviso-prioridade-${pr} ${lido ? 'opacity-75' : ''}"><div class="flex justify-between items-start mb-2"><div><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${escapeHtml(a.titulo)}</h4><span class="priority-pill priority-${pr}">${pr}</span></div><span class="text-[9px] text-slate-400 font-mono">${new Date(a.created_at).toLocaleString('pt-BR')}</span></div><p class="text-xs text-slate-600 mb-3">${escapeHtml(a.conteudo)}</p>${blocoAdmin}<div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${escapeHtml(a.autor || '-')}</span>${botaoLido}</div></div>`;
+        }).join('');
+    } catch(e) { console.error('Erro ao carregar avisos:', e); }
+};
+
+const _resetAllFiltersBase = typeof resetAllFilters === 'function' ? resetAllFilters : null;
+resetAllFilters = function() { if (_resetAllFiltersBase) _resetAllFiltersBase(); const g=document.getElementById('globalSearchInput'); if(g) g.value=''; const r=document.getElementById('globalSearchResults'); if(r){r.classList.add('hidden'); r.innerHTML='';} updateActiveFilterTags(); };
 
 </script>
 
