@@ -2950,7 +2950,7 @@
                 const { data, error } = await supabaseClient
                     .from('pgdas_status_mensal')
                     .select('*')
-                    .eq('competencia', competencia);
+                    .eq('mes', competencia);
                 if (error) throw error;
                 (data || []).forEach(item => {
                     const key = getPGDASKey(item.cliente, item.cnpj);
@@ -2972,18 +2972,17 @@
             const payload = {
                 cliente,
                 cnpj,
-                competencia,
+                mes: competencia,
                 status: statusNormalizado,
-                observacao: observacao || null,
-                usuario: currentUser || 'Sistema',
-                updated_at: new Date().toISOString()
+                atualizado_por: currentUser || 'Sistema',
+                atualizado_em: new Date().toISOString()
             };
             const key = getPGDASKey(row);
             pgdasStatusMensal[key] = statusNormalizado;
             try {
                 const { error } = await supabaseClient
                     .from('pgdas_status_mensal')
-                    .upsert([payload], { onConflict: 'cliente,cnpj,competencia' });
+                    .upsert([payload], { onConflict: 'cnpj,mes' });
                 if (error) throw error;
             } catch (e) {
                 console.error('Erro ao salvar PGDAS mensal:', e);
