@@ -340,6 +340,23 @@
         .selected-filter-hint { animation:pulseHint 1.4s ease-in-out infinite; }
         @keyframes pulseHint { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.2)} 50%{box-shadow:0 0 0 4px rgba(16,185,129,.08)} }
 
+
+        /* POST-IT POR USUÁRIO */
+        .postit-icon-btn { width: 32px; height: 32px; border-radius: 999px; display:inline-flex; align-items:center; justify-content:center; background:#fff7cc; color:#854d0e; border:1px solid #fde68a; box-shadow:0 8px 18px rgba(202,138,4,.16); transition:all .22s ease; }
+        .postit-icon-btn:hover { transform:translateY(-2px) rotate(-4deg); background:#fef3c7; box-shadow:0 14px 26px rgba(202,138,4,.24); }
+        #postitFloating { position:fixed; right:26px; top:110px; width:320px; height:360px; min-width:240px; min-height:220px; max-width:90vw; max-height:78vh; z-index:11000; background:linear-gradient(145deg,#fff7a8 0%,#fde68a 100%); border:1px solid rgba(180,83,9,.18); border-radius:18px; box-shadow:0 26px 60px rgba(15,23,42,.24), inset 0 1px 0 rgba(255,255,255,.65); resize:both; overflow:hidden; animation:postitPop .24s ease-out; }
+        #postitFloating.hidden { display:none; }
+        .postit-header { cursor:move; height:48px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:rgba(255,255,255,.28); border-bottom:1px solid rgba(180,83,9,.12); user-select:none; }
+        .postit-title { display:flex; align-items:center; gap:8px; color:#854d0e; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+        .postit-actions { display:flex; gap:6px; }
+        .postit-actions button { width:26px; height:26px; border-radius:999px; background:rgba(255,255,255,.45); color:#854d0e; font-size:12px; font-weight:900; border:1px solid rgba(180,83,9,.14); transition:all .18s ease; }
+        .postit-actions button:hover { transform:scale(1.06); background:rgba(255,255,255,.72); }
+        #postitTextarea { width:100%; height:calc(100% - 48px); resize:none; border:0; outline:0; padding:18px; background:transparent; color:#713f12; font-size:14px; line-height:1.55; font-weight:600; }
+        #postitTextarea::placeholder { color:rgba(146,64,14,.36); font-weight:800; }
+        .postit-status { position:absolute; right:14px; bottom:10px; font-size:9px; font-weight:900; color:rgba(133,77,14,.56); text-transform:uppercase; pointer-events:none; }
+        @keyframes postitPop { from { opacity:0; transform:translateY(-8px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @media (max-width:768px) { #postitFloating { left:12px !important; right:12px !important; top:86px !important; width:auto; height:52vh; } }
+
     </style>
 </head>
 <body>
@@ -460,6 +477,7 @@
                     <div class="flex items-center gap-2">
 
                         <div class="user-badge flex items-center gap-2 py-1 px-3"><span id="current-user-name" class="text-[10px]">Usuário</span></div>
+                        <button id="postitOpenBtn" onclick="togglePostit()" class="postit-icon-btn" title="Abrir minhas anotações">📝</button>
                         <button onclick="logout()" class="p-2 hover:bg-slate-100 rounded-lg transition text-slate-400 hover:text-red-500">Sair</button>
                     </div>
                 </div>
@@ -833,7 +851,7 @@
                             <button onclick="registrarDesempenhoHoje()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50 text-[8px] py-1 px-2">+ Hoje</button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mb-4" id="monitor-cards"></div><div id="monitorRanking" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4"></div>
+                    <div class="grid grid-cols-3 gap-2 mb-4" id="monitor-cards"></div>
                     <div class="white-card p-4 mb-4 border border-emerald-100 bg-emerald-50/30">
                         <div class="flex justify-between items-center gap-2 mb-3 flex-wrap">
                             <div>
@@ -1035,6 +1053,20 @@
     </div>
 
 
+
+
+    <!-- POST-IT FLUTUANTE POR USUÁRIO -->
+    <div id="postitFloating" class="hidden" aria-label="Anotações do usuário">
+        <div id="postitHeader" class="postit-header">
+            <div class="postit-title"><span>📝</span><span>Minhas anotações</span></div>
+            <div class="postit-actions">
+                <button type="button" onclick="limparPostitUsuario()" title="Apagar anotações">🗑</button>
+                <button type="button" onclick="minimizarPostit()" title="Minimizar">−</button>
+            </div>
+        </div>
+        <textarea id="postitTextarea" placeholder="Anotações..." oninput="postitAlterado()"></textarea>
+        <div id="postitStatus" class="postit-status">Salvo</div>
+    </div>
 
 </body>
 
@@ -1365,6 +1397,7 @@
             localStorage.setItem("topline_user", userName);
             currentUser = userName;
             document.getElementById('current-user-name').innerText = currentUser;
+            carregarPostitUsuario();
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
             
@@ -1399,6 +1432,7 @@
 
         function logout() {
             registrarLog('Logout do sistema', null, null, `Usuário ${currentUser} saiu do sistema`);
+            minimizarPostit();
             currentUser = ""; localStorage.removeItem("topline_user");
             usuarioSelecionado = "";
             document.getElementById('main-app').style.display = 'none';
@@ -3458,15 +3492,7 @@ function limparFiltrosFinanceiro() { ['filtroFinanceiroNome','filtroFinanceiroDa
 
 const _carregarMonitorBase = typeof carregarMonitor === 'function' ? carregarMonitor : null;
 carregarMonitor = async function() { if (_carregarMonitorBase) await _carregarMonitorBase(); atualizarRankingMonitor(); };
-function atualizarRankingMonitor() {
-    const box = document.getElementById('monitorRanking'); if (!box) return;
-    const dados = ['Jordan','Sirlene','Ingrid'].map(nome => {
-        const total = parseInt(document.getElementById(nome.toLowerCase() + '-total')?.innerText || '0',10);
-        const concl = parseInt(document.getElementById(nome.toLowerCase() + '-concluidas')?.innerText || '0',10);
-        const pct = total ? Math.round((concl/total)*100) : 0; return {nome,total,concl,pct};
-    }).sort((a,b)=>b.pct-a.pct);
-    box.innerHTML = dados.map((d,i) => '<div class="mini-kpi"><strong>#' + (i+1) + ' ' + d.nome + '</strong><span>' + d.concl + '/' + d.total + ' concluídas • ' + d.pct + '%</span></div>').join('');
-}
+function atualizarRankingMonitor() { /* ranking #1/#2/#3 removido por solicitação */ }
 
 const _salvarAvisoBase = typeof salvarAviso === 'function' ? salvarAviso : null;
 salvarAviso = async function() {
@@ -3775,6 +3801,133 @@ carregarMonitor = async function() {
     if (_carregarMonitorComTarefasGerais) await _carregarMonitorComTarefasGerais();
     await carregarTarefasMonitorGeral();
 };
+
+
+// ============================================
+// POST-IT FLUTUANTE POR USUÁRIO
+// Salva por perfil no Supabase quando a tabela notas_usuarios existir.
+// Fallback: localStorage por usuário no mesmo navegador.
+// Estrutura sugerida da tabela: notas_usuarios(usuario text primary key, nota text, updated_at timestamptz default now()).
+// ============================================
+let postitSaveTimer = null;
+let postitDragging = false;
+let postitDragOffsetX = 0;
+let postitDragOffsetY = 0;
+
+function postitStorageKey() {
+    return 'topline_postit_' + String(currentUser || 'sem_usuario').toLowerCase().replace(/\s+/g, '_');
+}
+
+function togglePostit() {
+    const box = document.getElementById('postitFloating');
+    if (!box) return;
+    if (box.classList.contains('hidden')) abrirPostit(); else minimizarPostit();
+}
+
+function abrirPostit() {
+    const box = document.getElementById('postitFloating');
+    if (!box) return;
+    box.classList.remove('hidden');
+    setTimeout(() => document.getElementById('postitTextarea')?.focus(), 80);
+}
+
+function minimizarPostit() {
+    const box = document.getElementById('postitFloating');
+    if (box) box.classList.add('hidden');
+}
+
+function setPostitStatus(texto) {
+    const el = document.getElementById('postitStatus');
+    if (el) el.innerText = texto;
+}
+
+async function carregarPostitUsuario() {
+    const textarea = document.getElementById('postitTextarea');
+    if (!textarea || !currentUser) return;
+    textarea.value = localStorage.getItem(postitStorageKey()) || '';
+    setPostitStatus('Carregando...');
+    try {
+        const { data, error } = await supabaseClient
+            .from('notas_usuarios')
+            .select('nota')
+            .eq('usuario', currentUser)
+            .maybeSingle();
+        if (error) throw error;
+        if (data && typeof data.nota === 'string') {
+            textarea.value = data.nota;
+            localStorage.setItem(postitStorageKey(), data.nota);
+        }
+        setPostitStatus('Salvo');
+    } catch (e) {
+        console.warn('Post-it usando fallback localStorage. Para sincronizar entre computadores, crie a tabela notas_usuarios.', e);
+        setPostitStatus('Salvo local');
+    }
+}
+
+function postitAlterado() {
+    const textarea = document.getElementById('postitTextarea');
+    if (!textarea || !currentUser) return;
+    localStorage.setItem(postitStorageKey(), textarea.value);
+    setPostitStatus('Salvando...');
+    clearTimeout(postitSaveTimer);
+    postitSaveTimer = setTimeout(salvarPostitUsuario, 650);
+}
+
+async function salvarPostitUsuario() {
+    const textarea = document.getElementById('postitTextarea');
+    if (!textarea || !currentUser) return;
+    const nota = textarea.value || '';
+    localStorage.setItem(postitStorageKey(), nota);
+    try {
+        const { error } = await supabaseClient
+            .from('notas_usuarios')
+            .upsert([{ usuario: currentUser, nota: nota, updated_at: new Date().toISOString() }], { onConflict: 'usuario' });
+        if (error) throw error;
+        setPostitStatus('Salvo');
+    } catch (e) {
+        console.warn('Não foi possível salvar post-it no banco. Mantido no navegador.', e);
+        setPostitStatus('Salvo local');
+    }
+}
+
+async function limparPostitUsuario() {
+    if (!confirm('Apagar suas anotações do post-it?')) return;
+    const textarea = document.getElementById('postitTextarea');
+    if (textarea) textarea.value = '';
+    localStorage.removeItem(postitStorageKey());
+    await salvarPostitUsuario();
+}
+
+function iniciarPostitArrastavel() {
+    const box = document.getElementById('postitFloating');
+    const header = document.getElementById('postitHeader');
+    if (!box || !header) return;
+    header.addEventListener('mousedown', (ev) => {
+        if (ev.target && ev.target.tagName === 'BUTTON') return;
+        postitDragging = true;
+        const rect = box.getBoundingClientRect();
+        postitDragOffsetX = ev.clientX - rect.left;
+        postitDragOffsetY = ev.clientY - rect.top;
+        document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', (ev) => {
+        if (!postitDragging) return;
+        const maxLeft = Math.max(8, window.innerWidth - box.offsetWidth - 8);
+        const maxTop = Math.max(8, window.innerHeight - box.offsetHeight - 8);
+        const left = Math.min(Math.max(8, ev.clientX - postitDragOffsetX), maxLeft);
+        const top = Math.min(Math.max(8, ev.clientY - postitDragOffsetY), maxTop);
+        box.style.left = left + 'px';
+        box.style.top = top + 'px';
+        box.style.right = 'auto';
+    });
+    document.addEventListener('mouseup', () => {
+        if (!postitDragging) return;
+        postitDragging = false;
+        document.body.style.userSelect = '';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', iniciarPostitArrastavel);
 
 </script>
 
