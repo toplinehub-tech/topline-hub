@@ -647,7 +647,32 @@
             #login-screen, #login-screen::before, .login-particles span { animation: none !important; }
         }
 
-    </style>
+    
+
+/* FINANCEIRO V2.0 */
+.financeiro-page-card { background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(241,245,249,.98)); }
+.financeiro-kpi-card { box-shadow: 0 8px 24px rgba(15, 23, 42, .06); }
+.financeiro-table th, .financeiro-log-table th { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; background: #f8fafc; position: sticky; top: 0; z-index: 2; }
+.financeiro-table td, .financeiro-log-table td { font-size: 11px; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+.financeiro-table select, .financeiro-table input[type="date"] { width: 100%; min-width: 120px; border: 1px solid #dbeafe; background: #eff6ff; color: #1e3a8a; border-radius: 10px; padding: 8px 10px; font-size: 11px; font-weight: 800; outline: none; }
+.financeiro-table select:focus, .financeiro-table input[type="date"]:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.18); }
+.financeiro-status-pill { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; border-radius: 999px; font-size: 10px; font-weight: 900; text-transform: uppercase; border: 1px solid transparent; white-space: nowrap; }
+.financeiro-status-pago { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.financeiro-status-nao_pago { background: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+.financeiro-check-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.financeiro-check-option { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 900; color: #334155; padding: 6px 8px; border-radius: 999px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; }
+.financeiro-check-option input { accent-color: #2563eb; }
+.financeiro-log-wrap td:nth-child(5) { font-weight: 800; color: #334155; }
+@media (max-width: 768px) {
+  .financeiro-table thead { display: none; }
+  .financeiro-table, .financeiro-table tbody, .financeiro-table tr, .financeiro-table td { display: block; width: 100%; }
+  .financeiro-table tr { margin: 0 0 12px 0; background: #fff; border: 1px solid #dbeafe; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 22px rgba(15,23,42,.06); }
+  .financeiro-table td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #eef2ff; }
+  .financeiro-table td::before { content: attr(data-label); font-size: 9px; text-transform: uppercase; color: #64748b; font-weight: 900; letter-spacing: .08em; min-width: 105px; }
+  .financeiro-table select, .financeiro-table input[type="date"] { max-width: 180px; }
+}
+
+</style>
 </head>
 <body>
 
@@ -1249,66 +1274,37 @@
 
             <!-- FINANCEIRO -->
             <div id="view-financeiro" class="hidden">
-                <div class="white-card p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Controle Financeiro</h2>
+                <div class="white-card p-6 financeiro-page-card">
+                    <div class="flex flex-wrap gap-3 justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Controle Financeiro</h2>
+                            <p class="text-[10px] text-slate-500 font-semibold mt-1">Clientes puxados da planilha principal e controle mensal salvo no banco de dados.</p>
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <span id="financeiro-competencia-label" class="px-3 py-2 rounded-xl bg-blue-50 text-blue-700 text-[10px] font-black uppercase border border-blue-100">Competência atual</span>
+                            <button onclick="carregarFinanceiro()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                        </div>
                     </div>
-                    
-                    <!-- Filtros -->
-                    <div class="grid grid-cols-4 gap-4 mb-6">
-                        <input type="text" id="filtroFinanceiroNome" placeholder="Filtrar por nome..." oninput="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none">
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="white-card p-4 border-l-4 border-blue-500 financeiro-kpi-card"><p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Clientes</p><p class="text-2xl font-black text-blue-700" id="fin-card-clientes">0</p><p class="text-[8px] text-slate-400 mt-1">Na base do Sheets</p></div>
+                        <div class="white-card p-4 border-l-4 border-emerald-500 financeiro-kpi-card"><p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Pagos</p><p class="text-2xl font-black text-emerald-600" id="fin-card-pagos">0</p><p class="text-[8px] text-slate-400 mt-1">Na competência</p></div>
+                        <div class="white-card p-4 border-l-4 border-rose-500 financeiro-kpi-card"><p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Não pagos</p><p class="text-2xl font-black text-rose-600" id="fin-card-nao-pagos">0</p><p class="text-[8px] text-slate-400 mt-1">Reset mensal automático</p></div>
+                        <div class="white-card p-4 border-l-4 border-amber-500 financeiro-kpi-card"><p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Vencidos</p><p class="text-2xl font-black text-amber-600" id="fin-card-vencidos">0</p><p class="text-[8px] text-slate-400 mt-1">Não pagos vencidos</p></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-5 financeiro-filtros">
+                        <input type="text" id="filtroFinanceiroNome" placeholder="Buscar cliente/CNPJ..." oninput="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none">
                         <input type="date" id="filtroFinanceiroData" oninput="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none">
-                        <select id="filtroFinanceiroPagamento" onchange="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
-                            <option value="">Todas as formas</option>
-                            <option value="Boleto">Boleto</option>
-                            <option value="Cartão">Cartão</option>
-                            <option value="Transferência">Transferência</option>
-                            <option value="Dinheiro">Dinheiro</option>
-                        </select>
-                        <button onclick="limparFiltrosFinanceiro()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button><button onclick="carregarFinanceiro()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                        <select id="filtroFinanceiroPagamento" onchange="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none"><option value="">Todas as formas</option><option value="pix">Pix</option><option value="boleto">Boleto</option></select>
+                        <select id="filtroFinanceiroStatus" onchange="filtrarFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none"><option value="">Todos os status</option><option value="pago">Pago</option><option value="nao_pago">Não pago</option></select>
+                        <button onclick="limparFiltrosFinanceiro()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar filtros</button>
                     </div>
-                    
-                    <!-- Cards de Resumo -->
-                    <div class="grid grid-cols-4 gap-4 mb-6">
-                        <div class="white-card p-4 border-l-4 border-red-500">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Vencidos</p>
-                            <p class="text-2xl font-black text-red-600" id="card-vencidos">0</p>
-                            <p class="text-[8px] text-slate-400 mt-1">Boletos vencidos</p>
-                        </div>
-                        <div class="white-card p-4 border-l-4 border-amber-500">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">A Vencer (30 dias)</p>
-                            <p class="text-2xl font-black text-amber-600" id="card-30dias">0</p>
-                            <p class="text-[8px] text-slate-400 mt-1">Próximos 30 dias</p>
-                        </div>
-                        <div class="white-card p-4 border-l-4 border-emerald-500">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Clientes Ativos</p>
-                            <p class="text-2xl font-black text-emerald-600" id="card-ativos">0</p>
-                            <p class="text-[8px] text-slate-400 mt-1">Com boletos pendentes</p>
-                        </div>
-                        <div class="white-card p-4 border-l-4 border-slate-400">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Clientes Inativos</p>
-                            <p class="text-2xl font-black text-slate-600" id="card-inativos">0</p>
-                            <p class="text-[8px] text-slate-400 mt-1">Sem movimentação</p>
-                        </div>
+                    <div class="scroll-container financeiro-table-wrap" style="max-height: 56vh;">
+                        <table class="w-full text-left financeiro-table"><thead><tr><th>Cliente</th><th>CNPJ</th><th>Forma de pagamento</th><th>Vencimento</th><th>Status</th><th>Pagamento</th></tr></thead><tbody id="financeiro-body"><tr><td colspan="6" class="text-center py-10 text-slate-400">Carregando controle financeiro...</td></tr></tbody></table>
                     </div>
-                    
-                    <!-- Tabela de Boletos -->
-                    <div class="scroll-container" style="max-height: 60vh;">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr>
-                                    <th>Cliente</th>
-                                    <th>Vencimento</th>
-                                    <th>Valor</th>
-                                    <th>Status</th>
-                                    <th>Forma de Pagamento</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="financeiro-body">
-                                <tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhum boleto cadastrado. Aguardando integração com planilha de controle financeiro.</td></tr>
-                            </tbody>
-                        </table>
+                    <div id="financeiro-log-section" class="mt-8 hidden">
+                        <div class="flex flex-wrap gap-3 justify-between items-center mb-3"><div><h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Log Financeiro</h3><p class="text-[10px] text-slate-400 font-semibold">Acesso restrito a Brenda e Nikolas.</p></div><button onclick="carregarLogsFinanceiro()" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">Atualizar log</button></div>
+                        <div class="scroll-container financeiro-log-wrap" style="max-height: 32vh;"><table class="w-full text-left financeiro-log-table"><thead><tr><th>Data</th><th>Usuário</th><th>Cliente</th><th>Ação</th><th>Detalhes</th></tr></thead><tbody id="financeiro-log-body"><tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando logs financeiros...</td></tr></tbody></table></div>
                     </div>
                 </div>
             </div>
@@ -4512,6 +4508,39 @@ function iniciarPostitArrastavel() {
 }
 
 document.addEventListener('DOMContentLoaded', iniciarPostitArrastavel);
+
+
+/* =====================================================
+   FINANCEIRO V2.0 - Controle mensal por cliente
+   ===================================================== */
+const PERFIS_FINANCEIRO_LOG = ['Nikolas', 'Brenda'];
+let financeiroData = [];
+let financeiroStatusMensal = {};
+let financeiroLogsData = [];
+function competenciaFinanceiraAtual() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function chaveFinanceira(item) { const cnpj = String(item?.CNPJ || '').replace(/\D/g, ''); const cliente = String(item?.CLIENTE || '').trim().toUpperCase(); return cnpj || cliente; }
+function podeVerLogFinanceiro() { return PERFIS_FINANCEIRO_LOG.includes(currentUser); }
+function aplicarAcessoBrendaFinanceiro() { if (currentUser !== 'Brenda') return; document.querySelectorAll('button[id^="tab-"]').forEach(btn => { if (btn.id !== 'tab-financeiro') btn.classList.add('hidden'); }); const financeiro = document.getElementById('tab-financeiro'); if (financeiro) financeiro.classList.remove('hidden'); setTimeout(() => switchTab('financeiro'), 80); }
+const _loginFinanceiroBase = typeof login === 'function' ? login : null;
+if (_loginFinanceiroBase && !_loginFinanceiroBase.__financeiroV20) { const wrappedLoginFinanceiro = function(userName, isAuto = false) { _loginFinanceiroBase(userName, isAuto); aplicarAcessoBrendaFinanceiro(); }; wrappedLoginFinanceiro.__financeiroV20 = true; login = wrappedLoginFinanceiro; }
+const _fetchGoogleSheetsFinanceiroBase = typeof fetchGoogleSheets === 'function' ? fetchGoogleSheets : null;
+if (_fetchGoogleSheetsFinanceiroBase && !_fetchGoogleSheetsFinanceiroBase.__financeiroV20) { const wrappedFetchFinanceiro = async function(isFirstLoad) { await _fetchGoogleSheetsFinanceiroBase(isFirstLoad); if (!document.getElementById('view-financeiro')?.classList.contains('hidden')) await carregarFinanceiro(); }; wrappedFetchFinanceiro.__financeiroV20 = true; fetchGoogleSheets = wrappedFetchFinanceiro; }
+async function carregarFinanceiro() { const tbody = document.getElementById('financeiro-body'); if (!tbody) return; if (!PERFIS_FINANCEIRO.includes(currentUser)) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-rose-400 font-bold">Acesso restrito ao financeiro.</td></tr>'; return; } const comp = competenciaFinanceiraAtual(); const label = document.getElementById('financeiro-competencia-label'); if (label) label.innerText = 'Competência ' + comp.split('-').reverse().join('/'); tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Carregando dados financeiros...</td></tr>'; const base = (rawData || []).filter(r => r && r.CLIENTE).map(r => ({ CLIENTE: String(r.CLIENTE || '').trim(), CNPJ: String(r.CNPJ || '').trim() })); const unicos = []; const seen = new Set(); base.forEach(item => { const key = chaveFinanceira(item); if (!key || seen.has(key)) return; seen.add(key); unicos.push(item); }); financeiroData = unicos.sort((a,b) => String(a.CLIENTE).localeCompare(String(b.CLIENTE), 'pt-BR')); await carregarStatusFinanceiroMensal(); renderizarFinanceiro(financeiroData); const sec = document.getElementById('financeiro-log-section'); if (podeVerLogFinanceiro()) { if (sec) sec.classList.remove('hidden'); carregarLogsFinanceiro(); } else if (sec) sec.classList.add('hidden'); }
+async function carregarStatusFinanceiroMensal() { financeiroStatusMensal = {}; try { const comp = competenciaFinanceiraAtual(); const { data, error } = await supabaseClient.from('financeiro_status_mensal').select('*').eq('competencia', comp); if (error) throw error; (data || []).forEach(row => { const key = String(row.cnpj || '').replace(/\D/g, '') || String(row.cliente || '').trim().toUpperCase(); if (key) financeiroStatusMensal[key] = row; }); } catch (e) { console.warn('Tabela financeiro_status_mensal ainda não disponível. Usando padrão Não pago.', e); } }
+function getFinanceiroRegistro(item) { const key = chaveFinanceira(item); const reg = financeiroStatusMensal[key] || {}; return { cliente: item.CLIENTE, cnpj: item.CNPJ, forma_pagamento: reg.forma_pagamento || '', vencimento: reg.vencimento || '', status: reg.status || 'nao_pago' }; }
+function renderizarFinanceiro(lista) { const tbody = document.getElementById('financeiro-body'); if (!tbody) return; const dados = lista || []; if (!dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhum cliente encontrado na planilha.</td></tr>'; atualizarCardsFinanceiro([]); return; } tbody.innerHTML = dados.map((item, idx) => { const reg = getFinanceiroRegistro(item); const keyRaw = chaveFinanceira(item); const key = encodeURIComponent(keyRaw); const statusPago = reg.status === 'pago'; const statusLabel = statusPago ? 'Pago' : 'Não pago'; const statusCls = statusPago ? 'financeiro-status-pago' : 'financeiro-status-nao_pago'; return `<tr data-fin-key="${key}"><td data-label="Cliente" class="font-black text-slate-700">${escapeHtml(reg.cliente || '-')}</td><td data-label="CNPJ" class="font-mono text-[10px] text-slate-500">${escapeHtml(reg.cnpj || '-')}</td><td data-label="Forma de pagamento"><select onchange="salvarCampoFinanceiro('${key}', 'forma_pagamento', this.value)"><option value="" ${!reg.forma_pagamento ? 'selected' : ''}>Selecionar</option><option value="pix" ${reg.forma_pagamento === 'pix' ? 'selected' : ''}>Pix</option><option value="boleto" ${reg.forma_pagamento === 'boleto' ? 'selected' : ''}>Boleto</option></select></td><td data-label="Vencimento"><input type="date" value="${escapeHtml(reg.vencimento || '')}" onchange="salvarCampoFinanceiro('${key}', 'vencimento', this.value)"></td><td data-label="Status"><span class="financeiro-status-pill ${statusCls}">${statusLabel}</span></td><td data-label="Pagamento"><div class="financeiro-check-group"><label class="financeiro-check-option"><input type="radio" name="fin_status_${idx}" value="pago" ${statusPago ? 'checked' : ''} onchange="salvarCampoFinanceiro('${key}', 'status', 'pago')"> Pago</label><label class="financeiro-check-option"><input type="radio" name="fin_status_${idx}" value="nao_pago" ${!statusPago ? 'checked' : ''} onchange="salvarCampoFinanceiro('${key}', 'status', 'nao_pago')"> Não pago</label></div></td></tr>`; }).join(''); atualizarCardsFinanceiro(dados); }
+function atualizarCardsFinanceiro(lista) { const dados = (lista || financeiroData || []).map(getFinanceiroRegistro); const pagos = dados.filter(d => d.status === 'pago').length; const naoPagos = dados.filter(d => d.status !== 'pago').length; const hoje = new Date(); hoje.setHours(0,0,0,0); const vencidos = dados.filter(d => d.status !== 'pago' && d.vencimento && new Date(d.vencimento + 'T00:00:00') < hoje).length; setTextSafe('fin-card-clientes', dados.length); setTextSafe('fin-card-pagos', pagos); setTextSafe('fin-card-nao-pagos', naoPagos); setTextSafe('fin-card-vencidos', vencidos); }
+function encontrarFinanceiroPorKey(keyEncoded) { const key = decodeURIComponent(keyEncoded || ''); return (financeiroData || []).find(item => chaveFinanceira(item) === key); }
+async function salvarCampoFinanceiro(keyEncoded, campo, valor) { const item = encontrarFinanceiroPorKey(keyEncoded); if (!item) return showNotification('Cliente financeiro não encontrado.', true); const key = chaveFinanceira(item); const anterior = getFinanceiroRegistro(item); const comp = competenciaFinanceiraAtual(); const novo = { ...anterior, [campo]: valor }; const payload = { cliente: item.CLIENTE || '', cnpj: item.CNPJ || '', competencia: comp, forma_pagamento: novo.forma_pagamento || null, vencimento: novo.vencimento || null, status: novo.status || 'nao_pago', atualizado_por: currentUser || 'Sistema', atualizado_em: new Date().toISOString() }; try { if (typeof setSaveStatus === 'function') setSaveStatus('saving', 'Salvando financeiro...'); const { data, error } = await supabaseClient.from('financeiro_status_mensal').upsert([payload], { onConflict: 'cnpj,competencia' }).select(); if (error) throw error; financeiroStatusMensal[key] = (data && data[0]) ? data[0] : payload; await registrarLogFinanceiro(item, campo, anterior[campo], valor); renderizarFinanceiro(obterListaFinanceiroFiltrada()); if (typeof setSaveStatus === 'function') setSaveStatus('saved', 'Financeiro salvo'); showNotification('Controle financeiro salvo!'); } catch (e) { console.error('Erro ao salvar financeiro:', e); if (typeof setSaveStatus === 'function') setSaveStatus('error', 'Erro no financeiro'); showNotification('Erro ao salvar financeiro. Verifique a tabela no Supabase.', true); } }
+async function registrarLogFinanceiro(item, campo, anterior, novo) { const campoLabel = campo === 'forma_pagamento' ? 'Forma de pagamento' : campo === 'vencimento' ? 'Vencimento' : 'Status'; const det = `${campoLabel}: ${formatarValorFinanceiro(anterior)} → ${formatarValorFinanceiro(novo)} | Competência ${competenciaFinanceiraAtual()}`; try { await supabaseClient.from('financeiro_logs').insert([{ usuario: currentUser || 'Sistema', cliente: item.CLIENTE || '', cnpj: item.CNPJ || '', acao: 'Alteração financeira', detalhes: det, competencia: competenciaFinanceiraAtual(), created_at: new Date().toISOString() }]); } catch (e) { console.warn('Não foi possível salvar log financeiro específico.', e); } try { await registrarLog('Alteração financeira', item.CLIENTE || null, 'FINANCEIRO', det); } catch (e) { console.warn('Não foi possível registrar no log geral.', e); } }
+function formatarValorFinanceiro(v) { if (v === null || typeof v === 'undefined' || v === '') return 'vazio'; if (v === 'nao_pago') return 'Não pago'; if (v === 'pago') return 'Pago'; if (v === 'pix') return 'Pix'; if (v === 'boleto') return 'Boleto'; return String(v); }
+function obterListaFinanceiroFiltrada() { const nome = normalizarTexto(document.getElementById('filtroFinanceiroNome')?.value || ''); const data = document.getElementById('filtroFinanceiroData')?.value || ''; const forma = document.getElementById('filtroFinanceiroPagamento')?.value || ''; const status = document.getElementById('filtroFinanceiroStatus')?.value || ''; return (financeiroData || []).filter(item => { const reg = getFinanceiroRegistro(item); const texto = normalizarTexto((reg.cliente || '') + ' ' + (reg.cnpj || '')); return (!nome || texto.includes(nome)) && (!data || reg.vencimento === data) && (!forma || reg.forma_pagamento === forma) && (!status || reg.status === status); }); }
+function filtrarFinanceiro() { renderizarFinanceiro(obterListaFinanceiroFiltrada()); }
+function limparFiltrosFinanceiro() { ['filtroFinanceiroNome','filtroFinanceiroData','filtroFinanceiroPagamento','filtroFinanceiroStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); filtrarFinanceiro(); }
+async function carregarLogsFinanceiro() { const tbody = document.getElementById('financeiro-log-body'); if (!tbody || !podeVerLogFinanceiro()) return; tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando logs financeiros...</td></tr>'; try { const { data, error } = await supabaseClient.from('financeiro_logs').select('*').order('created_at', { ascending: false }).limit(150); if (error) throw error; financeiroLogsData = data || []; renderizarLogsFinanceiro(financeiroLogsData); } catch (e) { console.warn('Tabela financeiro_logs indisponível.', e); tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-amber-500 font-bold">Crie a tabela financeiro_logs no Supabase para visualizar o log financeiro.</td></tr>'; } }
+function renderizarLogsFinanceiro(logs) { const tbody = document.getElementById('financeiro-log-body'); if (!tbody) return; if (!logs || !logs.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum log financeiro encontrado.</td></tr>'; return; } tbody.innerHTML = logs.map(log => { const dt = log.created_at ? new Date(log.created_at) : new Date(); const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}); return `<tr><td class="font-mono text-[10px] text-slate-500">${escapeHtml(dataStr)}</td><td class="font-bold text-slate-700">${escapeHtml(log.usuario || '-')}</td><td class="font-bold text-slate-700">${escapeHtml(log.cliente || '-')}</td><td><span class="log-action-pill alteracao">${escapeHtml(log.acao || 'Financeiro')}</span></td><td>${escapeHtml(log.detalhes || '-')}</td></tr>`; }).join(''); }
+const _switchTabFinanceiroBase = typeof switchTab === 'function' ? switchTab : null;
+if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { const wrappedSwitchFinanceiro = function(tab) { if (currentUser === 'Brenda' && tab !== 'financeiro') tab = 'financeiro'; return _switchTabFinanceiroBase(tab); }; wrappedSwitchFinanceiro.__financeiroV20 = true; switchTab = wrappedSwitchFinanceiro; }
 
 </script>
 
