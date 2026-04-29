@@ -913,11 +913,13 @@
                         </div>
                         <div id="empresasParcelamentosCounter" class="text-[10px] font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full uppercase">0 empresas</div>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="empresasParcelamentosKpis">
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4" id="empresasParcelamentosKpis">
                         <div class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosFiltro('todos')"><div class="kpi-number" id="emp-parc-kpi-total">0</div><div class="kpi-label">Total</div></div>
                         <div class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosFiltro('ativos')"><div class="kpi-number text-emerald-600" id="emp-parc-kpi-ativos">0</div><div class="kpi-label">Ativas</div></div>
                         <div class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosFiltro('inativos')"><div class="kpi-number text-red-600" id="emp-parc-kpi-inativos">0</div><div class="kpi-label">Inativas</div></div>
                         <div class="kpi-card"><div class="kpi-number text-sky-600" id="emp-parc-kpi-com-qtd">0</div><div class="kpi-label">Com quantidade</div></div>
+                        <div id="emp-parc-card-setor-2" class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosSetorFiltro('2')"><div class="kpi-number text-indigo-600" id="emp-parc-kpi-setor-2">0</div><div class="kpi-label">2º Setor</div></div>
+                        <div id="emp-parc-card-setor-3" class="kpi-card quick-link-card" onclick="setEmpresasParcelamentosSetorFiltro('3')"><div class="kpi-number text-blue-600" id="emp-parc-kpi-setor-3">0</div><div class="kpi-label">3º Setor</div></div>
                     </div>
                     <div class="flex flex-wrap gap-2 mb-4">
                         <button onclick="setEmpresasParcelamentosFiltro('todos')" id="emp-parc-btn-todos" class="btn-mini text-slate-700 border-slate-200 bg-slate-50">TODAS</button>
@@ -927,12 +929,14 @@
                             <option value="">Todas as quantidades</option>
                             <option value="1">1 parcelamento</option><option value="2">2 parcelamentos</option><option value="3">3 parcelamentos</option><option value="4">4 parcelamentos</option><option value="5">5 parcelamentos</option><option value="6">6 parcelamentos</option><option value="7">7 parcelamentos</option><option value="8">8 parcelamentos</option><option value="9">9 parcelamentos</option><option value="10">10 parcelamentos</option><option value="11">11 parcelamentos</option><option value="12">12 parcelamentos</option><option value="13">13 parcelamentos</option><option value="14">14 parcelamentos</option><option value="15">15 parcelamentos</option><option value="16">16 parcelamentos</option><option value="17">17 parcelamentos</option><option value="18">18 parcelamentos</option><option value="19">19 parcelamentos</option><option value="20">20 parcelamentos</option><option value="21">21 parcelamentos</option><option value="22">22 parcelamentos</option><option value="23">23 parcelamentos</option><option value="24">24 parcelamentos</option><option value="25">25 parcelamentos</option><option value="26">26 parcelamentos</option><option value="27">27 parcelamentos</option><option value="28">28 parcelamentos</option><option value="29">29 parcelamentos</option><option value="30">30 parcelamentos</option>
                         </select>
+                        <button onclick="setEmpresasParcelamentosSetorFiltro('2')" id="emp-parc-btn-setor-2" class="btn-mini text-indigo-700 border-indigo-200 bg-indigo-50">2º Setor</button>
+                        <button onclick="setEmpresasParcelamentosSetorFiltro('3')" id="emp-parc-btn-setor-3" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">3º Setor</button>
                         <button onclick="limparFiltrosEmpresasParcelamentos()" class="btn-mini text-slate-600 border-slate-200 bg-white">Limpar filtros</button>
                     </div>
-                    <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, status, quantidade ou observação..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                    <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, setor, status, quantidade ou observação..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>STATUS</th><th>QTD.</th><th>ÚLTIMA OBSERVAÇÃO</th><th>AÇÕES</th></tr></thead>
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>STATUS</th><th>QTD.</th><th>ÚLTIMA OBSERVAÇÃO</th><th>AÇÕES</th></tr></thead>
                             <tbody id="empresasParcelamentosBody"></tbody>
                         </table>
                     </div>
@@ -1034,7 +1038,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="commTableBody">
-                                        <tr><td colspan="6" class="text-center py-10 text-slate-400">Selecione um documento e um prazo para filtrar</td></tr>
+                                        <tr><td colspan="7" class="text-center py-10 text-slate-400">Selecione um documento e um prazo para filtrar</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -1404,6 +1408,7 @@
         let activeParcelamentos = false, activeParcelamentosStatus = null;
         let empresasParcelamentosFiltro = 'todos';
         let empresasParcelamentosQuantidadeFiltro = '';
+        let empresasParcelamentosSetorFiltro = '';
         let historicoParcelamentosCarregado = false;
         let commActiveDoc = null, commActiveStatus = null;
         let currentEditTarget = {};
@@ -2766,9 +2771,31 @@
             renderEmpresasParcelamentos();
         }
 
+        function normalizarSetorParcelamentos(valor) {
+            const texto = String(valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (!texto.trim()) return '';
+            if (/\b2\b/.test(texto) || texto.includes('2o') || texto.includes('2º') || texto.includes('segundo')) return '2';
+            if (/\b3\b/.test(texto) || texto.includes('3o') || texto.includes('3º') || texto.includes('terceiro')) return '3';
+            return texto.trim();
+        }
+
+        function getSetorParcelamentosLabel(setor) {
+            const s = normalizarSetorParcelamentos(setor);
+            if (s === '2') return '2º Setor';
+            if (s === '3') return '3º Setor';
+            return setor ? String(setor) : '-';
+        }
+
+        function setEmpresasParcelamentosSetorFiltro(setor) {
+            const novoSetor = normalizarSetorParcelamentos(setor);
+            empresasParcelamentosSetorFiltro = empresasParcelamentosSetorFiltro === novoSetor ? '' : novoSetor;
+            renderEmpresasParcelamentos();
+        }
+
         function limparFiltrosEmpresasParcelamentos() {
             empresasParcelamentosFiltro = 'todos';
             empresasParcelamentosQuantidadeFiltro = '';
+            empresasParcelamentosSetorFiltro = '';
             const busca = document.getElementById('searchEmpresasParcelamentos');
             const qtd = document.getElementById('filtroQuantidadeParcelamentos');
             if (busca) busca.value = '';
@@ -2798,6 +2825,18 @@
                     else btn.classList.add('bg-slate-600');
                 }
             });
+            ['2','3'].forEach(st => {
+                const btn = document.getElementById('emp-parc-btn-setor-' + st);
+                const card = document.getElementById('emp-parc-card-setor-' + st);
+                [btn, card].forEach(el => {
+                    if (!el) return;
+                    el.classList.remove('empresas-filter-active', 'bg-indigo-600', 'bg-blue-600');
+                    if (empresasParcelamentosSetorFiltro === st) {
+                        el.classList.add('empresas-filter-active');
+                        el.classList.add(st === '2' ? 'bg-indigo-600' : 'bg-blue-600');
+                    }
+                });
+            });
             const qtd = document.getElementById('filtroQuantidadeParcelamentos');
             if (qtd && qtd.value !== empresasParcelamentosQuantidadeFiltro) qtd.value = empresasParcelamentosQuantidadeFiltro;
         }
@@ -2821,7 +2860,7 @@
         }
 
         function getParcelamentosBase() {
-            return rawData.map((row, index) => ({ row, index, status: getParcelamentosStatus(row.PARCELAMENTOS), qtd: getParcelamentoQuantidadeAtual(row.PARCELAMENTOS) }))
+            return rawData.map((row, index) => ({ row, index, status: getParcelamentosStatus(row.PARCELAMENTOS), qtd: getParcelamentoQuantidadeAtual(row.PARCELAMENTOS), setor: normalizarSetorParcelamentos(row.SETOR) }))
                 .filter(item => item.row && item.row.CLIENTE)
                 .filter(item => !!item.status);
         }
@@ -2837,6 +2876,8 @@
             const ativos = base.filter(i => i.status === 'ativos').length;
             const inativos = base.filter(i => i.status === 'inativos').length;
             const comQtd = base.filter(i => !!i.qtd).length;
+            const setor2 = base.filter(i => i.setor === '2').length;
+            const setor3 = base.filter(i => i.setor === '3').length;
             const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
             set('dash-parc-total', base.length);
             set('dash-parc-ativos', ativos);
@@ -2846,6 +2887,8 @@
             set('emp-parc-kpi-ativos', ativos);
             set('emp-parc-kpi-inativos', inativos);
             set('emp-parc-kpi-com-qtd', comQtd);
+            set('emp-parc-kpi-setor-2', setor2);
+            set('emp-parc-kpi-setor-3', setor3);
         }
 
         async function carregarHistoricoParcelamentosSilencioso() {
@@ -2975,9 +3018,10 @@
             const linhas = getParcelamentosBase()
                 .filter(item => empresasParcelamentosFiltro === 'todos' ? true : item.status === empresasParcelamentosFiltro)
                 .filter(item => empresasParcelamentosQuantidadeFiltro ? item.qtd === empresasParcelamentosQuantidadeFiltro : true)
+                .filter(item => empresasParcelamentosSetorFiltro ? item.setor === empresasParcelamentosSetorFiltro : true)
                 .filter(item => {
                     const ultimaObs = getUltimaObservacaoParcelamento(item.row.CLIENTE);
-                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${ultimaObs?.observacao || ''}`.toLowerCase();
+                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.SETOR || ''} ${getSetorParcelamentosLabel(item.row.SETOR)} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${ultimaObs?.observacao || ''}`.toLowerCase();
                     return !q || texto.includes(q);
                 });
             if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
@@ -2996,6 +3040,7 @@
                 return `<tr class="empresas-row" onclick="openParcelamentoInfoModal(${item.index})">
                     <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
                     <td class="cnpj-cell" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
+                    <td><span class="parcelamento-status-pill sem-status">${escapeHtml(getSetorParcelamentosLabel(row.SETOR))}</span></td>
                     <td><span class="parcelamento-status-pill ${status}">${statusLabel}</span><span class="ml-2 text-[10px] text-slate-500">${escapeHtml(valor)}</span></td>
                     <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
                     <td><span class="last-obs-chip" title="${escapeAttr(ultimaObs?.observacao || '')}">${obsTexto}</span></td>
