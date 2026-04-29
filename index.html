@@ -3760,7 +3760,7 @@ async function carregarTarefasMonitorGeral() {
             .order('created_at', { ascending: false });
         if (error) throw error;
         const logs = data || [];
-        const nomes = ['Jordan','Sirlene','Ingrid'];
+        const nomes = ['Jordan','Sirlene','Ingrid','Patricia'];
         const porUsuario = {};
         nomes.forEach(n => porUsuario[n] = { total: 0, fora: 0, sorteio: 0 });
         logs.forEach(l => {
