@@ -210,6 +210,58 @@
 
         /* Modal Histórico */
         #historicoModal { z-index: 300; }
+
+        /* Melhorias v1.2 - usabilidade, visual e mobile */
+        #save-status-indicator { position: fixed; right: 22px; bottom: 18px; z-index: 12000; display: none; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: #ffffff; border: 1px solid #dbe4ee; box-shadow: 0 16px 32px rgba(15,23,42,.16); font-size: 10px; font-weight: 900; text-transform: uppercase; color: #475569; }
+        #save-status-indicator.show { display: flex; animation: saveFadeIn .22s ease; }
+        #save-status-indicator.saving { color: #0369a1; border-color: #bae6fd; background: #f0f9ff; }
+        #save-status-indicator.saved { color: #047857; border-color: #a7f3d0; background: #ecfdf5; }
+        #save-status-indicator.error { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+        #save-status-dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 0 4px rgba(148,163,184,.16); }
+        #save-status-indicator.saving #save-status-dot { animation: pulseSave 1s infinite; }
+        @keyframes pulseSave { 0%,100% { transform: scale(.85); opacity: .55; } 50% { transform: scale(1.2); opacity: 1; } }
+        @keyframes saveFadeIn { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .topline-toolbar { flex-wrap: wrap; }
+        .utility-btn { padding: 8px 12px; border-radius: 12px; border: 1px solid #dbe4ee; background: #fff; font-size: 9px; font-weight: 900; text-transform: uppercase; color: #475569; transition: all .2s ease; }
+        .utility-btn:hover, .utility-btn.active { transform: translateY(-1px); color: #047857; border-color: #86efac; background: #ecfdf5; box-shadow: 0 8px 18px rgba(16,185,129,.14); }
+        #favoritosPanel, #alertasPanel { display: none; }
+        #favoritosPanel.show, #alertasPanel.show { display: block; }
+        .favorite-star { border: none; background: transparent; cursor: pointer; font-size: 14px; line-height: 1; filter: grayscale(1); opacity: .55; transition: all .18s ease; }
+        .favorite-star:hover, .favorite-star.active { filter: none; opacity: 1; transform: scale(1.18); }
+        .favorite-row { background: #fff7ed !important; }
+        .alert-card { border-radius: 14px; border: 1px solid #e2e8f0; padding: 10px 12px; background: #fff; font-size: 11px; }
+        .alert-card.urgent { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+        .alert-card.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+        .alert-card.info { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        body.compact-mode .white-card { border-radius: 12px; }
+        body.compact-mode .p-6 { padding: 1rem !important; }
+        body.compact-mode .p-5 { padding: .875rem !important; }
+        body.compact-mode th { padding: 8px 8px; font-size: 8px; }
+        body.compact-mode td { padding: 5px 8px; font-size: 9.5px; }
+        body.compact-mode .btn-mini { height: 27px; padding: 3px 9px; font-size: 8px; }
+        body.compact-mode .scroll-container { max-height: 68vh; }
+        .mobile-card-list { display: none; }
+        @media (max-width: 768px) {
+            body { background: #f8fafc; }
+            .p-6.max-w-[1600px] { padding: 10px !important; }
+            header.white-card { padding: 12px !important; position: sticky; top: 0; z-index: 80; }
+            header .flex.justify-between.items-center.mb-4 { align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+            #main-nav { width: 100%; overflow-x: auto; gap: 12px; padding-bottom: 4px; }
+            #main-nav button { white-space: nowrap; }
+            .topline-toolbar input { width: 100%; min-width: 100% !important; }
+            .grid.grid-cols-3, .grid.grid-cols-4, .grid.grid-cols-5, .grid.grid-cols-6 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .scroll-container { max-height: 62vh; overflow-x: auto; }
+            table { min-width: 720px; }
+            #view-dash .scroll-container.mobile-card-mode table { display: none; }
+            #view-dash .scroll-container.mobile-card-mode .mobile-card-list { display: grid; gap: 10px; padding: 10px; }
+            .mobile-data-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px; box-shadow: 0 6px 18px rgba(15,23,42,.05); }
+            .mobile-data-card h4 { font-size: 12px; font-weight: 900; color: #0f172a; text-transform: uppercase; }
+            .mobile-data-card p { font-size: 10px; color: #64748b; margin-top: 2px; }
+            #notification-toast { width: calc(100vw - 28px); right: -110vw; bottom: 76px; }
+            #notification-toast.show { right: 14px; }
+            #save-status-indicator { left: 12px; right: 12px; bottom: 12px; justify-content: center; }
+        }
+
         .hist-item { border-left: 3px solid #10b981; padding-left: 12px; margin-bottom: 12px; }
 
         /* Login - botões alinhados */
@@ -370,6 +422,9 @@
         </div>
     </div>
 
+
+    <div id="save-status-indicator" aria-live="polite"><span id="save-status-dot"></span><span id="save-status-text">Salvo</span></div>
+
     <div id="notification-toast">
         <div class="flex items-start gap-3">
             <div class="bg-emerald-100 p-2 rounded-lg">
@@ -413,8 +468,13 @@
                     <input type="text" id="globalSearchInput" oninput="executarBuscaGlobal(this.value)" placeholder="Busca global: cliente, CNPJ ou observação..." class="flex-1 min-w-[260px]">
                     <button onclick="resetAllFilters()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar filtros</button>
                     <div id="activeFilterTags" class="flex gap-1 flex-wrap"></div>
+                    <button id="btnToggleFavoritos" onclick="toggleFavoritosPanel()" class="utility-btn">⭐ Favoritos</button>
+                    <button id="btnToggleAlertas" onclick="toggleAlertasPanel()" class="utility-btn">⚠ Alertas</button>
+                    <button id="btnCompactMode" onclick="toggleCompactMode()" class="utility-btn">Modo compacto</button>
                 </div>
                 <div id="globalSearchResults" class="hidden mt-2 soft-card"></div>
+                <div id="favoritosPanel" class="soft-card mt-2"></div>
+                <div id="alertasPanel" class="soft-card mt-2"></div>
             </header>
 
             
@@ -3376,6 +3436,206 @@ carregarAvisos = async function() {
 
 const _resetAllFiltersBase = typeof resetAllFilters === 'function' ? resetAllFilters : null;
 resetAllFilters = function() { if (_resetAllFiltersBase) _resetAllFiltersBase(); const g=document.getElementById('globalSearchInput'); if(g) g.value=''; const r=document.getElementById('globalSearchResults'); if(r){r.classList.add('hidden'); r.innerHTML='';} updateActiveFilterTags(); };
+
+
+/* ======================================================
+   MELHORIAS v1.2 - indicador de salvamento, histórico,
+   favoritos, alertas, modo compacto e mobile
+   ====================================================== */
+let favoritosClientes = [];
+let favoritosVisivel = false;
+let alertasVisivel = false;
+
+function showSaveStatus(status, texto) {
+    const box = document.getElementById('save-status-indicator');
+    const label = document.getElementById('save-status-text');
+    if (!box || !label) return;
+    box.className = 'show ' + (status || 'saved');
+    label.textContent = texto || (status === 'saving' ? 'Salvando...' : status === 'error' ? 'Erro ao salvar' : 'Salvo com sucesso');
+    clearTimeout(window.__saveStatusTimer);
+    if (status !== 'saving') window.__saveStatusTimer = setTimeout(() => box.classList.remove('show'), 2600);
+}
+async function withSavingStatus(fn, textoSalvando, textoSucesso) {
+    showSaveStatus('saving', textoSalvando || 'Salvando...');
+    try {
+        const res = await fn();
+        showSaveStatus('saved', textoSucesso || 'Salvo com sucesso');
+        return res;
+    } catch (e) {
+        showSaveStatus('error', 'Erro ao salvar');
+        throw e;
+    }
+}
+function wrapAsyncSaveFunction(nome, salvando, sucesso) {
+    const original = window[nome];
+    if (typeof original !== 'function' || original.__wrappedSaveStatus) return;
+    const wrapped = async function(...args) {
+        return withSavingStatus(() => original.apply(this, args), salvando, sucesso);
+    };
+    wrapped.__wrappedSaveStatus = true;
+    window[nome] = wrapped;
+}
+
+function carregarFavoritos() {
+    try { favoritosClientes = JSON.parse(localStorage.getItem('topline_favoritos_clientes') || '[]'); }
+    catch(e) { favoritosClientes = []; }
+}
+function salvarFavoritosLocal() { localStorage.setItem('topline_favoritos_clientes', JSON.stringify(favoritosClientes)); }
+function clienteKey(nome) { return normalizarTexto(nome || '').trim(); }
+function isFavorito(nome) { return favoritosClientes.includes(clienteKey(nome)); }
+function toggleFavorito(cliente, ev) {
+    if (ev) ev.stopPropagation();
+    const key = clienteKey(cliente);
+    if (!key) return;
+    if (favoritosClientes.includes(key)) favoritosClientes = favoritosClientes.filter(x => x !== key);
+    else favoritosClientes.unshift(key);
+    favoritosClientes = favoritosClientes.slice(0, 80);
+    salvarFavoritosLocal();
+    renderTable(); renderizarFavoritosPanel();
+    showNotification(isFavorito(cliente) ? 'Cliente adicionado aos favoritos.' : 'Cliente removido dos favoritos.');
+}
+function toggleFavoritosPanel() {
+    favoritosVisivel = !favoritosVisivel;
+    const p = document.getElementById('favoritosPanel');
+    const b = document.getElementById('btnToggleFavoritos');
+    if (p) p.classList.toggle('show', favoritosVisivel);
+    if (b) b.classList.toggle('active', favoritosVisivel);
+    renderizarFavoritosPanel();
+}
+function renderizarFavoritosPanel() {
+    const p = document.getElementById('favoritosPanel'); if (!p) return;
+    const rows = (rawData || []).filter(r => isFavorito(r.CLIENTE));
+    p.innerHTML = '<div class="flex justify-between items-center mb-2"><h4 class="text-[10px] font-black text-slate-500 uppercase">Favoritos</h4><span class="filter-tag">' + rows.length + ' empresas</span></div>' +
+        (rows.length ? '<div class="grid grid-cols-1 md:grid-cols-3 gap-2">' + rows.slice(0, 12).map(r => '<button class="text-left p-2 rounded-xl border border-amber-100 bg-amber-50 hover:bg-amber-100" onclick="document.getElementById(\'searchInput\').value=\'' + escapeHtml(String(r.CLIENTE || '')).replace(/'/g,'&#39;') + '\'; switchTab(\'dash\'); renderTable();"><span class="font-black text-xs text-slate-700">⭐ ' + escapeHtml(r.CLIENTE || '-') + '</span><span class="block text-[10px] text-slate-500 mt-1">' + escapeHtml(r.CNPJ || '-') + '</span></button>').join('') + '</div>' : '<p class="text-xs text-slate-400">Clique na estrela ao lado do cliente no Painel para favoritar.</p>');
+}
+
+function gerarAlertasSistema() {
+    const alertas = [];
+    let vencidos = 0, semObs = 0, parcAtivos = 0;
+    (rawData || []).forEach(row => {
+        headers.forEach(col => {
+            if (col === 'CLIENTE' || col === 'CNPJ') return;
+            if (getStatus(row[col], row, col) === 'vencido') vencidos++;
+        });
+        const ps = getParcelamentosStatus(row.PARCELAMENTOS);
+        if (ps === 'ativos') {
+            parcAtivos++;
+            if (typeof getUltimaObservacaoParcelamento === 'function' && !getUltimaObservacaoParcelamento(row.CLIENTE)) semObs++;
+        }
+    });
+    let tarefasAbertas = 0;
+    Object.values(distribuicaoAtual || {}).forEach(lista => (lista || []).forEach(t => {
+        const st = obterStatusTarefa(t.rowIndex, t.documento);
+        if (st !== 'concluido' && !isAtividadeRealizada(t.rowIndex, t.documento)) tarefasAbertas++;
+    }));
+    if (vencidos) alertas.push({tipo:'urgent', titulo:'Documentos vencidos', texto:vencidos + ' pendências vencidas encontradas no Painel.'});
+    if (tarefasAbertas) alertas.push({tipo:'warn', titulo:'Tarefas abertas', texto:tarefasAbertas + ' tarefas ainda precisam de acompanhamento.'});
+    if (semObs) alertas.push({tipo:'warn', titulo:'Parcelamentos sem observação', texto:semObs + ' empresas com parcelamento ativo não possuem observação recente.'});
+    if (!alertas.length) alertas.push({tipo:'info', titulo:'Tudo em ordem', texto:'Nenhum alerta crítico identificado agora.'});
+    return alertas;
+}
+function toggleAlertasPanel() {
+    alertasVisivel = !alertasVisivel;
+    const p = document.getElementById('alertasPanel'); const b = document.getElementById('btnToggleAlertas');
+    if (p) p.classList.toggle('show', alertasVisivel);
+    if (b) b.classList.toggle('active', alertasVisivel);
+    renderizarAlertasPanel();
+}
+function renderizarAlertasPanel() {
+    const p = document.getElementById('alertasPanel'); if (!p) return;
+    const alertas = gerarAlertasSistema();
+    p.innerHTML = '<div class="flex justify-between items-center mb-2"><h4 class="text-[10px] font-black text-slate-500 uppercase">Alertas automáticos</h4><span class="filter-tag">Atualizado agora</span></div><div class="grid grid-cols-1 md:grid-cols-3 gap-2">' + alertas.map(a => '<div class="alert-card ' + a.tipo + '"><strong class="block uppercase text-[10px]">' + escapeHtml(a.titulo) + '</strong><span>' + escapeHtml(a.texto) + '</span></div>').join('') + '</div>';
+}
+
+function toggleCompactMode() {
+    const ativo = !document.body.classList.contains('compact-mode');
+    document.body.classList.toggle('compact-mode', ativo);
+    localStorage.setItem('topline_compact_mode', ativo ? '1' : '0');
+    const b = document.getElementById('btnCompactMode'); if (b) b.classList.toggle('active', ativo);
+}
+function aplicarCompactModeSalvo() {
+    const ativo = localStorage.getItem('topline_compact_mode') === '1';
+    document.body.classList.toggle('compact-mode', ativo);
+    const b = document.getElementById('btnCompactMode'); if (b) b.classList.toggle('active', ativo);
+}
+
+function renderizarMobileCards(filteredRows, visibleHeaders) {
+    const sc = document.querySelector('#view-dash .scroll-container');
+    if (!sc) return;
+    let list = sc.querySelector('.mobile-card-list');
+    if (!list) { list = document.createElement('div'); list.className = 'mobile-card-list'; sc.appendChild(list); }
+    sc.classList.add('mobile-card-mode');
+    list.innerHTML = (filteredRows || []).slice(0, 80).map(row => {
+        const cliente = row.CLIENTE || '-'; const cnpj = row.CNPJ || '-';
+        const extras = (visibleHeaders || []).filter(h => h !== 'CLIENTE' && h !== 'CNPJ').map(h => '<p><strong>' + escapeHtml(h) + ':</strong> ' + escapeHtml(row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-')) + '</p>').join('');
+        return '<div class="mobile-data-card" onclick="openEditCell(' + rawData.indexOf(row) + ', \'CLIENTE\')"><div class="flex justify-between gap-2"><h4>' + escapeHtml(cliente) + '</h4><button class="favorite-star ' + (isFavorito(cliente) ? 'active' : '') + '" onclick="toggleFavorito(\'' + escapeHtml(String(cliente)).replace(/'/g,'&#39;') + '\', event)">⭐</button></div><p>' + escapeHtml(cnpj) + '</p>' + extras + '</div>';
+    }).join('');
+}
+
+const _renderTableV12Base = typeof renderTable === 'function' ? renderTable : null;
+renderTable = function() {
+    const head = document.getElementById('tableHeader');
+    const body = document.getElementById('tableBody');
+    const search = document.getElementById('searchInput');
+    const q = (search?.value || '').toLowerCase();
+    if (!headers.length || !head || !body) return;
+    const visibleHeaders = getVisibleHeadersForCurrentFilter();
+    const headersComFav = ['__FAV__'].concat(visibleHeaders);
+    head.innerHTML = '<tr>' + headersComFav.map(h => h === '__FAV__' ? '<th style="width:38px">⭐</th>' : (() => { const hi = getHighlightAttrs(getColumnHighlight(h)); return '<th class="' + (h==='CLIENTE'?'col-fixed':'') + hi.cls + '" style="' + hi.style + '">' + h + '</th>'; })()).join('') + '</tr>';
+    const filtered = rawData.filter(row => {
+        const textoBusca = [row.CLIENTE, row.CNPJ].join(' ').toLowerCase();
+        if (q && !textoBusca.includes(q)) return false;
+        if (activeParcelamentos) {
+            if (!('PARCELAMENTOS' in row)) return false;
+            const parcelStatus = getParcelamentosStatus(row.PARCELAMENTOS);
+            return activeParcelamentosStatus ? parcelStatus === activeParcelamentosStatus : !!parcelStatus;
+        }
+        if (activeDoc) return activeStatus ? getStatus(row[activeDoc], row, activeDoc) === activeStatus : row[activeDoc];
+        if (activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
+        return true;
+    }).sort((a,b) => (isFavorito(b.CLIENTE) ? 1 : 0) - (isFavorito(a.CLIENTE) ? 1 : 0));
+    body.innerHTML = filtered.map(row => '<tr class="' + (isFavorito(row.CLIENTE) ? 'favorite-row' : '') + '">' + headersComFav.map(h => {
+        if (h === '__FAV__') return '<td><button class="favorite-star ' + (isFavorito(row.CLIENTE) ? 'active' : '') + '" onclick="toggleFavorito(\'' + escapeHtml(String(row.CLIENTE || '')).replace(/'/g,'&#39;') + '\', event)">⭐</button></td>';
+        const s = getStatus(row[h], row, h);
+        const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
+        const hi = getHighlightAttrs(getColumnHighlight(h, row));
+        if (h === 'CNPJ') return '<td class="cnpj-cell' + hi.cls + '" style="cursor:pointer;' + hi.style + '" onclick="copiarCNPJ(\'' + String(val).replace(/'/g,"\\'") + '\', event)">' + escapeHtml(val) + '</td>';
+        const colArg = JSON.stringify(h);
+        return '<td class="' + (h==='CLIENTE'?'col-fixed':(s||'')) + hi.cls + '" style="' + hi.style + '" onclick="openEditCell(' + rawData.indexOf(row) + ', ' + colArg.replace(/"/g, '&quot;') + ')">' + escapeHtml(val) + '</td>';
+    }).join('') + '</tr>').join('');
+    renderizarMobileCards(filtered, visibleHeaders);
+    updateAnalytics(); renderizarFavoritosPanel(); if (alertasVisivel) renderizarAlertasPanel();
+};
+
+const _filtrarHistoricoV12Base = typeof filtrarHistorico === 'function' ? filtrarHistorico : null;
+filtrarHistorico = function() {
+    const termo = normalizarTexto(document.getElementById('searchHistorico')?.value || '');
+    const doc = document.getElementById('filtroDocumento')?.value || '';
+    const usuario = document.getElementById('filtroUsuarioHistorico')?.value || '';
+    const ini = document.getElementById('filtroDataInicio')?.value || '';
+    const fim = document.getElementById('filtroDataFim')?.value || '';
+    const filtrado = (historicoData || []).filter(h => {
+        const texto = normalizarTexto([h.cliente, h.documento, h.observacao, h.usuario].join(' '));
+        const data = String(h.created_at || '').slice(0,10);
+        return (!termo || texto.includes(termo)) && (!doc || h.documento === doc) && (!usuario || h.usuario === usuario) && (!ini || data >= ini) && (!fim || data <= fim);
+    });
+    renderizarHistorico(filtrado);
+};
+
+const _switchTabV12Base = typeof switchTab === 'function' ? switchTab : null;
+switchTab = function(tab) {
+    if (_switchTabV12Base) _switchTabV12Base(tab);
+    setTimeout(() => {
+        if (tab === 'dash') { renderizarFavoritosPanel(); renderizarAlertasPanel(); }
+        aplicarCompactModeSalvo();
+    }, 0);
+};
+
+(function initMelhoriasV12(){
+    carregarFavoritos(); aplicarCompactModeSalvo();
+    ['salvarObservacao','salvarDistribuicaoNoServidor','salvarSenha','salvarAviso','registrarAtividadeRealizada'].forEach(fn => wrapAsyncSaveFunction(fn, 'Salvando no banco de dados...', 'Salvo com sucesso'));
+    setTimeout(() => { renderizarFavoritosPanel(); renderizarAlertasPanel(); }, 800);
+})();
 
 </script>
 
