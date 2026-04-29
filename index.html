@@ -834,6 +834,22 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-3 gap-2 mb-4" id="monitor-cards"></div><div id="monitorRanking" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4"></div>
+                    <div class="white-card p-4 mb-4 border border-emerald-100 bg-emerald-50/30">
+                        <div class="flex justify-between items-center gap-2 mb-3 flex-wrap">
+                            <div>
+                                <h4 class="text-[10px] font-black text-emerald-700 uppercase tracking-wider">Tarefas realizadas fora do sorteio</h4>
+                                <p class="text-[9px] text-slate-500">Atividades concluídas diretamente no Painel ou em outras abas também contam para o usuário que salvou.</p>
+                            </div>
+                            <button onclick="carregarTarefasMonitorGeral()" class="btn-mini text-emerald-700 border-emerald-200 bg-white text-[8px] py-1 px-2">Atualizar</button>
+                        </div>
+                        <div id="monitor-extra-cards" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3"></div>
+                        <div class="scroll-container">
+                            <table class="w-full text-left">
+                                <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Cliente</th><th>Documento</th><th>Origem</th></tr></thead>
+                                <tbody id="monitor-extra-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <h4 id="monitor-chart-title" class="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Tarefas Concluídas</h4>
@@ -1867,6 +1883,7 @@
                     enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar),
                     registrarLog(`Alteração: ${selectedOption}`, cliente, c, `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorParaSalvar),
                     salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption),
+                    registrarTarefaMonitorGeral(r, c, valorAnterior, valorParaSalvar, observacao),
                     registrarDesempenhoMonitor()
                 ]);
 
@@ -1882,6 +1899,35 @@
                 loadingOverlay.style.display = 'none';
                 showNotification('Erro: ' + error.message, true);
             }
+        }
+
+
+        // ============================================
+        // REGISTRO GERAL PARA O MONITOR
+        // ============================================
+        function tarefaEstaNoSorteio(rowIndex, documento) {
+            const colaboradoresParaVerificar = ['Jordan', 'Sirlene', 'Ingrid'];
+            for (const colab of colaboradoresParaVerificar) {
+                const tarefas = distribuicaoAtual[colab] || [];
+                const tarefaEncontrada = tarefas.find(t => t.rowIndex === rowIndex && t.documento === documento);
+                if (tarefaEncontrada) return colab;
+            }
+            return null;
+        }
+
+        async function registrarTarefaMonitorGeral(rowIndex, documento, valorAnterior, valorNovo, observacao) {
+            try {
+                const cliente = rawData[rowIndex]?.CLIENTE || '';
+                const colaboradorSorteio = tarefaEstaNoSorteio(rowIndex, documento);
+                const origem = colaboradorSorteio ? `Sorteio de ${colaboradorSorteio}` : 'Fora do sorteio';
+                await supabaseClient.from('logs_sistema').insert([{
+                    usuario: currentUser,
+                    acao: 'Tarefa contabilizada no monitor',
+                    cliente: cliente,
+                    documento: documento,
+                    detalhes: `${origem} | Usuário responsável pela execução: ${currentUser} | De "${valorAnterior}" para "${valorNovo}"${observacao ? ' | Obs: ' + observacao : ''}`
+                }]);
+            } catch(e) { console.warn('Erro ao registrar tarefa geral no monitor:', e); }
         }
 
         // ============================================
@@ -3049,6 +3095,24 @@
                     agrupado[c] = { total: 0, concluidas: 0, registros: 0 };
                 });
                 
+                let tarefasGeraisMonitor = [];
+                try {
+                    const { data: logsMonitor, error: logsMonitorError } = await supabaseClient
+                        .from('logs_sistema')
+                        .select('*')
+                        .eq('acao', 'Tarefa contabilizada no monitor')
+                        .gte('created_at', dataInicio + 'T00:00:00')
+                        .order('created_at', { ascending: false });
+                    if (!logsMonitorError) tarefasGeraisMonitor = logsMonitor || [];
+                } catch(e) { console.warn('Não foi possível carregar tarefas gerais do monitor:', e); }
+
+                const contagemGeralPorUsuario = {};
+                tarefasGeraisMonitor.forEach(log => {
+                    const usuario = log.usuario || '';
+                    if (!contagemGeralPorUsuario[usuario]) contagemGeralPorUsuario[usuario] = 0;
+                    contagemGeralPorUsuario[usuario]++;
+                });
+
                 // SE FOR DIÁRIO, USA OS DADOS EM TEMPO REAL DO PAINEL
                 if (monitorPeriodoAtual === 'diario') {
                     ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
@@ -3071,6 +3135,14 @@
                         }
                     });
                 }
+
+                ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                    const extras = contagemGeralPorUsuario[colab] || 0;
+                    if (extras > 0) {
+                        agrupado[colab].concluidas += extras;
+                        agrupado[colab].total += extras;
+                    }
+                });
 
                 const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
                 const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8' };
@@ -3636,6 +3708,73 @@ switchTab = function(tab) {
     ['salvarObservacao','salvarDistribuicaoNoServidor','salvarSenha','salvarAviso','registrarAtividadeRealizada'].forEach(fn => wrapAsyncSaveFunction(fn, 'Salvando no banco de dados...', 'Salvo com sucesso'));
     setTimeout(() => { renderizarFavoritosPanel(); renderizarAlertasPanel(); }, 800);
 })();
+
+
+
+// ============================================
+// MONITOR - TAREFAS REALIZADAS FORA DO SORTEIO
+// ============================================
+async function carregarTarefasMonitorGeral() {
+    const body = document.getElementById('monitor-extra-body');
+    const cards = document.getElementById('monitor-extra-cards');
+    if (!body || !cards) return;
+
+    const hoje = new Date();
+    let dataInicio;
+    if (monitorPeriodoAtual === 'diario') dataInicio = hoje.toISOString().slice(0, 10);
+    else if (monitorPeriodoAtual === 'semanal') { const d = new Date(hoje); d.setDate(d.getDate() - 6); dataInicio = d.toISOString().slice(0, 10); }
+    else { const d = new Date(hoje); d.setDate(d.getDate() - 29); dataInicio = d.toISOString().slice(0, 10); }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('logs_sistema')
+            .select('*')
+            .eq('acao', 'Tarefa contabilizada no monitor')
+            .gte('created_at', dataInicio + 'T00:00:00')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        const logs = data || [];
+        const nomes = ['Jordan','Sirlene','Ingrid'];
+        const porUsuario = {};
+        nomes.forEach(n => porUsuario[n] = { total: 0, fora: 0, sorteio: 0 });
+        logs.forEach(l => {
+            const usuario = l.usuario || '-';
+            if (!porUsuario[usuario]) porUsuario[usuario] = { total: 0, fora: 0, sorteio: 0 };
+            porUsuario[usuario].total++;
+            if (String(l.detalhes || '').includes('Fora do sorteio')) porUsuario[usuario].fora++;
+            else porUsuario[usuario].sorteio++;
+        });
+        cards.innerHTML = nomes.map(nome => {
+            const d = porUsuario[nome] || { total:0, fora:0, sorteio:0 };
+            return `<div class="mini-kpi bg-white"><strong>${nome}</strong><span>${d.total} realizadas • ${d.fora} fora do sorteio • ${d.sorteio} do sorteio</span></div>`;
+        }).join('');
+        if (!logs.length) {
+            body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma tarefa contabilizada no período.</td></tr>';
+            return;
+        }
+        body.innerHTML = logs.slice(0, 80).map(l => {
+            const dt = new Date(l.created_at);
+            const origem = String(l.detalhes || '').includes('Fora do sorteio') ? 'Fora do sorteio' : 'Sorteio';
+            const origemClass = origem === 'Fora do sorteio' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            return `<tr>
+                <td class="font-mono text-[10px] text-slate-500">${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
+                <td class="font-bold text-slate-700">${escapeHtml(l.usuario || '-')}</td>
+                <td class="font-bold text-slate-700">${escapeHtml(l.cliente || '-')}</td>
+                <td class="text-xs text-emerald-600 font-bold">${escapeHtml(l.documento || '-')}</td>
+                <td><span class="px-2 py-1 rounded-full border text-[8px] font-black uppercase ${origemClass}">${origem}</span></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        console.error('Erro ao carregar tarefas gerais do monitor:', e);
+        body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400">Erro ao carregar tarefas contabilizadas.</td></tr>';
+    }
+}
+
+const _carregarMonitorComTarefasGerais = typeof carregarMonitor === 'function' ? carregarMonitor : null;
+carregarMonitor = async function() {
+    if (_carregarMonitorComTarefasGerais) await _carregarMonitorComTarefasGerais();
+    await carregarTarefasMonitorGeral();
+};
 
 </script>
 
