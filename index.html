@@ -294,6 +294,12 @@
         .empresas-row:hover { background:#f8fafc; }
         .parcelamento-qty-select { width:100%; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 12px; font-size:12px; font-weight:800; color:#334155; background:white; outline:none; }
         .parcelamento-qty-select:focus { border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.12); }
+        .empresas-setor-active { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important; color:#1e3a8a !important; border-color:#93c5fd !important; box-shadow:0 8px 18px -14px rgba(37,99,235,.55); transform:translateY(-1px); }
+        .pgdas-status-pill { display:inline-flex; align-items:center; justify-content:center; gap:4px; min-width:86px; padding:4px 10px; border-radius:999px; font-size:9px; font-weight:900; text-transform:uppercase; }
+        .pgdas-status-pill.enviado { background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .pgdas-status-pill.nao-enviado { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
+        .pgdas-action-selected { background:#dbeafe !important; border-color:#3b82f6 !important; color:#1d4ed8 !important; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+
 
         .kpi-card { background:white; border:1px solid #e2e8f0; border-radius:14px; padding:14px; transition:all .2s ease; }
         .kpi-card:hover { transform:translateY(-2px); box-shadow:0 10px 18px -12px rgba(15,23,42,.35); }
@@ -936,7 +942,7 @@
                     <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, setor, status, quantidade ou observação..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>STATUS</th><th>QTD.</th><th>ÚLTIMA OBSERVAÇÃO</th><th>AÇÕES</th></tr></thead>
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>STATUS</th><th>QTD.</th><th>PGDAS</th><th>ÚLTIMA OBSERVAÇÃO</th><th>AÇÕES</th></tr></thead>
                             <tbody id="empresasParcelamentosBody"></tbody>
                         </table>
                     </div>
@@ -1409,6 +1415,9 @@
         let empresasParcelamentosFiltro = 'todos';
         let empresasParcelamentosQuantidadeFiltro = '';
         let empresasParcelamentosSetorFiltro = '';
+        let pgdasStatusMensal = {};
+        let pgdasCompetenciaAtual = getCompetenciaPGDAS();
+        let pgdasStatusCarregado = false;
         let historicoParcelamentosCarregado = false;
         let commActiveDoc = null, commActiveStatus = null;
         let currentEditTarget = {};
@@ -2830,10 +2839,9 @@
                 const card = document.getElementById('emp-parc-card-setor-' + st);
                 [btn, card].forEach(el => {
                     if (!el) return;
-                    el.classList.remove('empresas-filter-active', 'bg-indigo-600', 'bg-blue-600');
+                    el.classList.remove('empresas-filter-active', 'bg-indigo-600', 'bg-blue-600', 'empresas-setor-active');
                     if (empresasParcelamentosSetorFiltro === st) {
-                        el.classList.add('empresas-filter-active');
-                        el.classList.add(st === '2' ? 'bg-indigo-600' : 'bg-blue-600');
+                        el.classList.add('empresas-setor-active');
                     }
                 });
             });
@@ -2910,11 +2918,100 @@
             }
         }
 
+
+        function getCompetenciaPGDAS() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function getPGDASKey(rowOrCliente, cnpj = '') {
+            const cliente = typeof rowOrCliente === 'object' ? (rowOrCliente.CLIENTE || '') : (rowOrCliente || '');
+            const cnpjVal = typeof rowOrCliente === 'object' ? (rowOrCliente.CNPJ || '') : (cnpj || '');
+            return `${String(cliente).trim().toLowerCase()}|${String(cnpjVal).replace(/\D/g, '')}`;
+        }
+
+        function getPGDASStatus(row) {
+            const status = pgdasStatusMensal[getPGDASKey(row)] || row?.PGDAS || row?.['PGDAS'] || '';
+            return String(status || '').toLowerCase().includes('enviado') && !String(status || '').toLowerCase().includes('não') && !String(status || '').toLowerCase().includes('nao') ? 'enviado' : 'nao_enviado';
+        }
+
+        function renderPGDASStatusPill(row) {
+            const status = getPGDASStatus(row);
+            if (status === 'enviado') return '<span class="pgdas-status-pill enviado">Enviado</span>';
+            return '<span class="pgdas-status-pill nao-enviado">Não enviado</span>';
+        }
+
+        async function carregarPGDASMensalSilencioso() {
+            const competencia = getCompetenciaPGDAS();
+            if (pgdasStatusCarregado && pgdasCompetenciaAtual === competencia) return;
+            pgdasCompetenciaAtual = competencia;
+            pgdasStatusMensal = {};
+            try {
+                const { data, error } = await supabaseClient
+                    .from('pgdas_status_mensal')
+                    .select('*')
+                    .eq('competencia', competencia);
+                if (error) throw error;
+                (data || []).forEach(item => {
+                    const key = getPGDASKey(item.cliente, item.cnpj);
+                    pgdasStatusMensal[key] = String(item.status || '').toLowerCase().includes('enviado') ? 'enviado' : 'nao_enviado';
+                });
+                pgdasStatusCarregado = true;
+                if (!document.getElementById('view-empresasparcelamentos')?.classList.contains('hidden')) renderEmpresasParcelamentos();
+            } catch (e) {
+                console.warn('Não foi possível carregar PGDAS mensal. Verifique se a tabela pgdas_status_mensal existe no Supabase:', e);
+                pgdasStatusCarregado = true;
+            }
+        }
+
+        async function salvarPGDASMensal(row, status, observacao = '') {
+            const competencia = getCompetenciaPGDAS();
+            const cliente = row.CLIENTE || '';
+            const cnpj = row.CNPJ || '';
+            const statusNormalizado = status === 'enviado' ? 'enviado' : 'nao_enviado';
+            const payload = {
+                cliente,
+                cnpj,
+                competencia,
+                status: statusNormalizado,
+                observacao: observacao || null,
+                usuario: currentUser || 'Sistema',
+                updated_at: new Date().toISOString()
+            };
+            const key = getPGDASKey(row);
+            pgdasStatusMensal[key] = statusNormalizado;
+            try {
+                const { error } = await supabaseClient
+                    .from('pgdas_status_mensal')
+                    .upsert([payload], { onConflict: 'cliente,cnpj,competencia' });
+                if (error) throw error;
+            } catch (e) {
+                console.error('Erro ao salvar PGDAS mensal:', e);
+                throw e;
+            }
+        }
+
+        function selecionarAcaoPGDAS() {
+            selectedOption = 'pgdas';
+            const cardPGDAS = document.getElementById('option-pgdas');
+            const cardParcelamento = document.getElementById('option-parcelamento');
+            const boxPGDAS = document.getElementById('pgdasStatusContainer');
+            const boxParcelamento = document.getElementById('parcelamentoQuantidadeContainer');
+            if (cardPGDAS) cardPGDAS.classList.add('pgdas-action-selected');
+            if (cardParcelamento) cardParcelamento.classList.remove('option-selected');
+            if (boxPGDAS) boxPGDAS.classList.remove('hidden');
+            if (boxParcelamento) boxParcelamento.classList.add('hidden');
+        }
+
         function abrirListaParcelamento() {
             selectedOption = 'parcelamento';
             const card = document.getElementById('option-parcelamento');
             const box = document.getElementById('parcelamentoQuantidadeContainer');
             if (card) card.classList.add('option-selected');
+            const pgdasCard = document.getElementById('option-pgdas');
+            const pgdasBox = document.getElementById('pgdasStatusContainer');
+            if (pgdasCard) pgdasCard.classList.remove('pgdas-action-selected');
+            if (pgdasBox) pgdasBox.classList.add('hidden');
             if (box) box.classList.remove('hidden');
         }
 
@@ -2942,15 +3039,29 @@
                 ${ultimaObs ? `<div class="mb-2 bg-amber-50 border border-amber-100 rounded-lg p-2"><div class="text-[8px] font-black text-amber-700 uppercase mb-1">Última observação</div><div class="text-[10px] text-slate-700">${escapeHtml(ultimaObs.observacao || '')}</div></div>` : ''}
                 <div>
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Informação</label>
-                    <div id="option-parcelamento" onclick="abrirListaParcelamento()" class="option-card bg-sky-50 border-2 border-sky-200 rounded-lg p-3 text-center cursor-pointer hover:bg-sky-100 transition">
-                        <div class="text-lg mb-1">📄</div>
-                        <div class="text-[9px] font-black text-sky-700 uppercase">Parcelamento</div>
-                        <div class="text-[8px] text-sky-500 mt-0.5">Selecionar quantidade</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div id="option-parcelamento" onclick="abrirListaParcelamento()" class="option-card bg-sky-50 border-2 border-sky-200 rounded-lg p-3 text-center cursor-pointer hover:bg-sky-100 transition">
+                            <div class="text-lg mb-1">📄</div>
+                            <div class="text-[9px] font-black text-sky-700 uppercase">Parcelamento</div>
+                            <div class="text-[8px] text-sky-500 mt-0.5">Selecionar quantidade</div>
+                        </div>
+                        <div id="option-pgdas" onclick="selecionarAcaoPGDAS()" class="option-card bg-blue-50 border-2 border-blue-200 rounded-lg p-3 text-center cursor-pointer hover:bg-blue-100 transition">
+                            <div class="text-lg mb-1">📨</div>
+                            <div class="text-[9px] font-black text-blue-700 uppercase">PGDAS</div>
+                            <div class="text-[8px] text-blue-500 mt-0.5">Marcar como enviado</div>
+                        </div>
                     </div>
                 </div>
                 <div id="parcelamentoQuantidadeContainer" class="${quantidadeAtual ? '' : 'hidden'} mt-3">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Quantidade de parcelamento</label>
                     <select id="parcelamentoQuantidade" class="parcelamento-qty-select">${opcoes}</select>
+                </div>
+                <div id="pgdasStatusContainer" class="hidden mt-3">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Status PGDAS da competência ${pgdasCompetenciaAtual}</label>
+                    <select id="pgdasStatusSelect" class="parcelamento-qty-select">
+                        <option value="enviado" selected>Enviado</option>
+                    </select>
+                    <div class="mt-1 text-[8px] text-slate-400 font-bold">Empresas sem atualização no mês aparecem automaticamente como Não enviado.</div>
                 </div>
                 <div class="mt-2">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Observação <span class="text-slate-300 font-normal normal-case">(opcional)</span></label>
@@ -2972,17 +3083,46 @@
         async function saveParcelamentoInfo() {
             const { r, c } = currentEditTarget || {};
             if (r === undefined || !rawData[r]) return;
-            if (selectedOption !== 'parcelamento') { showNotification('Selecione Parcelamento para abrir a lista', true); return; }
+            const row = rawData[r];
+            const cliente = row.CLIENTE;
+            const observacao = document.getElementById('modalObservacao')?.value || '';
+
+            if (selectedOption === 'pgdas') {
+                const valorParaSalvar = document.getElementById('pgdasStatusSelect')?.value || 'enviado';
+                const valorAnterior = getPGDASStatus(row) === 'enviado' ? 'Enviado' : 'Não enviado';
+                const valorNovo = valorParaSalvar === 'enviado' ? 'Enviado' : 'Não enviado';
+                row.PGDAS = valorNovo;
+                pgdasStatusMensal[getPGDASKey(row)] = valorParaSalvar === 'enviado' ? 'enviado' : 'nao_enviado';
+                renderEmpresasParcelamentos();
+                closeModal();
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                loadingOverlay.style.display = 'flex';
+                try {
+                    await Promise.all([
+                        salvarPGDASMensal(row, valorParaSalvar, observacao),
+                        registrarLog('PGDAS mensal', cliente, 'PGDAS', `Competência ${getCompetenciaPGDAS()}: alterado de "${valorAnterior}" para "${valorNovo}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorNovo),
+                        salvarObservacao(cliente, 'PGDAS', observacao || `PGDAS da competência ${getCompetenciaPGDAS()} marcado como ${valorNovo}`, valorNovo)
+                    ]);
+                    historicoParcelamentosCarregado = false;
+                    await carregarHistoricoParcelamentosSilencioso();
+                    loadingOverlay.style.display = 'none';
+                    showNotificationOnce(`✅ ${cliente} - PGDAS marcado como ${valorNovo}!`, false, `${cliente}-pgdas-${getCompetenciaPGDAS()}`);
+                } catch (error) {
+                    loadingOverlay.style.display = 'none';
+                    showNotification('Erro ao salvar PGDAS: ' + error.message, true);
+                }
+                return;
+            }
+
+            if (selectedOption !== 'parcelamento') { showNotification('Selecione Parcelamento ou PGDAS', true); return; }
             const quantidade = document.getElementById('parcelamentoQuantidade')?.value;
             if (!quantidade) { showNotification('Selecione a quantidade de parcelamento', true); return; }
 
-            const cliente = rawData[r].CLIENTE;
-            const valorAnterior = rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : (rawData[r][c] || 'vazio');
-            const statusPrefix = getParcelamentoStatusPrefix(rawData[r][c]);
+            const valorAnterior = row[c] instanceof Date ? row[c].toLocaleDateString('pt-BR') : (row[c] || 'vazio');
+            const statusPrefix = getParcelamentoStatusPrefix(row[c]);
             const valorParaSalvar = `${statusPrefix} - PARCELAMENTO ${quantidade}`;
-            const observacao = document.getElementById('modalObservacao')?.value || '';
 
-            rawData[r][c] = valorParaSalvar;
+            row[c] = valorParaSalvar;
             renderEmpresasParcelamentos();
             atualizarResumoParcelamentos();
             if (!document.getElementById('view-dash')?.classList.contains('hidden')) renderTable();
@@ -3009,6 +3149,7 @@
         }
 
         function renderEmpresasParcelamentos() {
+            if (!pgdasStatusCarregado) carregarPGDASMensalSilencioso();
             const tbody = document.getElementById('empresasParcelamentosBody');
             const counter = document.getElementById('empresasParcelamentosCounter');
             if (!tbody) return;
@@ -3021,12 +3162,12 @@
                 .filter(item => empresasParcelamentosSetorFiltro ? item.setor === empresasParcelamentosSetorFiltro : true)
                 .filter(item => {
                     const ultimaObs = getUltimaObservacaoParcelamento(item.row.CLIENTE);
-                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.SETOR || ''} ${getSetorParcelamentosLabel(item.row.SETOR)} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${ultimaObs?.observacao || ''}`.toLowerCase();
+                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.SETOR || ''} ${getSetorParcelamentosLabel(item.row.SETOR)} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${getPGDASStatus(item.row)} ${ultimaObs?.observacao || ''}`.toLowerCase();
                     return !q || texto.includes(q);
                 });
             if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
             if (!linhas.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
                 return;
             }
             tbody.innerHTML = linhas.map(item => {
@@ -3043,6 +3184,7 @@
                     <td><span class="parcelamento-status-pill sem-status">${escapeHtml(getSetorParcelamentosLabel(row.SETOR))}</span></td>
                     <td><span class="parcelamento-status-pill ${status}">${statusLabel}</span><span class="ml-2 text-[10px] text-slate-500">${escapeHtml(valor)}</span></td>
                     <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
+                    <td>${renderPGDASStatusPill(row)}</td>
                     <td><span class="last-obs-chip" title="${escapeAttr(ultimaObs?.observacao || '')}">${obsTexto}</span></td>
                     <td><button onclick="event.stopPropagation(); openParcelamentoInfoModal(${item.index})" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Informações</button></td>
                 </tr>`;
@@ -3085,7 +3227,7 @@
                 carregarLogs();
             }
             if (tab === 'historico') carregarHistorico();
-            if (tab === 'empresasparcelamentos') { renderEmpresasParcelamentos(); carregarHistoricoParcelamentosSilencioso(); }
+            if (tab === 'empresasparcelamentos') { carregarPGDASMensalSilencioso(); renderEmpresasParcelamentos(); carregarHistoricoParcelamentosSilencioso(); }
             if (tab === 'financeiro') {
                 if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
                 carregarFinanceiro();
