@@ -357,6 +357,101 @@
         @keyframes postitPop { from { opacity:0; transform:translateY(-8px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
         @media (max-width:768px) { #postitFloating { left:12px !important; right:12px !important; top:86px !important; width:auto; height:52vh; } }
 
+
+        /* Melhorias da tela de login - v1.5 */
+        .login-card-modern {
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.55);
+            border-radius: 26px;
+            box-shadow: 0 24px 70px rgba(15,23,42,0.28), inset 0 1px 0 rgba(255,255,255,0.65);
+            position: relative;
+            z-index: 2;
+            overflow: hidden;
+        }
+        .login-card-modern::before {
+            content: '';
+            position: absolute;
+            inset: -90px -90px auto auto;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(16,185,129,.20), transparent 68%);
+            pointer-events: none;
+        }
+        .login-card-modern::after {
+            content: '';
+            position: absolute;
+            inset: auto auto -110px -90px;
+            width: 210px;
+            height: 210px;
+            background: radial-gradient(circle, rgba(59,130,246,.13), transparent 68%);
+            pointer-events: none;
+        }
+        .login-step-panel { position: relative; z-index: 1; animation: loginFadeUp .34s cubic-bezier(.2,.8,.2,1); }
+        @keyframes loginFadeUp { from { opacity:0; transform: translateY(10px) scale(.985); } to { opacity:1; transform: translateY(0) scale(1); } }
+        @keyframes loginShake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+        .login-shake { animation: loginShake .38s ease both; }
+        .login-avatar {
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ecfdf5, #dbeafe);
+            border: 1px solid rgba(16,185,129,.22);
+            color: #047857;
+            font-weight: 900;
+            letter-spacing: -.03em;
+            box-shadow: 0 10px 22px rgba(15,23,42,.08);
+        }
+        .login-password-wrap { transition: all .2s ease; }
+        .login-password-wrap:focus-within { transform: translateY(-1px); }
+        .login-password-wrap:focus-within input { box-shadow: 0 0 0 4px rgba(16,185,129,.12); }
+        .login-input-error { border-color: #fb7185 !important; box-shadow: 0 0 0 4px rgba(251,113,133,.14) !important; }
+        .login-error-box {
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            color: #be123c;
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            text-align: left;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .login-submit-btn { position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(16,185,129,.22); }
+        .login-submit-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,.28), transparent);
+            transform: translateX(-110%);
+            transition: transform .55s ease;
+        }
+        .login-submit-btn:hover::after { transform: translateX(110%); }
+        .login-submit-btn.loading { pointer-events: none; opacity: .86; }
+        .login-submit-btn.loading .login-btn-label { opacity: 0; }
+        .login-submit-btn .login-btn-loading {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .login-submit-btn.loading .login-btn-loading { display: flex; }
+        .login-mini-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.45); border-top-color: white; border-radius: 999px; animation: spin .75s linear infinite; }
+        .login-hint { background: rgba(241,245,249,.72); border: 1px solid rgba(226,232,240,.9); border-radius: 12px; padding: 9px 10px; }
+        @media (max-width: 520px) {
+            .login-card-modern { border-radius: 22px; margin: 14px; }
+            .login-buttons-row { gap: 7px; }
+            .login-btn-item { min-width: 118px; justify-content: center; }
+        }
+
     </style>
 </head>
 <body>
@@ -369,12 +464,12 @@
 
     <!-- TELA DE LOGIN COM SENHA -->
     <div id="login-screen">
-        <div class="p-6 max-w-sm w-full mx-4 text-center" style="background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); position: relative; z-index: 2;">
+        <div id="login-card" class="login-card-modern p-7 max-w-sm w-full mx-4 text-center">
             <div class="brand-name text-3xl justify-center mb-2"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
             <p class="text-slate-500 text-xs mb-6 uppercase tracking-wide">Acesso ao sistema</p>
             
             <!-- Seleção de usuário -->
-            <div id="login-step-1">
+            <div id="login-step-1" class="login-step-panel">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-4">Selecione seu perfil</p>
                 <div class="login-buttons-row mb-6">
                     <button onclick="selecionarUsuario('Nikolas')" class="login-btn-item">
@@ -405,12 +500,13 @@
             </div>
 
             <!-- Inserção de senha -->
-            <div id="login-step-2" class="hidden">
+            <div id="login-step-2" class="hidden login-step-panel">
+                <div class="mb-3"><div id="login-avatar" class="login-avatar">--</div></div>
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Bem-vindo(a), <span id="login-nome-exibido" class="text-emerald-600"></span></p>
-                <p class="text-[10px] text-slate-400 mb-4">Digite sua senha para continuar</p>
-                <div class="relative mb-4">
-                    <input type="password" id="login-senha-input" placeholder="Senha" 
-                        class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none"
+                <div class="login-hint text-[10px] text-slate-500 mb-4">Digite sua senha para continuar. Pressione <b>Enter</b> para acessar.</div>
+                <div class="relative mb-4 login-password-wrap">
+                    <input type="password" id="login-senha-input" placeholder="Senha" autocomplete="current-password"
+                        class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 pr-12 text-sm text-center font-bold focus:border-emerald-500 focus:outline-none transition"
                         onkeydown="if(event.key==='Enter') confirmarLogin()">
                     <button type="button" onclick="toggleSenhaVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors text-lg">
                         <span id="senha-eye-icon">👁️</span>
@@ -420,10 +516,10 @@
                     <input type="checkbox" id="salvar-senha-check" class="w-4 h-4 rounded border-slate-300 cursor-pointer">
                     <label for="salvar-senha-check" class="text-xs text-slate-600 cursor-pointer">Lembrar minha senha</label>
                 </div>
-                <div id="login-erro" class="text-red-500 text-xs mb-3 hidden">Senha incorreta. Tente novamente.</div>
+                <div id="login-erro" class="login-error-box mb-3 hidden"><span>⚠️</span><span id="login-erro-text">Senha incorreta. Tente novamente.</span></div>
                 <div class="flex gap-3">
                     <button onclick="voltarLogin()" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Voltar</button>
-                    <button onclick="confirmarLogin()" class="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600 transition">Entrar</button>
+                    <button id="login-entrar-btn" onclick="confirmarLogin()" class="login-submit-btn flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600 transition"><span class="login-btn-label">Entrar</span><span class="login-btn-loading"><span class="login-mini-spinner"></span>Entrando...</span></button>
                 </div>
             </div>
 
@@ -1117,6 +1213,10 @@
         let selectedOption = null;
         let currentUser = "";
         let usuarioSelecionado = "";
+        let loginTentativas = {};
+        let loginBloqueios = {};
+        const LOGIN_MAX_TENTATIVAS = 5;
+        const LOGIN_BLOQUEIO_MS = 60000;
         
         let distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
         
@@ -1355,21 +1455,55 @@
             }
         });
 
+        function loginIniciais(nome) {
+            return (nome || '').split(/\s+/).map(p => p[0]).join('').substring(0, 2).toUpperCase();
+        }
+
+        function setLoginLoading(ativo) {
+            const btn = document.getElementById('login-entrar-btn');
+            if (!btn) return;
+            btn.classList.toggle('loading', !!ativo);
+            btn.disabled = !!ativo;
+        }
+
+        function mostrarErroLogin(mensagem) {
+            const erro = document.getElementById('login-erro');
+            const texto = document.getElementById('login-erro-text');
+            const input = document.getElementById('login-senha-input');
+            const card = document.getElementById('login-card');
+            if (texto) texto.innerText = mensagem || 'Não foi possível entrar. Tente novamente.';
+            if (erro) erro.classList.remove('hidden');
+            if (input) input.classList.add('login-input-error');
+            if (card) {
+                card.classList.remove('login-shake');
+                void card.offsetWidth;
+                card.classList.add('login-shake');
+            }
+        }
+
+        function limparErroLogin() {
+            const erro = document.getElementById('login-erro');
+            const input = document.getElementById('login-senha-input');
+            if (erro) erro.classList.add('hidden');
+            if (input) input.classList.remove('login-input-error');
+        }
+
         function selecionarUsuario(nome) {
             usuarioSelecionado = nome;
-            
-            // Animação suave de seleção do usuário
-            const btn = event.currentTarget;
-            btn.classList.add('active');
-            
+            const btn = event && event.currentTarget ? event.currentTarget : null;
+            if (btn) btn.classList.add('active');
+
             setTimeout(() => {
                 document.getElementById('login-step-1').classList.add('hidden');
                 document.getElementById('login-step-2').classList.remove('hidden');
                 document.getElementById('login-nome-exibido').innerText = nome;
-                document.getElementById('login-erro').classList.add('hidden');
+                const avatar = document.getElementById('login-avatar');
+                if (avatar) avatar.innerText = loginIniciais(nome);
+                limparErroLogin();
+                setLoginLoading(false);
                 carregarSenhaLocalStorage(nome);
                 setTimeout(() => document.getElementById('login-senha-input').focus(), 100);
-                btn.classList.remove('active');
+                if (btn) btn.classList.remove('active');
             }, 520);
         }
 
@@ -1377,20 +1511,60 @@
             document.getElementById('login-step-1').classList.remove('hidden');
             document.getElementById('login-step-2').classList.add('hidden');
             usuarioSelecionado = '';
+            limparErroLogin();
+            setLoginLoading(false);
         }
 
         function confirmarLogin() {
-            const senhaDigitada = document.getElementById('login-senha-input').value;
+            const input = document.getElementById('login-senha-input');
+            const senhaDigitada = input ? input.value : '';
             const senhaCorreta = USUARIOS_SENHAS[usuarioSelecionado];
-            if (senhaDigitada === senhaCorreta) {
-                document.getElementById('login-erro').classList.add('hidden');
-                salvarSenhaLocalStorage();
-                login(usuarioSelecionado);
-            } else {
-                document.getElementById('login-erro').classList.remove('hidden');
-                document.getElementById('login-senha-input').value = '';
-                document.getElementById('login-senha-input').focus();
+            const agora = Date.now();
+            const bloqueadoAte = loginBloqueios[usuarioSelecionado] || 0;
+
+            if (!usuarioSelecionado) {
+                mostrarErroLogin('Selecione um usuário para continuar.');
+                return;
             }
+            if (bloqueadoAte > agora) {
+                const segundos = Math.ceil((bloqueadoAte - agora) / 1000);
+                mostrarErroLogin(`Muitas tentativas. Aguarde ${segundos}s para tentar novamente.`);
+                return;
+            }
+            if (!senhaDigitada) {
+                mostrarErroLogin('Digite sua senha para entrar.');
+                if (input) input.focus();
+                return;
+            }
+
+            limparErroLogin();
+            setLoginLoading(true);
+
+            setTimeout(() => {
+                if (senhaDigitada === senhaCorreta) {
+                    loginTentativas[usuarioSelecionado] = 0;
+                    loginBloqueios[usuarioSelecionado] = 0;
+                    limparErroLogin();
+                    salvarSenhaLocalStorage();
+                    login(usuarioSelecionado);
+                    setLoginLoading(false);
+                } else {
+                    loginTentativas[usuarioSelecionado] = (loginTentativas[usuarioSelecionado] || 0) + 1;
+                    const restantes = LOGIN_MAX_TENTATIVAS - loginTentativas[usuarioSelecionado];
+                    if (loginTentativas[usuarioSelecionado] >= LOGIN_MAX_TENTATIVAS) {
+                        loginBloqueios[usuarioSelecionado] = Date.now() + LOGIN_BLOQUEIO_MS;
+                        loginTentativas[usuarioSelecionado] = 0;
+                        mostrarErroLogin('Muitas tentativas incorretas. Acesso bloqueado por 1 minuto.');
+                    } else {
+                        mostrarErroLogin(restantes > 1 ? `Senha incorreta. Restam ${restantes} tentativas.` : 'Senha incorreta. Resta 1 tentativa.');
+                    }
+                    setLoginLoading(false);
+                    if (input) {
+                        input.value = '';
+                        input.focus();
+                    }
+                }
+            }, 420);
         }
 
         function login(userName, isAuto = false) {
