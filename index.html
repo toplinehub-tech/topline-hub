@@ -2190,6 +2190,7 @@
                     const registro = data[0];
                     const dados = registro.dados;
                     const status = registro.status;
+                    window.statusDistribuicaoAtual = status;
                     const dataRegistro = registro.data;
                     const distribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
                     if (dados && dados.J) {
@@ -2382,7 +2383,7 @@
             if (valorParaSalvar !== null) {
                 if (selectedOption === 'data') rawData[r][c] = new Date(valorParaSalvar + "T12:00:00");
                 else rawData[r][c] = valorParaSalvar;
-                rawData[r][c + "_DONE"] = false;
+                rawData[r][c + "_DONE"] = true;
                 renderTable();
             }
 
@@ -4961,4 +4962,133 @@ renderizarTarefas = function() {
     });
 };
 
+
+/* ==========================================================
+   PATCH v2.6 - Contagem real de pendencias e monitor unico
+   ========================================================== */
+(function(){
+    function getStatusDistribuicaoAtualSeguro(){
+        return window.statusDistribuicaoAtual || 'atual';
+    }
+
+    window.isTarefaPendente = function(rowIndex, documento) {
+        const linha = rawData[rowIndex];
+        if (!linha || !documento) return false;
+        if (linha[documento + '_DONE'] === true) return false;
+        const statusCalc = getStatus(linha[documento], linha, documento);
+        if (['concluido','analise','andamento','ok'].includes(statusCalc)) return false;
+        const valor = valorTarefaNormalizado(rowIndex, documento);
+        if (!valor) return false;
+        if (['OK','CONCLUIDO','CONCLUIDA','CONCLUIDO','CONCLUIDA','ANALISE','EM ANDAMENTO'].includes(valor)) return false;
+        return true;
+    };
+
+    window.tarefaEstaNoSorteio = function(rowIndex, documento) {
+        const colaboradoresParaVerificar = ['Jordan', 'Sirlene', 'Ingrid'];
+        for (const colab of colaboradoresParaVerificar) {
+            const tarefas = distribuicaoAtual[colab] || [];
+            const tarefaEncontrada = tarefas.find(t => Number(t.rowIndex) === Number(rowIndex) && t.documento === documento);
+            if (tarefaEncontrada) return colab;
+        }
+        return null;
+    };
+
+    window.removerTarefaDaDistribuicao = async function(rowIndex, documento) {
+        let removeu = false;
+        ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+            const tarefas = distribuicaoAtual[colab] || [];
+            const idx = tarefas.findIndex(t => Number(t.rowIndex) === Number(rowIndex) && t.documento === documento);
+            if (idx >= 0) { tarefas.splice(idx, 1); removeu = true; }
+        });
+        if (removeu && typeof salvarDistribuicaoNoServidor === 'function') {
+            try { await salvarDistribuicaoNoServidor(getStatusDistribuicaoAtualSeguro()); }
+            catch(e) { console.warn('Nao foi possivel persistir remocao da tarefa da distribuicao:', e); }
+        }
+        return removeu;
+    };
+
+    window.registrarTarefaMonitorGeral = async function(rowIndex, documento, valorAnterior, valorNovo, observacao, colaboradorSorteioAntes) {
+        try {
+            const cliente = rawData[rowIndex]?.CLIENTE || '';
+            const origem = colaboradorSorteioAntes ? ('Sorteio de ' + colaboradorSorteioAntes) : 'Fora do sorteio';
+            const detalheAlteracao = 'De "' + valorAnterior + '" para "' + valorNovo + '"';
+            const detalhesMonitor = origem + ' | Usuario responsavel pela execucao: ' + currentUser + ' | ' + detalheAlteracao + (observacao ? ' | Obs: ' + observacao : '');
+            const { data: existente, error: erroBusca } = await supabaseClient
+                .from('logs_sistema')
+                .select('id,detalhes')
+                .eq('acao', 'Tarefa contabilizada no monitor')
+                .eq('cliente', cliente)
+                .eq('documento', documento)
+                .limit(100);
+            if (!erroBusca && existente && existente.some(x => String(x.detalhes || '').includes(detalheAlteracao))) {
+                console.log('Monitor: tarefa/alteracao identica ja contabilizada. Ignorando duplicidade.', { cliente, documento, detalheAlteracao });
+                return false;
+            }
+            const { error } = await supabaseClient.from('logs_sistema').insert([{
+                usuario: currentUser,
+                acao: 'Tarefa contabilizada no monitor',
+                cliente: cliente,
+                documento: documento,
+                detalhes: detalhesMonitor
+            }]);
+            if (error) throw error;
+            return true;
+        } catch(e) { console.warn('Erro ao registrar tarefa geral no monitor:', e); return false; }
+    };
+
+    window.saveEdit = async function() {
+        const { r, c } = currentEditTarget;
+        let valorParaSalvar = null;
+        let tipo = selectedOption;
+        if (!selectedOption) { showNotification('Selecione uma opcao (Analise, Andamento ou Data)', true); return; }
+        if (selectedOption === 'analise') valorParaSalvar = 'ANALISE';
+        else if (selectedOption === 'andamento') valorParaSalvar = 'EM ANDAMENTO';
+        else if (selectedOption === 'data') {
+            const dataInput = document.getElementById('dateValue')?.value;
+            if (!dataInput) { showNotification('Selecione uma data', true); return; }
+            valorParaSalvar = dataInput;
+        }
+
+        const observacao = document.getElementById('modalObservacao')?.value || '';
+        const cliente = rawData[r]?.CLIENTE || '';
+        const valorAnterior = rawData[r][c] instanceof Date ? rawData[r][c].toLocaleDateString('pt-BR') : (rawData[r][c] || 'vazio');
+        const estavaPendenteAntes = isTarefaPendente(r, c);
+        const colaboradorSorteioAntes = tarefaEstaNoSorteio(r, c);
+
+        if (selectedOption === 'data') rawData[r][c] = new Date(valorParaSalvar + 'T12:00:00');
+        else rawData[r][c] = valorParaSalvar;
+        rawData[r][c + '_DONE'] = true;
+        renderTable();
+
+        closeModal();
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'flex';
+
+        try {
+            await removerTarefaDaDistribuicao(r, c);
+            renderizarTarefas();
+            await atualizarDashboardDesempenho();
+
+            const ops = [
+                enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar),
+                registrarLog('Alteracao: ' + selectedOption, cliente, c, 'Alterado de "' + valorAnterior + '" para "' + valorParaSalvar + '"' + (observacao ? ' | Obs: ' + observacao : ''), valorAnterior, valorParaSalvar),
+                salvarObservacao(cliente, c, observacao || ('Alterado para ' + valorParaSalvar), selectedOption)
+            ];
+            if (estavaPendenteAntes) {
+                ops.push(registrarTarefaMonitorGeral(r, c, valorAnterior, valorParaSalvar, observacao, colaboradorSorteioAntes));
+                ops.push(registrarDesempenhoMonitor());
+            }
+            await Promise.all(ops);
+
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            showNotificationOnce('✅ ' + cliente + ' - ' + c + ' atualizado!', false, cliente + '-' + c);
+            renderizarTarefas();
+            await atualizarDashboardDesempenho();
+            setTimeout(() => { fetchGoogleSheets(false); }, 500);
+        } catch (error) {
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            showNotification('Erro: ' + error.message, true);
+        }
+    };
+})();
 </script>
