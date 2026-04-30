@@ -2659,21 +2659,31 @@
             updateAnalytics();
         }
 
+        function valorTarefaNormalizado(rowIndex, documento) {
+            const linha = rawData[rowIndex];
+            if (!linha) return '';
+            return String(linha[documento] || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+        }
+
+        function isTarefaPendente(rowIndex, documento) {
+            const valor = valorTarefaNormalizado(rowIndex, documento);
+            // Para a contagem de tarefas, somente entra o que ainda está pendente.
+            // Itens já sinalizados como OK, concluídos, em análise ou em andamento saem da contagem.
+            if (!valor) return false;
+            if (['OK', 'CONCLUIDO', 'CONCLUIDA', 'ANALISE', 'EM ANDAMENTO'].includes(valor)) return false;
+            return true;
+        }
+
+        function getTarefasPendentesColaborador(colab) {
+            return (distribuicaoAtual[colab] || []).filter(t => isTarefaPendente(t.rowIndex, t.documento));
+        }
+
         function renderizarTarefas() {
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(resp => {
                 const container = document.getElementById(`list-${resp.toLowerCase()}`);
                 const countSpan = document.getElementById(`count-${resp.toLowerCase()}`);
-                const tarefas = distribuicaoAtual[resp] || [];
                 if (container && countSpan) {
-                    // Filtra apenas tarefas que ainda não foram processadas
-                    const tarefasPendentes = tarefas.filter(t => {
-                        const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
-                        const isConcluida = statusTarefa === 'concluido';
-                        const foiRealizada = isAtividadeRealizada(t.rowIndex, t.documento);
-                        return !isConcluida && !foiRealizada;
-                    });
-                    
-                    // Atualiza o contador apenas com tarefas pendentes
+                    const tarefasPendentes = getTarefasPendentesColaborador(resp);
                     countSpan.innerText = tarefasPendentes.length;
                     container.innerHTML = '';
                     tarefasPendentes.forEach(t => {
@@ -2688,38 +2698,27 @@
         }
 
         function isAtividadeRealizada(rowIndex, documento) {
-            const linha = rawData[rowIndex];
-            if (!linha) return false;
-            const strVal = String(linha[documento] || "").toUpperCase();
-            // Considera realizada se foi marcada como analise ou andamento
-            return strVal === "ANALISE" || strVal === "EM ANDAMENTO";
+            const strVal = valorTarefaNormalizado(rowIndex, documento);
+            return strVal === "ANALISE" || strVal === "EM ANDAMENTO" || strVal === "OK" || strVal === "CONCLUIDO" || strVal === "CONCLUIDA";
         }
-        
+
         function obterStatusTarefa(rowIndex, documento) {
-            const linha = rawData[rowIndex];
-            if (!linha) return 'pendente';
-            const strVal = String(linha[documento] || "").toUpperCase();
-            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO" || strVal === "OK") return 'concluido';
+            const strVal = valorTarefaNormalizado(rowIndex, documento);
+            if (strVal === "CONCLUIDO" || strVal === "CONCLUIDA" || strVal === "OK") return 'concluido';
             if (strVal === "EM ANDAMENTO") return 'andamento';
+            if (strVal === "ANALISE") return 'analise';
             return 'pendente';
         }
 
         async function atualizarDashboardDesempenho() {
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
-                const tarefasColab = distribuicaoAtual[colab] || [];
-                const total = tarefasColab.length;
-                let concluidas = 0;
-                tarefasColab.forEach(tarefa => {
-                    const linha = rawData[tarefa.rowIndex];
-                    const strValor = String(linha ? linha[tarefa.documento] : "").toUpperCase();
-                    // Conta como concluída se: CONCLUIDO, ANALISE ou EM ANDAMENTO (atividade realizada)
-                    if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;                });
-                const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+                const totalPendentes = getTarefasPendentesColaborador(colab).length;
+                const percentual = totalPendentes > 0 ? 0 : 100;
                 const n = colab.toLowerCase();
                 const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `${percentual}%`;
                 const prEl = document.getElementById(`${n}-progress`); if (prEl) prEl.style.width = `${percentual}%`;
-                const cEl = document.getElementById(`${n}-concluidas`); if (cEl) cEl.innerText = concluidas;
-                const tEl = document.getElementById(`${n}-total`); if (tEl) tEl.innerText = total;
+                const cEl = document.getElementById(`${n}-concluidas`); if (cEl) cEl.innerText = '0';
+                const tEl = document.getElementById(`${n}-total`); if (tEl) tEl.innerText = totalPendentes;
             });
 
             // Busca Clima (Zona Leste SP)
@@ -3721,20 +3720,13 @@
             const hoje = new Date().toISOString().slice(0, 10);
             const registros = [];
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
-                const tarefas = distribuicaoAtual[colab] || [];
-                const total = tarefas.length;
-                let concluidas = 0;
-                tarefas.forEach(t => {
-                    const linha = rawData[t.rowIndex];
-                    const v = String(linha ? linha[t.documento] : '').toUpperCase();
-                    if (v === 'CONCLUIDO' || v === 'CONCLUÍDO' || v === 'OK' || v === 'ANALISE' || v === 'EM ANDAMENTO') concluidas++;
-                });
+                const totalPendentes = getTarefasPendentesColaborador(colab).length;
                 registros.push({
                     data: hoje,
                     colaborador: colab,
-                    total_tarefas: total,
-                    concluidas: concluidas,
-                    percentual: total > 0 ? Math.round((concluidas / total) * 100) : 0,
+                    total_tarefas: totalPendentes,
+                    concluidas: 0,
+                    percentual: totalPendentes > 0 ? 0 : 100,
                     registrado_por: currentUser,
                     timestamp: new Date().toISOString()
                 });
@@ -3819,15 +3811,8 @@
                 // SE FOR DIÁRIO, USA OS DADOS EM TEMPO REAL DO PAINEL
                 if (monitorPeriodoAtual === 'diario') {
                     ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
-                        const tarefasColab = distribuicaoAtual[colab] || [];
-                        const total = tarefasColab.length;
-                        let concluidas = 0;
-                        tarefasColab.forEach(tarefa => {
-                            const linha = rawData[tarefa.rowIndex];
-                            const strValor = String(linha ? linha[tarefa.documento] : "").toUpperCase();
-                            if (strValor === "CONCLUIDO" || strValor === "CONCLUÍDO" || strValor === "OK" || strValor === "ANALISE" || strValor === "EM ANDAMENTO") concluidas++;
-                        });
-                        agrupado[colab] = { total: total, concluidas: concluidas, registros: 1 };
+                        const totalPendentes = getTarefasPendentesColaborador(colab).length;
+                        agrupado[colab] = { total: totalPendentes, concluidas: 0, registros: 1 };
                     });
                 } else {
                     registros.forEach(r => {
@@ -3842,8 +3827,9 @@
                 ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
                     const extras = contagemGeralPorUsuario[colab] || 0;
                     if (extras > 0) {
+                        // Tarefas realizadas fora do sorteio entram como produtividade concluída,
+                        // mas não aumentam o total de pendências do sorteio.
                         agrupado[colab].concluidas += extras;
-                        agrupado[colab].total += extras;
                     }
                 });
 
