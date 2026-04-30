@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TopLineHub | Gestão Integrada </title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -4821,3 +4821,144 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 
 </html>
         
+
+/* ==========================================================
+   PATCH v2.5 - Contagem correta de pendências e Monitor sem duplicidade
+   ========================================================== */
+function thNormalizeTaskValue(v) {
+    return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+}
+function thIsValorFinalizado(v) {
+    const x = thNormalizeTaskValue(v);
+    return ['OK','CONCLUIDO','CONCLUIDA','CONCLUÍDO','CONCLUÍDA','ANALISE','ANÁLISE','EM ANDAMENTO'].includes(x);
+}
+valorTarefaNormalizado = function(rowIndex, documento) {
+    const linha = rawData[rowIndex];
+    if (!linha) return '';
+    return thNormalizeTaskValue(linha[documento]);
+};
+isTarefaPendente = function(rowIndex, documento) {
+    const linha = rawData[rowIndex];
+    if (!linha) return false;
+    if (getStatus(linha[documento], linha, documento) === 'concluido') return false;
+    const valor = valorTarefaNormalizado(rowIndex, documento);
+    if (!valor) return false;
+    if (thIsValorFinalizado(valor)) return false;
+    return true;
+};
+getTarefasPendentesColaborador = function(colab) {
+    return (distribuicaoAtual[colab] || []).filter(t => isTarefaPendente(t.rowIndex, t.documento));
+};
+isAtividadeRealizada = function(rowIndex, documento) {
+    const linha = rawData[rowIndex];
+    if (!linha) return false;
+    if (getStatus(linha[documento], linha, documento) === 'concluido') return true;
+    return thIsValorFinalizado(linha[documento]);
+};
+obterStatusTarefa = function(rowIndex, documento) {
+    const linha = rawData[rowIndex];
+    if (!linha) return 'pendente';
+    if (getStatus(linha[documento], linha, documento) === 'concluido') return 'concluido';
+    const v = valorTarefaNormalizado(rowIndex, documento);
+    if (['OK','CONCLUIDO','CONCLUIDA'].includes(v)) return 'concluido';
+    if (v === 'EM ANDAMENTO') return 'andamento';
+    if (v === 'ANALISE') return 'analise';
+    return 'pendente';
+};
+
+registrarTarefaMonitorGeral = async function(rowIndex, documento, valorAnterior, valorNovo, observacao) {
+    try {
+        const cliente = rawData[rowIndex]?.CLIENTE || '';
+        const colaboradorSorteio = tarefaEstaNoSorteio(rowIndex, documento);
+        const origem = colaboradorSorteio ? ('Sorteio de ' + colaboradorSorteio) : 'Fora do sorteio';
+        const detalhesMonitor = origem + ' | Usuário responsável pela execução: ' + currentUser + ' | De "' + valorAnterior + '" para "' + valorNovo + '"' + (observacao ? ' | Obs: ' + observacao : '');
+        const { data: existente, error: erroBusca } = await supabaseClient
+            .from('logs_sistema')
+            .select('id')
+            .eq('acao', 'Tarefa contabilizada no monitor')
+            .eq('cliente', cliente)
+            .eq('documento', documento)
+            .eq('detalhes', detalhesMonitor)
+            .limit(1);
+        if (!erroBusca && existente && existente.length > 0) {
+            console.log('Monitor: alteração idêntica já contabilizada. Ignorando duplicidade.', { cliente, documento });
+            return;
+        }
+        await supabaseClient.from('logs_sistema').insert([{
+            usuario: currentUser,
+            acao: 'Tarefa contabilizada no monitor',
+            cliente: cliente,
+            documento: documento,
+            detalhes: detalhesMonitor
+        }]);
+    } catch(e) { console.warn('Erro ao registrar tarefa geral no monitor:', e); }
+};
+
+atualizarDashboardDesempenho = async function() {
+    ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+        const totalAtribuidas = (distribuicaoAtual[colab] || []).length;
+        const totalPendentes = getTarefasPendentesColaborador(colab).length;
+        const totalConcluidas = Math.max(totalAtribuidas - totalPendentes, 0);
+        const percentual = totalAtribuidas > 0 ? Math.round((totalConcluidas / totalAtribuidas) * 100) : 0;
+        const n = colab.toLowerCase();
+        const pEl = document.getElementById(n + '-percent'); if (pEl) pEl.innerText = percentual + '%';
+        const prEl = document.getElementById(n + '-progress'); if (prEl) prEl.style.width = percentual + '%';
+        const cEl = document.getElementById(n + '-concluidas'); if (cEl) cEl.innerText = totalConcluidas;
+        const tEl = document.getElementById(n + '-total'); if (tEl) tEl.innerText = totalAtribuidas;
+    });
+};
+
+registrarDesempenhoMonitor = async function() {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const registros = [];
+    ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+        const totalAtribuidas = (distribuicaoAtual[colab] || []).length;
+        const totalPendentes = getTarefasPendentesColaborador(colab).length;
+        const concluidas = Math.max(totalAtribuidas - totalPendentes, 0);
+        registros.push({
+            data: hoje,
+            colaborador: colab,
+            total_tarefas: totalAtribuidas,
+            concluidas: concluidas,
+            percentual: totalAtribuidas > 0 ? Math.round((concluidas / totalAtribuidas) * 100) : 0,
+            registrado_por: currentUser,
+            timestamp: new Date().toISOString()
+        });
+    });
+    try {
+        const { error } = await supabaseClient.from('monitor_desempenho').insert(registros);
+        if (error) throw error;
+    } catch (err) { console.error('Erro ao registrar desempenho:', err); }
+};
+
+renderizarTarefas = function() {
+    const q = typeof normalizarTexto === 'function' ? normalizarTexto(document.getElementById('searchTarefas')?.value || '') : '';
+    const prioridade = document.getElementById('filtroTarefasPrioridade')?.value || '';
+    ['Jordan', 'Sirlene', 'Ingrid'].forEach(resp => {
+        const container = document.getElementById('list-' + resp.toLowerCase());
+        const countSpan = document.getElementById('count-' + resp.toLowerCase());
+        const tarefas = distribuicaoAtual[resp] || [];
+        if (!container || !countSpan) return;
+        let tarefasPendentes = tarefas.filter(t => {
+            const row = rawData[t.rowIndex] || {};
+            const texto = typeof normalizarTexto === 'function' ? normalizarTexto([t.cliente,row.CNPJ,t.documento,t.prazo].join(' ')) : '';
+            const stPrazo = getStatus(row[t.documento], row, t.documento);
+            const passaMinha = !mostrarSomenteMinhasTarefas || resp === currentUser;
+            return isTarefaPendente(t.rowIndex, t.documento) && (!q || texto.includes(q)) && (!prioridade || stPrazo === prioridade) && passaMinha;
+        });
+        countSpan.innerText = tarefasPendentes.length;
+        container.innerHTML = tarefasPendentes.length ? '' : '<div class="text-center py-8 text-[10px] text-slate-400 italic">Nenhuma tarefa para este filtro.</div>';
+        tarefasPendentes.forEach(t => {
+            const row = rawData[t.rowIndex] || {};
+            const stPrazo = getStatus(row[t.documento], row, t.documento);
+            const cor = stPrazo === 'vencido' ? 'border-red-200 bg-red-50' : stPrazo === '30' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white';
+            const card = document.createElement('div');
+            card.className = 'p-3 border rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm ' + cor;
+            card.onclick = () => { openEditCell(t.rowIndex, t.documento); };
+            card.innerHTML = '<div class="font-black text-slate-800 uppercase flex justify-between"><span>' + escapeHtml(t.cliente) + '</span><span class="filter-tag">' + (stPrazo || 'pendente') + '</span></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">' + escapeHtml(t.documento) + '</span><span class="text-slate-400 font-mono font-bold">' + escapeHtml(t.prazo) + '</span></div>';
+            container.appendChild(card);
+        });
+    });
+};
+
+</script>
