@@ -2386,6 +2386,13 @@
                 renderTable();
             }
 
+            // Captura o responsável do sorteio ANTES de remover a tarefa da lista local.
+            // Se remover primeiro, o painel não consegue mais identificar para quem a tarefa contava.
+            const colaboradorSorteioAntes = tarefaEstaNoSorteio(r, c);
+
+            // Marcar tarefa como atividade realizada no sorteio do colaborador
+            marcarAtividadeRealizada(r, c, colaboradorSorteioAntes);
+
             // REMOVER TAREFA IMEDIATAMENTE DO ARRAY LOCAL
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
                 const tarefas = distribuicaoAtual[colab] || [];
@@ -2395,9 +2402,6 @@
                     console.log(`Tarefa removida da lista de ${colab}:`, c);
                 }
             });
-
-            // Marcar tarefa como atividade realizada no sorteio do colaborador
-            marcarAtividadeRealizada(r, c);
 
             closeModal();
             
@@ -2414,7 +2418,7 @@
                     enviarParaGoogleSheets(cliente, c, tipo, valorParaSalvar),
                     registrarLog(`Alteração: ${selectedOption}`, cliente, c, `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorParaSalvar),
                     salvarObservacao(cliente, c, observacao || `Alterado para ${valorParaSalvar}`, selectedOption),
-                    registrarTarefaMonitorGeral(r, c, valorAnterior, valorParaSalvar, observacao),
+                    registrarTarefaMonitorGeral(r, c, valorAnterior, valorParaSalvar, observacao, colaboradorSorteioAntes),
                     registrarDesempenhoMonitor()
                 ]);
 
@@ -2446,10 +2450,10 @@
             return null;
         }
 
-        async function registrarTarefaMonitorGeral(rowIndex, documento, valorAnterior, valorNovo, observacao) {
+        async function registrarTarefaMonitorGeral(rowIndex, documento, valorAnterior, valorNovo, observacao, colaboradorSorteioForcado = null) {
             try {
                 const cliente = rawData[rowIndex]?.CLIENTE || '';
-                const colaboradorSorteio = tarefaEstaNoSorteio(rowIndex, documento);
+                const colaboradorSorteio = colaboradorSorteioForcado || tarefaEstaNoSorteio(rowIndex, documento);
                 const origem = colaboradorSorteio ? `Sorteio de ${colaboradorSorteio}` : 'Fora do sorteio';
                 await supabaseClient.from('logs_sistema').insert([{
                     usuario: currentUser,
@@ -2464,8 +2468,15 @@
         // ============================================
         // MARCAR ATIVIDADE REALIZADA NO SORTEIO
         // ============================================
-        function marcarAtividadeRealizada(rowIndex, documento) {
-            // Verifica se a tarefa pertence ao sorteio do usuário atual
+        function marcarAtividadeRealizada(rowIndex, documento, colaboradorForcado = null) {
+            // Quando a tarefa acabou de ser concluída, o responsável do sorteio pode ter sido
+            // capturado antes da remoção da lista local. Nesse caso, usa esse valor diretamente.
+            if (colaboradorForcado) {
+                registrarAtividadeRealizada(colaboradorForcado, rowIndex, documento);
+                return;
+            }
+
+            // Verifica se a tarefa pertence ao sorteio de algum colaborador
             const colaboradoresParaVerificar = ['Jordan', 'Sirlene', 'Ingrid'];
             for (const colab of colaboradoresParaVerificar) {
                 const tarefas = distribuicaoAtual[colab] || [];
@@ -3803,9 +3814,15 @@
 
                 const contagemGeralPorUsuario = {};
                 tarefasGeraisMonitor.forEach(log => {
-                    const usuario = log.usuario || '';
-                    if (!contagemGeralPorUsuario[usuario]) contagemGeralPorUsuario[usuario] = 0;
-                    contagemGeralPorUsuario[usuario]++;
+                    // Se a tarefa veio do sorteio, a produtividade conta para o colaborador sorteado,
+                    // não para quem clicou e executou a alteração.
+                    let responsavel = log.usuario || '';
+                    const detalhes = String(log.detalhes || '');
+                    const matchSorteio = detalhes.match(/Sorteio de (Jordan|Sirlene|Ingrid)/i);
+                    if (matchSorteio) responsavel = matchSorteio[1];
+
+                    if (!contagemGeralPorUsuario[responsavel]) contagemGeralPorUsuario[responsavel] = 0;
+                    contagemGeralPorUsuario[responsavel]++;
                 });
 
                 // SE FOR DIÁRIO, USA OS DADOS EM TEMPO REAL DO PAINEL
