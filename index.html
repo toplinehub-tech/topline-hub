@@ -1516,6 +1516,7 @@
         const LOGIN_BLOQUEIO_MS = 60000;
         
         let distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
+        let statusDistribuicaoAtual = null;
         
         // Controle de notificações de conclusão por usuário (para evitar popups duplicados)
         let notificacoesEnviadasHoje = {};
@@ -2173,6 +2174,8 @@
         // SUPABASE — DISTRIBUIÇÃO
         // ============================================
         async function salvarDistribuicaoNoServidor(statusAlvo) {
+            statusDistribuicaoAtual = statusAlvo || statusDistribuicaoAtual || 'atual';
+            statusAlvo = statusDistribuicaoAtual;
             const dadosCompactos = {
                 J: distribuicaoAtual.Jordan.map(t => `${t.rowIndex}|${t.documento}`),
                 S: distribuicaoAtual.Sirlene.map(t => `${t.rowIndex}|${t.documento}`),
@@ -2194,6 +2197,7 @@
                     const registro = data[0];
                     const dados = registro.dados;
                     const status = registro.status;
+                    statusDistribuicaoAtual = status || statusDistribuicaoAtual;
                     const dataRegistro = registro.data;
                     const distribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
                     if (dados && dados.J) {
@@ -2203,9 +2207,9 @@
                                 const idx = parseInt(rowIndex);
                                 const linha = rawData[idx];
                                 if (linha) {
-                                    // SÓ ADICIONA SE NÃO ESTIVER CONCLUÍDA NO RAWDATA
-                                    const statusTarefa = obterStatusTarefa(idx, documento);
-                                    if (statusTarefa !== 'concluido') {
+                                    // SÓ ADICIONA SE AINDA ESTIVER PENDENTE NO RAWDATA
+                                    // Se virou OK, CONCLUÍDO, ANÁLISE ou EM ANDAMENTO, não volta para o card ao atualizar a página.
+                                    if (isTarefaPendente(idx, documento)) {
                                         dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
                                     }
                                 }
@@ -2398,14 +2402,26 @@
             await marcarAtividadeRealizada(r, c, colaboradorSorteioAntes);
 
             // REMOVER TAREFA IMEDIATAMENTE DO ARRAY LOCAL
+            let tarefaRemovidaDoSorteio = false;
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
                 const tarefas = distribuicaoAtual[colab] || [];
                 const idx = tarefas.findIndex(t => t.rowIndex === r && t.documento === c);
                 if (idx >= 0) {
                     tarefas.splice(idx, 1);
+                    tarefaRemovidaDoSorteio = true;
                     console.log(`Tarefa removida da lista de ${colab}:`, c);
                 }
             });
+
+            // PERSISTE A DISTRIBUIÇÃO SEM A TAREFA CONCLUÍDA.
+            // Sem isso, ao atualizar a página o sistema recarrega a distribuição antiga do Supabase.
+            if (tarefaRemovidaDoSorteio) {
+                try {
+                    await salvarDistribuicaoNoServidor(statusDistribuicaoAtual || 'atual');
+                } catch(e) {
+                    console.warn('Não foi possível persistir a remoção da tarefa do sorteio:', e);
+                }
+            }
 
             closeModal();
             
@@ -3801,13 +3817,14 @@
             try {
                 console.log('Preparando para salvar Monitor:', registros);
                 
-                // Inserir novo registro (acumula dados do dia)
+                // Atualiza o registro do dia. A tabela tem chave única por data+colaborador,
+                // então INSERT repetido gera erro 23505. UPSERT evita duplicidade.
                 const { data, error: insertError } = await supabaseClient
                     .from('monitor_desempenho')
-                    .insert(registros);
+                    .upsert(registros, { onConflict: 'data,colaborador' });
                 
                 if (insertError) {
-                    console.error('Erro ao inserir desempenho:', insertError);
+                    console.error('Erro ao atualizar desempenho:', insertError);
                     throw insertError;
                 }
                 
@@ -3899,9 +3916,10 @@
                 ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
                     const extras = contagemGeralPorUsuario[colab] || 0;
                     if (extras > 0) {
-                        // Tarefas realizadas fora do sorteio entram como produtividade concluída,
-                        // mas não aumentam o total de pendências do sorteio.
+                        // Tarefas realizadas entram como produtividade concluída.
+                        // No diário, o total precisa ser pendentes + concluídas para a evolução sair de 0%.
                         agrupado[colab].concluidas += extras;
+                        if (monitorPeriodoAtual === 'diario') agrupado[colab].total += extras;
                     }
                 });
 
