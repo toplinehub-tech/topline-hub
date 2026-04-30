@@ -1687,9 +1687,13 @@
             });
 
             renderAtalhos();
-            // Removido login automático para garantir que a tela de login apareça
-            // const savedUser = localStorage.getItem("topline_user");
-            // if (savedUser) { login(savedUser, true); }
+
+            // Mantém a sessão ao atualizar a página.
+            // Se já houver usuário salvo no navegador, entra direto no sistema sem voltar para o login.
+            const savedUser = localStorage.getItem("topline_user");
+            if (savedUser && USUARIOS_SENHAS[savedUser]) {
+                login(savedUser, true);
+            }
         };
 
         // ============================================
@@ -2391,7 +2395,7 @@
             const colaboradorSorteioAntes = tarefaEstaNoSorteio(r, c);
 
             // Marcar tarefa como atividade realizada no sorteio do colaborador
-            marcarAtividadeRealizada(r, c, colaboradorSorteioAntes);
+            await marcarAtividadeRealizada(r, c, colaboradorSorteioAntes);
 
             // REMOVER TAREFA IMEDIATAMENTE DO ARRAY LOCAL
             ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
@@ -2468,11 +2472,11 @@
         // ============================================
         // MARCAR ATIVIDADE REALIZADA NO SORTEIO
         // ============================================
-        function marcarAtividadeRealizada(rowIndex, documento, colaboradorForcado = null) {
+        async function marcarAtividadeRealizada(rowIndex, documento, colaboradorForcado = null) {
             // Quando a tarefa acabou de ser concluída, o responsável do sorteio pode ter sido
             // capturado antes da remoção da lista local. Nesse caso, usa esse valor diretamente.
             if (colaboradorForcado) {
-                registrarAtividadeRealizada(colaboradorForcado, rowIndex, documento);
+                await registrarAtividadeRealizada(colaboradorForcado, rowIndex, documento);
                 return;
             }
 
@@ -2483,7 +2487,7 @@
                 const tarefaEncontrada = tarefas.find(t => t.rowIndex === rowIndex && t.documento === documento);
                 if (tarefaEncontrada) {
                     // Marca como atividade realizada hoje no Supabase
-                    registrarAtividadeRealizada(colab, rowIndex, documento);
+                    await registrarAtividadeRealizada(colab, rowIndex, documento);
                     break;
                 }
             }
@@ -2722,14 +2726,65 @@
         }
 
         async function atualizarDashboardDesempenho() {
-            ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
-                const totalPendentes = getTarefasPendentesColaborador(colab).length;
-                const percentual = totalPendentes > 0 ? 0 : 100;
+            const colaboradores = ['Jordan', 'Sirlene', 'Ingrid'];
+            const hoje = new Date().toISOString().slice(0, 10);
+            const concluidasHoje = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
+            const chavesPorColaborador = { Jordan: new Set(), Sirlene: new Set(), Ingrid: new Set() };
+
+            // Contabiliza as tarefas do sorteio realizadas hoje a partir dos logs.
+            // Isso faz o painel refletir a evolução do dia mesmo depois de atualizar a página.
+            try {
+                const { data, error } = await supabaseClient
+                    .from('logs_sistema')
+                    .select('created_at, acao, cliente, documento, detalhes')
+                    .in('acao', ['Tarefa do sorteio realizada', 'Tarefa contabilizada no monitor'])
+                    .gte('created_at', hoje + 'T00:00:00')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                (data || []).forEach(log => {
+                    const detalhes = String(log.detalhes || '');
+                    let colab = null;
+
+                    const matchAtribuida = detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid)/i);
+                    const matchSorteio = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid)/i);
+                    if (matchAtribuida) colab = matchAtribuida[1];
+                    else if (matchSorteio) colab = matchSorteio[1];
+
+                    if (!colab || !chavesPorColaborador[colab]) return;
+
+                    // Evita contar duas vezes a mesma tarefa quando existem os dois logs:
+                    // "Tarefa do sorteio realizada" e "Tarefa contabilizada no monitor".
+                    const chave = `${log.cliente || ''}||${log.documento || ''}`;
+                    chavesPorColaborador[colab].add(chave);
+                });
+
+                colaboradores.forEach(colab => {
+                    concluidasHoje[colab] = chavesPorColaborador[colab].size;
+                });
+            } catch (e) {
+                console.warn('Erro ao carregar evolução do painel:', e);
+            }
+
+            colaboradores.forEach(colab => {
+                const pendentes = getTarefasPendentesColaborador(colab).length;
+                const concluidas = concluidasHoje[colab] || 0;
+                const totalDoDia = pendentes + concluidas;
+                const percentual = totalDoDia > 0 ? Math.round((concluidas / totalDoDia) * 100) : 100;
                 const n = colab.toLowerCase();
-                const pEl = document.getElementById(`${n}-percent`); if (pEl) pEl.innerText = `${percentual}%`;
-                const prEl = document.getElementById(`${n}-progress`); if (prEl) prEl.style.width = `${percentual}%`;
-                const cEl = document.getElementById(`${n}-concluidas`); if (cEl) cEl.innerText = '0';
-                const tEl = document.getElementById(`${n}-total`); if (tEl) tEl.innerText = totalPendentes;
+
+                const pEl = document.getElementById(`${n}-percent`);
+                if (pEl) pEl.innerText = `${percentual}%`;
+
+                const prEl = document.getElementById(`${n}-progress`);
+                if (prEl) prEl.style.width = `${percentual}%`;
+
+                const cEl = document.getElementById(`${n}-concluidas`);
+                if (cEl) cEl.innerText = concluidas;
+
+                const tEl = document.getElementById(`${n}-total`);
+                if (tEl) tEl.innerText = totalDoDia;
             });
 
             // Busca Clima (Zona Leste SP)
