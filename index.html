@@ -828,12 +828,11 @@
 
             <!-- PAINEL -->
             <div id="view-dash">
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" id="resumoDiaCards">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" id="resumoDiaCards">
                     <div class="mini-kpi"><strong id="resumo-vencidos">0</strong><span>Vencidos</span></div>
                     <div class="mini-kpi"><strong id="resumo-30">0</strong><span>Próx. 30 dias</span></div>
-                    <div class="mini-kpi"><strong id="resumo-tarefas">0</strong><span>Tarefas abertas</span></div>
-                    <div class="mini-kpi"><strong id="resumo-parc-ativos">0</strong><span>Parcelamentos ativos</span></div>
-                    <div class="mini-kpi"><strong id="resumo-sem-obs">0</strong><span>Sem observação</span></div>
+                    <div class="mini-kpi"><strong id="resumo-60">0</strong><span>Próx. 60 dias</span></div>
+                    <div class="mini-kpi"><strong id="resumo-90">0</strong><span>Próx. 90 dias</span></div>
                 </div>
                 <div class="grid grid-cols-3 gap-4 mb-6">
                     <div class="white-card dashboard-card p-5 border-t-8 border-blue-500">
@@ -4117,21 +4116,19 @@ function updateActiveFilterTags() {
 }
 
 function atualizarResumoDia() {
-    let vencidos = 0, prox30 = 0, tarefas = 0;
+    let vencidos = 0, prox30 = 0, prox60 = 0, prox90 = 0;
     rawData.forEach(row => headers.forEach(col => {
         if (col === 'CLIENTE' || col === 'CNPJ') return;
         const st = getStatus(row[col], row, col);
         if (st === 'vencido') vencidos++;
         if (st === '30') prox30++;
+        if (st === '60') prox60++;
+        if (st === '90') prox90++;
     }));
-    Object.values(distribuicaoAtual || {}).forEach(lista => (lista || []).forEach(t => {
-        const st = obterStatusTarefa(t.rowIndex, t.documento);
-        if (st !== 'concluido' && !isAtividadeRealizada(t.rowIndex, t.documento)) tarefas++;
-    }));
-    const parc = getParcelamentosBase ? getParcelamentosBase() : [];
-    const semObs = parc.filter(i => !getUltimaObservacaoParcelamento(i.row.CLIENTE)).length;
-    setTextSafe('resumo-vencidos', vencidos); setTextSafe('resumo-30', prox30); setTextSafe('resumo-tarefas', tarefas);
-    setTextSafe('resumo-parc-ativos', parc.filter(i => i.status === 'ativos').length); setTextSafe('resumo-sem-obs', semObs);
+    setTextSafe('resumo-vencidos', vencidos);
+    setTextSafe('resumo-30', prox30);
+    setTextSafe('resumo-60', prox60);
+    setTextSafe('resumo-90', prox90);
 }
 
 const _updateAnalyticsBase = typeof updateAnalytics === 'function' ? updateAnalytics : null;
