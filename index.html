@@ -1995,7 +1995,7 @@
             if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
             try {
-                const { data, error } = await supabaseClient.from('logs_sistema').select('*').order('created_at', { ascending: false }).limit(500);
+                const { data, error } = await supabaseClient.from('logs_sistema').select('*').in('acao', ['Login no sistema', 'Logout do sistema']).order('created_at', { ascending: false }).limit(500);
                 if (error) { console.error('Erro SQL:', error); throw error; }
                 logsData = data || [];
                 console.log('Logs carregados:', logsData.length, 'registros');
@@ -2033,13 +2033,14 @@
             const q = (document.getElementById('searchLogs')?.value || '').toLowerCase();
             const usuarioFiltro = document.getElementById('filtroUsuarioLog')?.value || '';
             const filtrado = logsData.filter(log => {
+                const acaoNormalizada = String(log.acao || '').toLowerCase();
+                const apenasAcesso = acaoNormalizada === 'login no sistema' || acaoNormalizada === 'logout do sistema';
                 const matchQ = !q || 
-                    (log.cliente || '').toLowerCase().includes(q) ||
+                    (log.usuario || '').toLowerCase().includes(q) ||
                     (log.acao || '').toLowerCase().includes(q) ||
-                    (log.detalhes || '').toLowerCase().includes(q) ||
-                    (log.documento || '').toLowerCase().includes(q);
+                    (log.detalhes || '').toLowerCase().includes(q);
                 const matchUser = !usuarioFiltro || log.usuario === usuarioFiltro;
-                return matchQ && matchUser;
+                return apenasAcesso && matchQ && matchUser;
             });
             renderizarLogs(filtrado);
         }
@@ -4217,15 +4218,21 @@ function classificarLogAcao(acao) { const a = normalizarTexto(acao); if (a.inclu
 const _renderizarLogsBase = typeof renderizarLogs === 'function' ? renderizarLogs : null;
 renderizarLogs = function(dados) {
     const tbody = document.getElementById('logsBody'); if (!tbody) return;
-    if (!dados || !dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log encontrado.</td></tr>'; return; }
-    tbody.innerHTML = dados.map(log => {
+    const logsAcesso = (dados || []).filter(log => {
+        const acao = String(log.acao || '').toLowerCase();
+        return acao === 'login no sistema' || acao === 'logout do sistema';
+    });
+    if (!logsAcesso.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log de entrada ou saída encontrado.</td></tr>'; return; }
+    tbody.innerHTML = logsAcesso.map(log => {
         const dt = new Date(log.created_at); const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        const cls = classificarLogAcao(log.acao);
-        return '<tr class="' + (cls==='erro'?'log-row-error':cls==='alteracao'?'log-row-success':'') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td class="font-bold text-slate-700">' + escapeHtml(log.usuario || '-') + '</td><td><span class="log-action-pill ' + cls + '">' + escapeHtml(formatarAcaoLog(log.acao) || '-') + '</span></td><td class="font-bold text-slate-700">' + escapeHtml(log.cliente || '-') + '</td><td class="text-xs text-emerald-600 font-bold">' + escapeHtml(log.documento || '-') + '</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(formatarDetalheLog(log) || '-') + '</td></tr>';
+        const isLogin = String(log.acao || '').toLowerCase() === 'login no sistema';
+        const cls = isLogin ? 'alteracao' : 'erro';
+        const acaoExibida = isLogin ? 'Entrada / Login' : 'Saída / Logout';
+        return '<tr class="' + (isLogin ? 'log-row-success' : 'log-row-error') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td class="font-bold text-slate-700">' + escapeHtml(log.usuario || '-') + '</td><td><span class="log-action-pill ' + cls + '">' + escapeHtml(acaoExibida) + '</span></td><td class="font-bold text-slate-700">-</td><td class="text-xs text-emerald-600 font-bold">-</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(formatarDetalheLog(log) || '-') + '</td></tr>';
     }).join('');
 };
 function exportarLogsCSV() {
-    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat((logsData || []).map(l => [l.created_at,l.usuario,formatarAcaoLog(l.acao),l.cliente,l.documento,formatarDetalheLog(l)]));
+    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat((logsData || []).filter(l => ['Login no sistema','Logout do sistema'].includes(l.acao)).map(l => [l.created_at,l.usuario,formatarAcaoLog(l.acao),l.cliente,l.documento,formatarDetalheLog(l)]));
     const csv = linhas.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\n');
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href=url; link.download='logs_topline.csv'; link.click(); URL.revokeObjectURL(url);
 }
