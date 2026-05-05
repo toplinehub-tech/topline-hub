@@ -1227,10 +1227,10 @@
                     <div class="flex justify-between items-center mb-6">
                         <div>
                             <h3 class="text-sm font-black text-slate-700 uppercase tracking-tight">Logs do Sistema</h3>
-                            <p class="text-[10px] text-slate-400 mt-1">Registro completo de todas as atividades realizadas no sistema</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Registro somente de login e logout dos usuários</p>
                         </div>
                         <div class="flex gap-2">
-                            <input type="text" id="searchLogs" oninput="filtrarLogs()" placeholder="Filtrar logs..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
+                            <input type="text" id="searchLogs" oninput="filtrarLogs()" placeholder="Filtrar login/logout..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
                             <select id="filtroUsuarioLog" onchange="filtrarLogs()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
                                 <option value="">Todos os usuários</option>
                                 <option value="Nikolas">Nikolas</option>
@@ -1971,6 +1971,15 @@
             return limparTextoLog(log && log.detalhes) || montarDetalheLog(log && log.acao, log && log.valor_antigo, log && log.valor_novo);
         }
 
+        function logEhLoginLogout(log) {
+            const acao = normalizarTexto(log && log.acao);
+            return acao.includes('login') || acao.includes('logout');
+        }
+
+        function filtrarSomenteLoginLogoutLogs(lista) {
+            return (lista || []).filter(logEhLoginLogout);
+        }
+
         async function registrarLog(acao, cliente, documento, detalhes, valorAnterior = null, valorNovo = null) {
             try {
                 const { error } = await supabaseClient.from('logs_sistema').insert([{
@@ -1997,8 +2006,8 @@
             try {
                 const { data, error } = await supabaseClient.from('logs_sistema').select('*').order('created_at', { ascending: false }).limit(500);
                 if (error) { console.error('Erro SQL:', error); throw error; }
-                logsData = data || [];
-                console.log('Logs carregados:', logsData.length, 'registros');
+                logsData = filtrarSomenteLoginLogoutLogs(data || []);
+                console.log('Logs carregados na aba Logs:', logsData.length, 'registros de login/logout');
                 renderizarLogs(logsData);
             } catch(e) {
                 console.error('Erro ao carregar logs:', e);
@@ -2009,6 +2018,7 @@
         function renderizarLogs(dados) {
             const tbody = document.getElementById('logsBody');
             if (!tbody) return;
+            dados = filtrarSomenteLoginLogoutLogs(dados || []);
             if (!dados || dados.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log encontrado.</td></tr>';
                 return;
@@ -2032,12 +2042,11 @@
         function filtrarLogs() {
             const q = (document.getElementById('searchLogs')?.value || '').toLowerCase();
             const usuarioFiltro = document.getElementById('filtroUsuarioLog')?.value || '';
-            const filtrado = logsData.filter(log => {
+            const filtrado = filtrarSomenteLoginLogoutLogs(logsData).filter(log => {
                 const matchQ = !q || 
-                    (log.cliente || '').toLowerCase().includes(q) ||
+                    (log.usuario || '').toLowerCase().includes(q) ||
                     (log.acao || '').toLowerCase().includes(q) ||
-                    (log.detalhes || '').toLowerCase().includes(q) ||
-                    (log.documento || '').toLowerCase().includes(q);
+                    (log.detalhes || '').toLowerCase().includes(q);
                 const matchUser = !usuarioFiltro || log.usuario === usuarioFiltro;
                 return matchQ && matchUser;
             });
@@ -4217,7 +4226,8 @@ function classificarLogAcao(acao) { const a = normalizarTexto(acao); if (a.inclu
 const _renderizarLogsBase = typeof renderizarLogs === 'function' ? renderizarLogs : null;
 renderizarLogs = function(dados) {
     const tbody = document.getElementById('logsBody'); if (!tbody) return;
-    if (!dados || !dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log encontrado.</td></tr>'; return; }
+    dados = (typeof filtrarSomenteLoginLogoutLogs === 'function') ? filtrarSomenteLoginLogoutLogs(dados || []) : (dados || []);
+    if (!dados || !dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log de login/logout encontrado.</td></tr>'; return; }
     tbody.innerHTML = dados.map(log => {
         const dt = new Date(log.created_at); const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
         const cls = classificarLogAcao(log.acao);
@@ -4225,7 +4235,8 @@ renderizarLogs = function(dados) {
     }).join('');
 };
 function exportarLogsCSV() {
-    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat((logsData || []).map(l => [l.created_at,l.usuario,formatarAcaoLog(l.acao),l.cliente,l.documento,formatarDetalheLog(l)]));
+    const baseLogs = (typeof filtrarSomenteLoginLogoutLogs === 'function') ? filtrarSomenteLoginLogoutLogs(logsData || []) : (logsData || []);
+    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat(baseLogs.map(l => [l.created_at,l.usuario,formatarAcaoLog(l.acao),l.cliente,l.documento,formatarDetalheLog(l)]));
     const csv = linhas.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\n');
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href=url; link.download='logs_topline.csv'; link.click(); URL.revokeObjectURL(url);
 }
