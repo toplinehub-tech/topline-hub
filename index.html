@@ -1227,7 +1227,7 @@
                     <div class="flex justify-between items-center mb-6">
                         <div>
                             <h3 class="text-sm font-black text-slate-700 uppercase tracking-tight">Logs do Sistema</h3>
-                            <p class="text-[10px] text-slate-400 mt-1">Registro somente de entrada e saída dos usuários</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Registro completo de todas as atividades realizadas no sistema</p>
                         </div>
                         <div class="flex gap-2">
                             <input type="text" id="searchLogs" oninput="filtrarLogs()" placeholder="Filtrar logs..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-[200px] outline-none">
@@ -1990,11 +1990,6 @@
             }
         }
 
-        function logEhLoginLogout(log) {
-            const texto = `${log?.acao || ''} ${log?.detalhes || ''}`.toLowerCase();
-            return texto.includes('login') || texto.includes('logout') || texto.includes('entrada') || texto.includes('saída') || texto.includes('saida') || texto.includes('acessou o sistema') || texto.includes('saiu do sistema');
-        }
-
         async function carregarLogs() {
             const tbody = document.getElementById('logsBody');
             if (!tbody) return;
@@ -2002,8 +1997,8 @@
             try {
                 const { data, error } = await supabaseClient.from('logs_sistema').select('*').order('created_at', { ascending: false }).limit(500);
                 if (error) { console.error('Erro SQL:', error); throw error; }
-                logsData = (data || []).filter(logEhLoginLogout);
-                console.log('Logs de login/logout carregados:', logsData.length, 'registros');
+                logsData = data || [];
+                console.log('Logs carregados:', logsData.length, 'registros');
                 renderizarLogs(logsData);
             } catch(e) {
                 console.error('Erro ao carregar logs:', e);
@@ -2038,11 +2033,11 @@
             const q = (document.getElementById('searchLogs')?.value || '').toLowerCase();
             const usuarioFiltro = document.getElementById('filtroUsuarioLog')?.value || '';
             const filtrado = logsData.filter(log => {
-                if (!logEhLoginLogout(log)) return false;
                 const matchQ = !q || 
-                    (log.usuario || '').toLowerCase().includes(q) ||
+                    (log.cliente || '').toLowerCase().includes(q) ||
                     (log.acao || '').toLowerCase().includes(q) ||
-                    (log.detalhes || '').toLowerCase().includes(q);
+                    (log.detalhes || '').toLowerCase().includes(q) ||
+                    (log.documento || '').toLowerCase().includes(q);
                 const matchUser = !usuarioFiltro || log.usuario === usuarioFiltro;
                 return matchQ && matchUser;
             });
@@ -4230,7 +4225,7 @@ renderizarLogs = function(dados) {
     }).join('');
 };
 function exportarLogsCSV() {
-    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat((logsData || []).filter(logEhLoginLogout).map(l => [l.created_at,l.usuario,formatarAcaoLog(l.acao),l.cliente,l.documento,formatarDetalheLog(l)]));
+    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat((logsData || []).map(l => [l.created_at,l.usuario,formatarAcaoLog(l.acao),l.cliente,l.documento,formatarDetalheLog(l)]));
     const csv = linhas.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\n');
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href=url; link.download='logs_topline.csv'; link.click(); URL.revokeObjectURL(url);
 }
