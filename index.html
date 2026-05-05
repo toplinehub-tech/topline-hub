@@ -1971,22 +1971,6 @@
             return limparTextoLog(log && log.detalhes) || montarDetalheLog(log && log.acao, log && log.valor_antigo, log && log.valor_novo);
         }
 
-        function ehLogAcessoFuncionario(log) {
-            const acao = String((log && log.acao) || '').toLowerCase();
-            return acao.includes('login') || acao.includes('logout');
-        }
-
-        function filtrarLogsAcessoFuncionario(dados) {
-            return (dados || []).filter(ehLogAcessoFuncionario);
-        }
-
-        function formatarAcaoAcessoFuncionario(acao) {
-            const a = String(acao || '').toLowerCase();
-            if (a.includes('logout')) return 'Saída / Logout';
-            if (a.includes('login')) return 'Entrada / Login';
-            return formatarAcaoLog(acao);
-        }
-
         async function registrarLog(acao, cliente, documento, detalhes, valorAnterior = null, valorNovo = null) {
             try {
                 const { error } = await supabaseClient.from('logs_sistema').insert([{
@@ -2013,8 +1997,8 @@
             try {
                 const { data, error } = await supabaseClient.from('logs_sistema').select('*').order('created_at', { ascending: false }).limit(500);
                 if (error) { console.error('Erro SQL:', error); throw error; }
-                logsData = filtrarLogsAcessoFuncionario(data || []);
-                console.log('Logs de acesso carregados:', logsData.length, 'registros');
+                logsData = data || [];
+                console.log('Logs carregados:', logsData.length, 'registros');
                 renderizarLogs(logsData);
             } catch(e) {
                 console.error('Erro ao carregar logs:', e);
@@ -2049,12 +2033,11 @@
             const q = (document.getElementById('searchLogs')?.value || '').toLowerCase();
             const usuarioFiltro = document.getElementById('filtroUsuarioLog')?.value || '';
             const filtrado = logsData.filter(log => {
-                const acaoAcesso = formatarAcaoAcessoFuncionario(log.acao).toLowerCase();
                 const matchQ = !q || 
-                    acaoAcesso.includes(q) ||
-                    (log.usuario || '').toLowerCase().includes(q) ||
+                    (log.cliente || '').toLowerCase().includes(q) ||
                     (log.acao || '').toLowerCase().includes(q) ||
-                    (log.detalhes || '').toLowerCase().includes(q);
+                    (log.detalhes || '').toLowerCase().includes(q) ||
+                    (log.documento || '').toLowerCase().includes(q);
                 const matchUser = !usuarioFiltro || log.usuario === usuarioFiltro;
                 return matchQ && matchUser;
             });
@@ -4234,18 +4217,15 @@ function classificarLogAcao(acao) { const a = normalizarTexto(acao); if (a.inclu
 const _renderizarLogsBase = typeof renderizarLogs === 'function' ? renderizarLogs : null;
 renderizarLogs = function(dados) {
     const tbody = document.getElementById('logsBody'); if (!tbody) return;
-    const logsAcesso = filtrarLogsAcessoFuncionario(dados || []);
-    if (!logsAcesso.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum login ou logout encontrado.</td></tr>'; return; }
-    tbody.innerHTML = logsAcesso.map(log => {
+    if (!dados || !dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log encontrado.</td></tr>'; return; }
+    tbody.innerHTML = dados.map(log => {
         const dt = new Date(log.created_at); const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        const isSaida = String(log.acao || '').toLowerCase().includes('logout');
-        const cls = isSaida ? 'erro' : 'alteracao';
-        const detalhe = isSaida ? 'Funcionário saiu do sistema' : 'Funcionário entrou no sistema';
-        return '<tr class="' + (isSaida ? 'log-row-error' : 'log-row-success') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td class="font-bold text-slate-700">' + escapeHtml(log.usuario || '-') + '</td><td><span class="log-action-pill ' + cls + '">' + escapeHtml(formatarAcaoAcessoFuncionario(log.acao) || '-') + '</span></td><td class="font-bold text-slate-700">-</td><td class="text-xs text-emerald-600 font-bold">ACESSO</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(detalhe) + '</td></tr>';
+        const cls = classificarLogAcao(log.acao);
+        return '<tr class="' + (cls==='erro'?'log-row-error':cls==='alteracao'?'log-row-success':'') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td class="font-bold text-slate-700">' + escapeHtml(log.usuario || '-') + '</td><td><span class="log-action-pill ' + cls + '">' + escapeHtml(formatarAcaoLog(log.acao) || '-') + '</span></td><td class="font-bold text-slate-700">' + escapeHtml(log.cliente || '-') + '</td><td class="text-xs text-emerald-600 font-bold">' + escapeHtml(log.documento || '-') + '</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(formatarDetalheLog(log) || '-') + '</td></tr>';
     }).join('');
 };
 function exportarLogsCSV() {
-    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat(filtrarLogsAcessoFuncionario(logsData || []).map(l => [l.created_at,l.usuario,formatarAcaoAcessoFuncionario(l.acao),'-','ACESSO',String(l.acao || '').toLowerCase().includes('logout') ? 'Funcionário saiu do sistema' : 'Funcionário entrou no sistema']));
+    const linhas = [['Data','Usuario','Acao','Cliente','Documento','Detalhes']].concat((logsData || []).map(l => [l.created_at,l.usuario,formatarAcaoLog(l.acao),l.cliente,l.documento,formatarDetalheLog(l)]));
     const csv = linhas.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\n');
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href=url; link.download='logs_topline.csv'; link.click(); URL.revokeObjectURL(url);
 }
@@ -4922,6 +4902,140 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
     const atrasWrap=document.querySelector('.financeiro-atrasados-wrap table'); if(atrasWrap){let head=document.getElementById('financeiro-atrasados-head'); if(!head){head=document.createElement('thead'); head.id='financeiro-atrasados-head'; atrasWrap.insertBefore(head,atrasWrap.firstChild);} }
     const logSec=document.getElementById('financeiro-log-section'); if(logSec&&!document.getElementById('financeiroLogMesFiltro')){const anchor=logSec.querySelector('.financeiro-log-wrap'); const div=document.createElement('div'); div.className='grid grid-cols-1 md:grid-cols-4 gap-2 mb-3 financeiro-log-filtros'; div.innerHTML='<select id="financeiroLogMesFiltro" onchange="carregarLogsFinanceiro()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none"><option value="">Todos os meses</option></select><input id="financeiroLogBuscaFiltro" oninput="renderizarLogsFinanceiro(financeiroLogsData || [])" placeholder="Buscar no log..." class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none md:col-span-2"><button onclick="limparFiltroLogFinanceiro()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar log</button>'; if(anchor) logSec.insertBefore(div,anchor);}
     window.popularMesesFinanceiro();
+  });
+})();
+</script>
+
+
+
+<script>
+/* AJUSTE EXCLUSIVO DA ABA LOGS
+   Mostra apenas registros de entrada/login e saída/logout dos usuários.
+   Nenhuma outra funcionalidade do sistema é alterada. */
+(function(){
+  function limparAcentos(v){
+    return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function html(v){
+    if (typeof escapeHtml === 'function') return escapeHtml(v);
+    return String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
+  }
+
+  function logEhLoginLogout(log){
+    const texto = limparAcentos(`${log?.acao || ''} ${log?.detalhes || ''}`);
+    return (
+      texto.includes('login') ||
+      texto.includes('logout') ||
+      texto.includes('entrada') ||
+      texto.includes('saida') ||
+      texto.includes('acessou o sistema') ||
+      texto.includes('saiu do sistema')
+    );
+  }
+
+  function tipoLoginLogout(log){
+    const texto = limparAcentos(`${log?.acao || ''} ${log?.detalhes || ''}`);
+    if (texto.includes('logout') || texto.includes('saida') || texto.includes('saiu do sistema')) {
+      return { label: 'Logout / Saída', classe: 'erro' };
+    }
+    return { label: 'Login / Entrada', classe: 'alteracao' };
+  }
+
+  function detalheLoginLogout(log){
+    const tipo = tipoLoginLogout(log).label;
+    const usuario = log?.usuario || 'Usuário';
+    const data = log?.created_at ? new Date(log.created_at) : new Date();
+    const dataStr = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    return `${usuario} - ${tipo} em ${dataStr}`;
+  }
+
+  window.filtrarSomenteLoginLogout = function(lista){
+    return (lista || []).filter(logEhLoginLogout);
+  };
+
+  window.carregarLogs = async function(){
+    const tbody = document.getElementById('logsBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando login e logout...</td></tr>';
+    try {
+      const { data, error } = await supabaseClient
+        .from('logs_sistema')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      logsData = window.filtrarSomenteLoginLogout(data || []);
+      window.logsData = logsData;
+      renderizarLogs(logsData);
+    } catch(e) {
+      console.error('Erro ao carregar logs de login/logout:', e);
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Erro: ${html(e.message || 'Desconhecido')}</td></tr>`;
+    }
+  };
+
+  window.renderizarLogs = function(dados){
+    const tbody = document.getElementById('logsBody');
+    if (!tbody) return;
+    const lista = window.filtrarSomenteLoginLogout(dados || []);
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum login ou logout encontrado.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = lista.map(log => {
+      const dt = log.created_at ? new Date(log.created_at) : new Date();
+      const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const tipo = tipoLoginLogout(log);
+      const rowClass = tipo.classe === 'erro' ? 'log-row-error' : 'log-row-success';
+      return `<tr class="${rowClass}">
+        <td class="font-mono text-[10px] text-slate-500">${html(dataStr)}</td>
+        <td class="font-bold text-slate-700">${html(log.usuario || '-')}</td>
+        <td><span class="log-action-pill ${tipo.classe}">${html(tipo.label)}</span></td>
+        <td class="text-xs text-slate-600">-</td>
+        <td class="text-xs text-emerald-600 font-bold">-</td>
+        <td class="text-xs text-slate-700 font-extrabold max-w-xl">${html(detalheLoginLogout(log))}</td>
+      </tr>`;
+    }).join('');
+  };
+
+  window.filtrarLogs = function(){
+    const q = limparAcentos(document.getElementById('searchLogs')?.value || '');
+    const usuarioFiltro = document.getElementById('filtroUsuarioLog')?.value || '';
+    const base = window.filtrarSomenteLoginLogout(logsData || []);
+    const filtrado = base.filter(log => {
+      const tipo = tipoLoginLogout(log).label;
+      const detalhe = detalheLoginLogout(log);
+      const texto = limparAcentos(`${log.usuario || ''} ${tipo} ${detalhe}`);
+      const matchQ = !q || texto.includes(q);
+      const matchUser = !usuarioFiltro || log.usuario === usuarioFiltro;
+      return matchQ && matchUser;
+    });
+    renderizarLogs(filtrado);
+  };
+
+  window.exportarLogsCSV = function(){
+    const base = window.filtrarSomenteLoginLogout(logsData || []);
+    const linhas = [['Data','Usuario','Evento','Detalhes']].concat(
+      base.map(log => [log.created_at, log.usuario, tipoLoginLogout(log).label, detalheLoginLogout(log)])
+    );
+    const csv = linhas.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g,'""') + '"').join(';')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'logs_login_logout_topline.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const titulo = document.querySelector('#view-logs h3');
+    const subtitulo = document.querySelector('#view-logs h3 + p');
+    const busca = document.getElementById('searchLogs');
+    if (titulo) titulo.textContent = 'Logs de Login e Logout';
+    if (subtitulo) subtitulo.textContent = 'Registro somente de entrada e saída dos usuários no sistema';
+    if (busca) busca.placeholder = 'Filtrar login/logout...';
   });
 })();
 </script>
