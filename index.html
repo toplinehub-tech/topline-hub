@@ -3259,17 +3259,16 @@
             let c = { vencido: 0, andamento: 0, analise: 0 };
             let totalOperacional = 0;
 
-            rawData.forEach(row => (headers || []).forEach(col => {
-                if (!colunaDashboardOperacional(col)) return;
+            rawData.forEach(row => headers.forEach(col => {
+                if (col === 'CLIENTE') return;
 
-                const valor = row ? row[col] : null;
-                if (!valorDashboardReal(valor)) return;
+                const status = getStatus(row[col], row, col);
+                if (!status) return;
 
-                // Total operacional = somente células reais da planilha: datas ou textos preenchidos.
-                // Não conta vazio, '-', 'n/a', travessão, campos auxiliares nem colunas cadastrais.
+                // Total operacional = todas as células da planilha que representam uma tarefa/status real.
+                // Não conta colunas cadastrais sem status, preservando o cálculo dos demais painéis.
                 totalOperacional++;
 
-                const status = getStatus(valor, row, col);
                 if (status === 'vencido') c.vencido++;
                 if (status === 'andamento') c.andamento++;
                 if (status === 'analise') c.analise++;
@@ -4849,7 +4848,7 @@ renderizarLogs = function(dados) {
         const tipo = (typeof tipoAcessoLog === 'function') ? tipoAcessoLog(log) : formatarAcaoLog(log.acao);
         const saida = (typeof textoLogNormalizado === 'function') ? textoLogNormalizado(tipo).includes('logout') || textoLogNormalizado(tipo).includes('saida') : String(tipo).toLowerCase().includes('logout');
         const usuarioClasse = classeUsuarioLog(log.usuario);
-        return '<tr class="' + (saida ? 'log-row-error' : 'log-row-success') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td><span class="inline-flex px-2 py-1 rounded-full border text-[9px] font-black uppercase ' + usuarioClasse + '">' + escapeHtml(log.usuario || '-') + '</span></td><td><span class="log-action-pill ' + (saida ? 'erro' : 'alteracao') + '">' + escapeHtml(tipo || '-') + '</span></td><td class="font-bold text-slate-700">' + escapeHtml(log.cliente || '-') + '</td><td class="text-xs text-emerald-600 font-bold">' + escapeHtml(log.documento || '-') + '</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(formatarDetalheLog(log) || '-') + '</td></tr>';
+        return '<tr><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td><span class="inline-flex px-2 py-1 rounded-full border text-[9px] font-black uppercase ' + usuarioClasse + '">' + escapeHtml(log.usuario || '-') + '</span></td><td><span class="log-action-pill ' + (saida ? 'erro' : 'alteracao') + '">' + escapeHtml(tipo || '-') + '</span></td><td class="font-bold text-slate-700">' + escapeHtml(log.cliente || '-') + '</td><td class="text-xs text-emerald-600 font-bold">' + escapeHtml(log.documento || '-') + '</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(formatarDetalheLog(log) || '-') + '</td></tr>';
     }).join('');
 };
 function exportarLogsCSV() {
