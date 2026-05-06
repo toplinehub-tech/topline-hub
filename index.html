@@ -4966,12 +4966,52 @@ renderTable = function() {
     const search = document.getElementById('searchInput');
     const q = (search?.value || '').toLowerCase();
     if (!headers.length || !head || !body) return;
-    const visibleHeaders = getVisibleHeadersForCurrentFilter();
+
+    // Filtro DÍVIDAS: não cria colunas novas.
+    // Mantém as colunas originais da planilha e mostra somente empresas que tenham
+    // "divida" ou "dívida" em algum campo real da linha.
+    const visibleHeaders = activeDividas ? headers : getVisibleHeadersForCurrentFilter();
     const headersComFav = ['__FAV__'].concat(visibleHeaders);
-    head.innerHTML = '<tr>' + headersComFav.map(h => h === '__FAV__' ? '<th style="width:38px">⭐</th>' : (() => { const hi = getHighlightAttrs(getColumnHighlight(h)); return '<th class="' + (h==='CLIENTE'?'col-fixed':'') + hi.cls + '" style="' + hi.style + '">' + h + '</th>'; })()).join('') + '</tr>';
+
+    const normalizarDividaLocal = (valor) => String(valor ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+
+    const ehCelulaDivida = (valor) => {
+        try {
+            if (typeof textoContemDivida === 'function') return textoContemDivida(valor);
+        } catch(e) {}
+
+        const bruto = String(valor ?? '').trim();
+        const texto = normalizarDividaLocal(bruto);
+        if (!texto) return false;
+        if (/^[\-–—_.\s]+$/.test(bruto)) return false;
+        if (['-', '--', '---', '—', 'n/a', 'na', 'null', 'undefined', 'sem informacao', 'sem informação', 'vazio'].includes(texto)) return false;
+        return texto.includes('divida');
+    };
+
+    const linhaTemDivida = (row) => {
+        if (!row) return false;
+        return Object.keys(row).some(campo => {
+            if (!campo || campo.startsWith('__')) return false;
+            const campoNorm = normalizarDividaLocal(campo);
+            if (campoNorm === 'cliente' || campoNorm === 'cnpj') return false;
+            return ehCelulaDivida(row[campo]);
+        });
+    };
+
+    head.innerHTML = '<tr>' + headersComFav.map(h => {
+        if (h === '__FAV__') return '<th style="width:38px">⭐</th>';
+        const hi = getHighlightAttrs(activeDividas ? null : getColumnHighlight(h));
+        return '<th class="' + (h==='CLIENTE'?'col-fixed':'') + hi.cls + '" style="' + hi.style + '">' + h + '</th>';
+    }).join('') + '</tr>';
+
     const filtered = rawData.filter(row => {
         const textoBusca = [row.CLIENTE, row.CNPJ].join(' ').toLowerCase();
         if (q && !textoBusca.includes(q)) return false;
+        if (activeDividas) return linhaTemDivida(row);
         if (activeParcelamentos) {
             if (!('PARCELAMENTOS' in row)) return false;
             const parcelStatus = getParcelamentosStatus(row.PARCELAMENTOS);
@@ -4981,15 +5021,18 @@ renderTable = function() {
         if (activeStatus) return headers.some(h => getStatus(row[h], row, h) === activeStatus);
         return true;
     }).sort((a,b) => (isFavorito(b.CLIENTE) ? 1 : 0) - (isFavorito(a.CLIENTE) ? 1 : 0));
-    body.innerHTML = filtered.map(row => '<tr class="' + (isFavorito(row.CLIENTE) ? 'favorite-row' : '') + '">' + headersComFav.map(h => {
+
+    body.innerHTML = filtered.length ? filtered.map(row => '<tr class="' + (isFavorito(row.CLIENTE) ? 'favorite-row' : '') + '">' + headersComFav.map(h => {
         if (h === '__FAV__') return '<td><button class="favorite-star ' + (isFavorito(row.CLIENTE) ? 'active' : '') + '" onclick="toggleFavorito(\'' + escapeHtml(String(row.CLIENTE || '')).replace(/'/g,'&#39;') + '\', event)">⭐</button></td>';
         const s = getStatus(row[h], row, h);
         const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
-        const hi = getHighlightAttrs(getColumnHighlight(h, row));
+        const dividaAqui = activeDividas && ehCelulaDivida(row[h]);
+        const hi = dividaAqui ? getHighlightAttrs(getFilterColor('dividas')) : getHighlightAttrs(activeDividas ? null : getColumnHighlight(h, row));
         if (h === 'CNPJ') return '<td class="cnpj-cell' + hi.cls + '" style="cursor:pointer;' + hi.style + '" onclick="copiarCNPJ(\'' + String(val).replace(/'/g,"\\'") + '\', event)">' + escapeHtml(val) + '</td>';
         const colArg = JSON.stringify(h);
         return '<td class="' + (h==='CLIENTE'?'col-fixed':(s||'')) + hi.cls + '" style="' + hi.style + '" onclick="openEditCell(' + rawData.indexOf(row) + ', ' + colArg.replace(/"/g, '&quot;') + ')">' + escapeHtml(val) + '</td>';
-    }).join('') + '</tr>').join('');
+    }).join('') + '</tr>').join('') : '<tr><td colspan="' + headersComFav.length + '" class="text-center py-10 text-slate-400">Nenhuma empresa com a palavra dívida encontrada.</td></tr>';
+
     renderizarMobileCards(filtered, visibleHeaders);
     updateAnalytics(); renderizarFavoritosPanel(); if (alertasVisivel) renderizarAlertasPanel();
 };
