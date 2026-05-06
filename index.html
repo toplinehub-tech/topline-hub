@@ -4074,7 +4074,7 @@
                 const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899', Nikolas: '#334155' };
                 const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8', Nikolas: '#f8fafc' };
 
-                document.getElementById('monitor-cards').innerHTML = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].map(colab => {
+                document.getElementById('monitor-cards').innerHTML = ['Jordan', 'Sirlene', 'Ingrid'].map(colab => {
                     const d = agrupado[colab];
                     const pct = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
                     return `<div class="colab-card" style="border-top: 6px solid ${cores[colab]}; background: ${coresLight[colab]};">
