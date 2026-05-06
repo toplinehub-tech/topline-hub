@@ -724,7 +724,15 @@
 
 
 
-/* DOM OPTIMIZATION - safe view rendering */
+/* DOM OPTIMIZATION - renderizacao segura */
+#main-app [id^="view-"] {
+    content-visibility: auto;
+    contain-intrinsic-size: 900px;
+}
+.scroll-container {
+    content-visibility: auto;
+    contain-intrinsic-size: 620px;
+}
 .view-dom-deferred-placeholder {
     min-height: 120px;
     border: 1px dashed #dbe4ee;
@@ -738,14 +746,6 @@
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: .08em;
-}
-#main-app [id^="view-"] {
-    content-visibility: auto;
-    contain-intrinsic-size: 900px;
-}
-.scroll-container {
-    content-visibility: auto;
-    contain-intrinsic-size: 620px;
 }
 
 </style>
@@ -1562,12 +1562,14 @@
 </script>
 
 
-
 <script>
-/* DOM OPTIMIZATION - safe view rendering
-   Mantem apenas a aba inicial completa e esvazia conteudos pesados ocultos apos a inicializacao.
-   Ao abrir uma aba, o conteudo original e restaurado automaticamente antes das funcoes existentes rodarem. */
+/* DOM OPTIMIZATION - restauracao unica e segura por aba
+   Nao remove a aba ativa. As abas ocultas sao guardadas apos a carga completa
+   e restauradas antes do switchTab original executar. */
 (function(){
+  if (window.__TOPLINE_DOM_OPT_V2__) return;
+  window.__TOPLINE_DOM_OPT_V2__ = true;
+
   var VIEW_IDS_TO_DEFER = [
     'view-senhas',
     'view-comm',
@@ -1576,10 +1578,14 @@
     'view-monitor',
     'view-logs',
     'view-financeiro',
-    'view-empresasparcelamentos'
+    'view-empresasparcelamentos',
+    'view-avisos',
+    'view-tasks'
   ];
-  var viewCache = Object.create(null);
+
   var tabToView = {
+    dash: 'view-dash',
+    tasks: 'view-tasks',
     senhas: 'view-senhas',
     comm: 'view-comm',
     atalhos: 'view-atalhos',
@@ -1587,16 +1593,26 @@
     monitor: 'view-monitor',
     logs: 'view-logs',
     financeiro: 'view-financeiro',
-    empresasparcelamentos: 'view-empresasparcelamentos'
+    empresasparcelamentos: 'view-empresasparcelamentos',
+    avisos: 'view-avisos'
   };
+
   var functionToView = {
+    renderizarTarefas: 'view-tasks',
+    carregarAvisos: 'view-avisos',
     renderSenhas: 'view-senhas',
     renderCommTable: 'view-comm',
+    atualizarPreviewComunicado: 'view-comm',
     renderAtalhos: 'view-atalhos',
     carregarHistorico: 'view-historico',
+    filtrarHistorico: 'view-historico',
     carregarMonitor: 'view-monitor',
+    setMonitorPeriodo: 'view-monitor',
+    carregarTarefasMonitorGeral: 'view-monitor',
     carregarLogs: 'view-logs',
+    filtrarLogs: 'view-logs',
     carregarFinanceiro: 'view-financeiro',
+    filtrarFinanceiro: 'view-financeiro',
     carregarAtrasadosFinanceiro: 'view-financeiro',
     carregarLogsFinanceiro: 'view-financeiro',
     renderEmpresasParcelamentos: 'view-empresasparcelamentos',
@@ -1604,76 +1620,83 @@
     carregarHistoricoParcelamentosSilencioso: 'view-empresasparcelamentos'
   };
 
-  function getViewIdFromTab(tab){ return tabToView[tab] || ('view-' + tab); }
+  var viewCache = window.__toplineDomViewCache || (window.__toplineDomViewCache = Object.create(null));
 
-  window.__toplineRestoreDomView = function(viewIdOrTab){
+  function getViewIdFromTab(tab) {
+    return tabToView[tab] || ('view-' + tab);
+  }
+
+  window.__toplineRestoreDomView = function(viewIdOrTab) {
     var viewId = String(viewIdOrTab || '');
-    if (!viewId) return;
+    if (!viewId) return false;
     if (viewId.indexOf('view-') !== 0) viewId = getViewIdFromTab(viewId);
-    if (viewCache[viewId]) {
-      var view = document.getElementById(viewId);
-      if (view) {
-        view.innerHTML = viewCache[viewId];
-        view.classList.remove('dom-deferred');
-        delete viewCache[viewId];
-      }
-    }
+
+    var cached = viewCache[viewId];
+    if (!cached) return false;
+
+    var view = document.getElementById(viewId);
+    if (!view) return false;
+
+    view.innerHTML = cached.html;
+    view.className = cached.className;
+    delete viewCache[viewId];
+    return true;
   };
 
-  function deferHiddenViews(){
-    VIEW_IDS_TO_DEFER.forEach(function(viewId){
+  function deferHiddenViews() {
+    VIEW_IDS_TO_DEFER.forEach(function(viewId) {
       var view = document.getElementById(viewId);
       if (!view || viewCache[viewId]) return;
       if (!view.classList.contains('hidden')) return;
-      var html = view.innerHTML;
-      if (!html || html.trim().length < 400) return;
-      viewCache[viewId] = html;
+
+      var html = view.innerHTML || '';
+      if (html.trim().length < 400) return;
+
+      viewCache[viewId] = { html: html, className: view.className };
       view.innerHTML = '<div class="view-dom-deferred-placeholder">Conteudo carregado ao abrir a aba</div>';
       view.classList.add('dom-deferred');
     });
   }
 
-  function wrapSwitchTab(){
-    if (typeof window.switchTab !== 'function' || window.switchTab.__domOptimized) return;
-    var originalSwitchTab = window.switchTab;
-    var optimizedSwitchTab = function(tab){
-      try { window.__toplineRestoreDomView(getViewIdFromTab(tab)); } catch(e) { console.warn('DOM restore falhou:', e); }
-      return originalSwitchTab.apply(this, arguments);
-    };
-    optimizedSwitchTab.__domOptimized = true;
-    window.switchTab = optimizedSwitchTab;
-  }
-
-  function wrapRenderFunction(fnName, viewId){
-    var original = window[fnName];
-    if (typeof original !== 'function' || original.__domRestoreWrapped) return;
-    var wrapped = function(){
-      try { window.__toplineRestoreDomView(viewId); } catch(e) {}
+  function wrapSwitchTab() {
+    if (typeof window.switchTab !== 'function' || window.switchTab.__toplineDomWrapped) return;
+    var original = window.switchTab;
+    var wrapped = function(tab) {
+      try { window.__toplineRestoreDomView(getViewIdFromTab(tab)); } catch (e) { console.warn('DOM restore falhou:', e); }
       return original.apply(this, arguments);
     };
-    wrapped.__domRestoreWrapped = true;
+    wrapped.__toplineDomWrapped = true;
+    window.switchTab = wrapped;
+  }
+
+  function wrapFunction(fnName, viewId) {
+    var original = window[fnName];
+    if (typeof original !== 'function' || original.__toplineDomRestoreWrapped) return;
+    var wrapped = function() {
+      try { window.__toplineRestoreDomView(viewId); } catch (e) {}
+      return original.apply(this, arguments);
+    };
+    wrapped.__toplineDomRestoreWrapped = true;
     window[fnName] = wrapped;
   }
 
-  function wrapKnownFunctions(){
-    Object.keys(functionToView).forEach(function(fn){ wrapRenderFunction(fn, functionToView[fn]); });
+  function wrapKnownFunctions() {
+    Object.keys(functionToView).forEach(function(fnName) {
+      wrapFunction(fnName, functionToView[fnName]);
+    });
   }
 
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      wrapKnownFunctions();
-      wrapSwitchTab();
-      deferHiddenViews();
-    }, 0);
-  });
+  function bootDomOptimization() {
+    wrapKnownFunctions();
+    wrapSwitchTab();
+    deferHiddenViews();
+  }
 
-  window.addEventListener('load', function(){
-    setTimeout(function(){
-      wrapKnownFunctions();
-      wrapSwitchTab();
-      deferHiddenViews();
-    }, 500);
-  });
+  if (document.readyState === 'complete') {
+    setTimeout(bootDomOptimization, 300);
+  } else {
+    window.addEventListener('load', function(){ setTimeout(bootDomOptimization, 300); });
+  }
 })();
 </script>
 
@@ -5546,122 +5569,6 @@ function renderizarLogsFinanceiro(logs) { const tbody = document.getElementById(
 const _switchTabFinanceiroBase = typeof switchTab === 'function' ? switchTab : null;
 if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { const wrappedSwitchFinanceiro = function(tab) { if (currentUser === 'Brenda' && tab !== 'financeiro') tab = 'financeiro'; return _switchTabFinanceiroBase(tab); }; wrappedSwitchFinanceiro.__financeiroV20 = true; switchTab = wrappedSwitchFinanceiro; }
 
-</script>
-
-
-
-<script>
-/* DOM OPTIMIZATION - safe view rendering
-   Mantem apenas a aba inicial completa e esvazia conteudos pesados ocultos apos a inicializacao.
-   Ao abrir uma aba, o conteudo original e restaurado automaticamente antes das funcoes existentes rodarem. */
-(function(){
-  var VIEW_IDS_TO_DEFER = [
-    'view-senhas',
-    'view-comm',
-    'view-atalhos',
-    'view-historico',
-    'view-monitor',
-    'view-logs',
-    'view-financeiro',
-    'view-empresasparcelamentos'
-  ];
-  var viewCache = Object.create(null);
-  var tabToView = {
-    senhas: 'view-senhas',
-    comm: 'view-comm',
-    atalhos: 'view-atalhos',
-    historico: 'view-historico',
-    monitor: 'view-monitor',
-    logs: 'view-logs',
-    financeiro: 'view-financeiro',
-    empresasparcelamentos: 'view-empresasparcelamentos'
-  };
-  var functionToView = {
-    renderSenhas: 'view-senhas',
-    renderCommTable: 'view-comm',
-    renderAtalhos: 'view-atalhos',
-    carregarHistorico: 'view-historico',
-    carregarMonitor: 'view-monitor',
-    carregarLogs: 'view-logs',
-    carregarFinanceiro: 'view-financeiro',
-    carregarAtrasadosFinanceiro: 'view-financeiro',
-    carregarLogsFinanceiro: 'view-financeiro',
-    renderEmpresasParcelamentos: 'view-empresasparcelamentos',
-    carregarPGDASMensalSilencioso: 'view-empresasparcelamentos',
-    carregarHistoricoParcelamentosSilencioso: 'view-empresasparcelamentos'
-  };
-
-  function getViewIdFromTab(tab){ return tabToView[tab] || ('view-' + tab); }
-
-  window.__toplineRestoreDomView = function(viewIdOrTab){
-    var viewId = String(viewIdOrTab || '');
-    if (!viewId) return;
-    if (viewId.indexOf('view-') !== 0) viewId = getViewIdFromTab(viewId);
-    if (viewCache[viewId]) {
-      var view = document.getElementById(viewId);
-      if (view) {
-        view.innerHTML = viewCache[viewId];
-        view.classList.remove('dom-deferred');
-        delete viewCache[viewId];
-      }
-    }
-  };
-
-  function deferHiddenViews(){
-    VIEW_IDS_TO_DEFER.forEach(function(viewId){
-      var view = document.getElementById(viewId);
-      if (!view || viewCache[viewId]) return;
-      if (!view.classList.contains('hidden')) return;
-      var html = view.innerHTML;
-      if (!html || html.trim().length < 400) return;
-      viewCache[viewId] = html;
-      view.innerHTML = '<div class="view-dom-deferred-placeholder">Conteudo carregado ao abrir a aba</div>';
-      view.classList.add('dom-deferred');
-    });
-  }
-
-  function wrapSwitchTab(){
-    if (typeof window.switchTab !== 'function' || window.switchTab.__domOptimized) return;
-    var originalSwitchTab = window.switchTab;
-    var optimizedSwitchTab = function(tab){
-      try { window.__toplineRestoreDomView(getViewIdFromTab(tab)); } catch(e) { console.warn('DOM restore falhou:', e); }
-      return originalSwitchTab.apply(this, arguments);
-    };
-    optimizedSwitchTab.__domOptimized = true;
-    window.switchTab = optimizedSwitchTab;
-  }
-
-  function wrapRenderFunction(fnName, viewId){
-    var original = window[fnName];
-    if (typeof original !== 'function' || original.__domRestoreWrapped) return;
-    var wrapped = function(){
-      try { window.__toplineRestoreDomView(viewId); } catch(e) {}
-      return original.apply(this, arguments);
-    };
-    wrapped.__domRestoreWrapped = true;
-    window[fnName] = wrapped;
-  }
-
-  function wrapKnownFunctions(){
-    Object.keys(functionToView).forEach(function(fn){ wrapRenderFunction(fn, functionToView[fn]); });
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      wrapKnownFunctions();
-      wrapSwitchTab();
-      deferHiddenViews();
-    }, 0);
-  });
-
-  window.addEventListener('load', function(){
-    setTimeout(function(){
-      wrapKnownFunctions();
-      wrapSwitchTab();
-      deferHiddenViews();
-    }, 500);
-  });
-})();
 </script>
 
 </body>
