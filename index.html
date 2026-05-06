@@ -901,7 +901,11 @@
                                 <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-red-400"></span><span class="text-xs font-bold text-slate-600 w-24">Vencidos:</span><span id="dash-count-vencido" class="text-xs font-black text-slate-800">0</span></div>
                                 <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-purple-400"></span><span class="text-xs font-bold text-slate-600 w-24">Andamento:</span><span id="dash-count-andamento" class="text-xs font-black text-slate-800">0</span></div>
                                 <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-orange-400"></span><span class="text-xs font-bold text-slate-600 w-24">Análise:</span><span id="dash-count-analise" class="text-xs font-black text-slate-800">0</span></div>
-                                <div class="pt-2 border-t mt-2 flex gap-4"><span class="text-[10px] font-black text-emerald-600 uppercase">Soma dos itens: <span id="dash-count-total">0</span></span></div>
+                                <div class="pt-2 border-t mt-2 grid grid-cols-1 gap-1">
+                                    <span class="text-[10px] font-black text-emerald-600 uppercase">Críticos: <span id="dash-count-total">0</span></span>
+                                    <span class="text-[10px] font-black text-slate-500 uppercase">Total operacional: <span id="dash-count-total-geral">0</span></span>
+                                    <span id="dash-risk-label" class="inline-flex w-fit mt-1 px-2 py-1 rounded-full text-[8px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-100">Normal</span>
+                                </div>
                             </div>
                         </div>
                         <div class="relative w-32 h-32">
@@ -912,8 +916,9 @@
                                 <circle id="circle-analise" cx="18" cy="18" r="16" fill="none" stroke="#fb923c" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" class="transition-all duration-1000 ease-out"></circle>
                             </svg>
                             <div class="absolute inset-0 flex items-center justify-center flex-col leading-none">
-                                <span id="dash-percent" class="text-lg font-black text-slate-800">100%</span>
-                                <span class="text-[7px] font-bold text-slate-400 uppercase mt-1">Status</span>
+                                <span id="dash-percent" class="text-lg font-black text-slate-800">0%</span>
+                                <span class="text-[7px] font-bold text-slate-400 uppercase mt-1">Crítico</span>
+                                <span id="dash-critical-text" class="text-[7px] font-black text-slate-500 mt-1">0 de 0</span>
                             </div>
                         </div>
                     </div>
@@ -2904,25 +2909,76 @@
 
         function updateAnalytics() {
             let c = { vencido: 0, andamento: 0, analise: 0 };
+            let totalOperacional = 0;
+
             rawData.forEach(row => headers.forEach(col => {
                 if (col === 'CLIENTE') return;
-                const s = getStatus(row[col], row, col);
-                if (s === 'vencido') c.vencido++;
-                if (s === 'andamento') c.andamento++;
-                if (s === 'analise') c.analise++;
+
+                const status = getStatus(row[col], row, col);
+                if (!status) return;
+
+                // Total operacional = todas as células da planilha que representam uma tarefa/status real.
+                // Não conta colunas cadastrais sem status, preservando o cálculo dos demais painéis.
+                totalOperacional++;
+
+                if (status === 'vencido') c.vencido++;
+                if (status === 'andamento') c.andamento++;
+                if (status === 'analise') c.analise++;
             }));
-            const total = c.vencido + c.andamento + c.analise;
-            document.getElementById('dash-count-vencido').innerText = c.vencido;
-            document.getElementById('dash-count-andamento').innerText = c.andamento;
-            document.getElementById('dash-count-analise').innerText = c.analise;
-            document.getElementById('dash-count-total').innerText = total;
-            const safe = total || 1;
-            document.getElementById('circle-vencido').setAttribute('stroke-dasharray', `${(c.vencido/safe)*100} 100`);
-            document.getElementById('circle-andamento').setAttribute('stroke-dashoffset', `-${(c.vencido/safe)*100}`);
-            document.getElementById('circle-andamento').setAttribute('stroke-dasharray', `${(c.andamento/safe)*100} 100`);
-            document.getElementById('circle-analise').setAttribute('stroke-dashoffset', `-${((c.vencido+c.andamento)/safe)*100}`);
-            document.getElementById('circle-analise').setAttribute('stroke-dasharray', `${(c.analise/safe)*100} 100`);
-            document.getElementById('dash-percent').innerText = total > 0 ? Math.round(((total-c.vencido)/total)*100)+"%" : "100%";
+
+            const totalCritico = c.vencido + c.andamento + c.analise;
+            const percentualCritico = totalOperacional > 0 ? Math.round((totalCritico / totalOperacional) * 100) : 0;
+            const safe = totalOperacional || 1;
+
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = value;
+            };
+
+            setText('dash-count-vencido', c.vencido);
+            setText('dash-count-andamento', c.andamento);
+            setText('dash-count-analise', c.analise);
+            setText('dash-count-total', totalCritico);
+            setText('dash-count-total-geral', totalOperacional);
+            setText('dash-percent', `${percentualCritico}%`);
+            setText('dash-critical-text', `${totalCritico} de ${totalOperacional}`);
+
+            const pctVencido = (c.vencido / safe) * 100;
+            const pctAndamento = (c.andamento / safe) * 100;
+            const pctAnalise = (c.analise / safe) * 100;
+
+            const circleVencido = document.getElementById('circle-vencido');
+            const circleAndamento = document.getElementById('circle-andamento');
+            const circleAnalise = document.getElementById('circle-analise');
+
+            if (circleVencido) circleVencido.setAttribute('stroke-dasharray', `${pctVencido} 100`);
+            if (circleAndamento) {
+                circleAndamento.setAttribute('stroke-dashoffset', `-${pctVencido}`);
+                circleAndamento.setAttribute('stroke-dasharray', `${pctAndamento} 100`);
+            }
+            if (circleAnalise) {
+                circleAnalise.setAttribute('stroke-dashoffset', `-${pctVencido + pctAndamento}`);
+                circleAnalise.setAttribute('stroke-dasharray', `${pctAnalise} 100`);
+            }
+
+            const risk = document.getElementById('dash-risk-label');
+            const percentEl = document.getElementById('dash-percent');
+            if (risk) {
+                risk.className = 'inline-flex w-fit mt-1 px-2 py-1 rounded-full text-[8px] font-black uppercase border';
+                if (percentualCritico <= 5) {
+                    risk.innerText = 'Normal';
+                    risk.className += ' bg-emerald-50 text-emerald-700 border-emerald-100';
+                    if (percentEl) percentEl.className = 'text-lg font-black text-emerald-700';
+                } else if (percentualCritico <= 15) {
+                    risk.innerText = 'Atenção';
+                    risk.className += ' bg-amber-50 text-amber-700 border-amber-100';
+                    if (percentEl) percentEl.className = 'text-lg font-black text-amber-700';
+                } else {
+                    risk.innerText = 'Crítico';
+                    risk.className += ' bg-red-50 text-red-700 border-red-100';
+                    if (percentEl) percentEl.className = 'text-lg font-black text-red-700';
+                }
+            }
         }
 
         // ============================================
