@@ -722,6 +722,32 @@
   .financeiro-table select, .financeiro-table input[type="date"] { max-width: 180px; }
 }
 
+
+
+/* DOM OPTIMIZATION - safe view rendering */
+.view-dom-deferred-placeholder {
+    min-height: 120px;
+    border: 1px dashed #dbe4ee;
+    border-radius: 16px;
+    background: #f8fafc;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+#main-app [id^="view-"] {
+    content-visibility: auto;
+    contain-intrinsic-size: 900px;
+}
+.scroll-container {
+    content-visibility: auto;
+    contain-intrinsic-size: 620px;
+}
+
 </style>
 </head>
 <body>
@@ -1531,6 +1557,122 @@
       });
     }, { rootMargin: '250px' });
     items.forEach(function(el){ observer.observe(el); });
+  });
+})();
+</script>
+
+
+
+<script>
+/* DOM OPTIMIZATION - safe view rendering
+   Mantem apenas a aba inicial completa e esvazia conteudos pesados ocultos apos a inicializacao.
+   Ao abrir uma aba, o conteudo original e restaurado automaticamente antes das funcoes existentes rodarem. */
+(function(){
+  var VIEW_IDS_TO_DEFER = [
+    'view-senhas',
+    'view-comm',
+    'view-atalhos',
+    'view-historico',
+    'view-monitor',
+    'view-logs',
+    'view-financeiro',
+    'view-empresasparcelamentos'
+  ];
+  var viewCache = Object.create(null);
+  var tabToView = {
+    senhas: 'view-senhas',
+    comm: 'view-comm',
+    atalhos: 'view-atalhos',
+    historico: 'view-historico',
+    monitor: 'view-monitor',
+    logs: 'view-logs',
+    financeiro: 'view-financeiro',
+    empresasparcelamentos: 'view-empresasparcelamentos'
+  };
+  var functionToView = {
+    renderSenhas: 'view-senhas',
+    renderCommTable: 'view-comm',
+    renderAtalhos: 'view-atalhos',
+    carregarHistorico: 'view-historico',
+    carregarMonitor: 'view-monitor',
+    carregarLogs: 'view-logs',
+    carregarFinanceiro: 'view-financeiro',
+    carregarAtrasadosFinanceiro: 'view-financeiro',
+    carregarLogsFinanceiro: 'view-financeiro',
+    renderEmpresasParcelamentos: 'view-empresasparcelamentos',
+    carregarPGDASMensalSilencioso: 'view-empresasparcelamentos',
+    carregarHistoricoParcelamentosSilencioso: 'view-empresasparcelamentos'
+  };
+
+  function getViewIdFromTab(tab){ return tabToView[tab] || ('view-' + tab); }
+
+  window.__toplineRestoreDomView = function(viewIdOrTab){
+    var viewId = String(viewIdOrTab || '');
+    if (!viewId) return;
+    if (viewId.indexOf('view-') !== 0) viewId = getViewIdFromTab(viewId);
+    if (viewCache[viewId]) {
+      var view = document.getElementById(viewId);
+      if (view) {
+        view.innerHTML = viewCache[viewId];
+        view.classList.remove('dom-deferred');
+        delete viewCache[viewId];
+      }
+    }
+  };
+
+  function deferHiddenViews(){
+    VIEW_IDS_TO_DEFER.forEach(function(viewId){
+      var view = document.getElementById(viewId);
+      if (!view || viewCache[viewId]) return;
+      if (!view.classList.contains('hidden')) return;
+      var html = view.innerHTML;
+      if (!html || html.trim().length < 400) return;
+      viewCache[viewId] = html;
+      view.innerHTML = '<div class="view-dom-deferred-placeholder">Conteudo carregado ao abrir a aba</div>';
+      view.classList.add('dom-deferred');
+    });
+  }
+
+  function wrapSwitchTab(){
+    if (typeof window.switchTab !== 'function' || window.switchTab.__domOptimized) return;
+    var originalSwitchTab = window.switchTab;
+    var optimizedSwitchTab = function(tab){
+      try { window.__toplineRestoreDomView(getViewIdFromTab(tab)); } catch(e) { console.warn('DOM restore falhou:', e); }
+      return originalSwitchTab.apply(this, arguments);
+    };
+    optimizedSwitchTab.__domOptimized = true;
+    window.switchTab = optimizedSwitchTab;
+  }
+
+  function wrapRenderFunction(fnName, viewId){
+    var original = window[fnName];
+    if (typeof original !== 'function' || original.__domRestoreWrapped) return;
+    var wrapped = function(){
+      try { window.__toplineRestoreDomView(viewId); } catch(e) {}
+      return original.apply(this, arguments);
+    };
+    wrapped.__domRestoreWrapped = true;
+    window[fnName] = wrapped;
+  }
+
+  function wrapKnownFunctions(){
+    Object.keys(functionToView).forEach(function(fn){ wrapRenderFunction(fn, functionToView[fn]); });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      wrapKnownFunctions();
+      wrapSwitchTab();
+      deferHiddenViews();
+    }, 0);
+  });
+
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      wrapKnownFunctions();
+      wrapSwitchTab();
+      deferHiddenViews();
+    }, 500);
   });
 })();
 </script>
@@ -5404,6 +5546,122 @@ function renderizarLogsFinanceiro(logs) { const tbody = document.getElementById(
 const _switchTabFinanceiroBase = typeof switchTab === 'function' ? switchTab : null;
 if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { const wrappedSwitchFinanceiro = function(tab) { if (currentUser === 'Brenda' && tab !== 'financeiro') tab = 'financeiro'; return _switchTabFinanceiroBase(tab); }; wrappedSwitchFinanceiro.__financeiroV20 = true; switchTab = wrappedSwitchFinanceiro; }
 
+</script>
+
+
+
+<script>
+/* DOM OPTIMIZATION - safe view rendering
+   Mantem apenas a aba inicial completa e esvazia conteudos pesados ocultos apos a inicializacao.
+   Ao abrir uma aba, o conteudo original e restaurado automaticamente antes das funcoes existentes rodarem. */
+(function(){
+  var VIEW_IDS_TO_DEFER = [
+    'view-senhas',
+    'view-comm',
+    'view-atalhos',
+    'view-historico',
+    'view-monitor',
+    'view-logs',
+    'view-financeiro',
+    'view-empresasparcelamentos'
+  ];
+  var viewCache = Object.create(null);
+  var tabToView = {
+    senhas: 'view-senhas',
+    comm: 'view-comm',
+    atalhos: 'view-atalhos',
+    historico: 'view-historico',
+    monitor: 'view-monitor',
+    logs: 'view-logs',
+    financeiro: 'view-financeiro',
+    empresasparcelamentos: 'view-empresasparcelamentos'
+  };
+  var functionToView = {
+    renderSenhas: 'view-senhas',
+    renderCommTable: 'view-comm',
+    renderAtalhos: 'view-atalhos',
+    carregarHistorico: 'view-historico',
+    carregarMonitor: 'view-monitor',
+    carregarLogs: 'view-logs',
+    carregarFinanceiro: 'view-financeiro',
+    carregarAtrasadosFinanceiro: 'view-financeiro',
+    carregarLogsFinanceiro: 'view-financeiro',
+    renderEmpresasParcelamentos: 'view-empresasparcelamentos',
+    carregarPGDASMensalSilencioso: 'view-empresasparcelamentos',
+    carregarHistoricoParcelamentosSilencioso: 'view-empresasparcelamentos'
+  };
+
+  function getViewIdFromTab(tab){ return tabToView[tab] || ('view-' + tab); }
+
+  window.__toplineRestoreDomView = function(viewIdOrTab){
+    var viewId = String(viewIdOrTab || '');
+    if (!viewId) return;
+    if (viewId.indexOf('view-') !== 0) viewId = getViewIdFromTab(viewId);
+    if (viewCache[viewId]) {
+      var view = document.getElementById(viewId);
+      if (view) {
+        view.innerHTML = viewCache[viewId];
+        view.classList.remove('dom-deferred');
+        delete viewCache[viewId];
+      }
+    }
+  };
+
+  function deferHiddenViews(){
+    VIEW_IDS_TO_DEFER.forEach(function(viewId){
+      var view = document.getElementById(viewId);
+      if (!view || viewCache[viewId]) return;
+      if (!view.classList.contains('hidden')) return;
+      var html = view.innerHTML;
+      if (!html || html.trim().length < 400) return;
+      viewCache[viewId] = html;
+      view.innerHTML = '<div class="view-dom-deferred-placeholder">Conteudo carregado ao abrir a aba</div>';
+      view.classList.add('dom-deferred');
+    });
+  }
+
+  function wrapSwitchTab(){
+    if (typeof window.switchTab !== 'function' || window.switchTab.__domOptimized) return;
+    var originalSwitchTab = window.switchTab;
+    var optimizedSwitchTab = function(tab){
+      try { window.__toplineRestoreDomView(getViewIdFromTab(tab)); } catch(e) { console.warn('DOM restore falhou:', e); }
+      return originalSwitchTab.apply(this, arguments);
+    };
+    optimizedSwitchTab.__domOptimized = true;
+    window.switchTab = optimizedSwitchTab;
+  }
+
+  function wrapRenderFunction(fnName, viewId){
+    var original = window[fnName];
+    if (typeof original !== 'function' || original.__domRestoreWrapped) return;
+    var wrapped = function(){
+      try { window.__toplineRestoreDomView(viewId); } catch(e) {}
+      return original.apply(this, arguments);
+    };
+    wrapped.__domRestoreWrapped = true;
+    window[fnName] = wrapped;
+  }
+
+  function wrapKnownFunctions(){
+    Object.keys(functionToView).forEach(function(fn){ wrapRenderFunction(fn, functionToView[fn]); });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      wrapKnownFunctions();
+      wrapSwitchTab();
+      deferHiddenViews();
+    }, 0);
+  });
+
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      wrapKnownFunctions();
+      wrapSwitchTab();
+      deferHiddenViews();
+    }, 500);
+  });
+})();
 </script>
 
 </body>
