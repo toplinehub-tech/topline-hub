@@ -1581,6 +1581,39 @@
         // Dados de logs e histórico em memória (para filtro)
         let logsData = [];
         let historicoData = [];
+
+        // Controle de inatividade: após 30 minutos sem uso, volta para a tela de login.
+        // Considera uso real do sistema: clique, tecla, toque, scroll e movimento do mouse.
+        const LOGIN_IDLE_LIMIT_MS = 30 * 60 * 1000;
+        let loginIdleTimer = null;
+        let loginIdleAtivo = false;
+
+        function iniciarTimerInatividadeLogin() {
+            loginIdleAtivo = true;
+            resetarTimerInatividadeLogin();
+        }
+
+        function pararTimerInatividadeLogin() {
+            loginIdleAtivo = false;
+            if (loginIdleTimer) clearTimeout(loginIdleTimer);
+            loginIdleTimer = null;
+        }
+
+        function resetarTimerInatividadeLogin() {
+            if (!loginIdleAtivo || !currentUser) return;
+            if (loginIdleTimer) clearTimeout(loginIdleTimer);
+            loginIdleTimer = setTimeout(async () => {
+                if (!currentUser) return;
+                if (typeof showNotification === 'function') {
+                    showNotification('Sessão encerrada por inatividade de 30 minutos.');
+                }
+                await logout();
+            }, LOGIN_IDLE_LIMIT_MS);
+        }
+
+        ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, resetarTimerInatividadeLogin, { passive: true });
+        });
         
         const docList = ["ATA", "CRED.", "CENTS", "CTM", "CND", "CMDCA", "UTILIDADE", "CERTIF.DIGITAL", "COMAS", "COVISA", "CRCE"].filter(doc => doc !== "PARCELAMENTOS");
 
@@ -1951,6 +1984,7 @@
             if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
             
             carregarAvisos();
+            iniciarTimerInatividadeLogin();
             agendarSorteioAutomatico();
             agendarRegistroMonitorAutomatico();
             
@@ -1979,6 +2013,7 @@
                 console.error('Erro ao registrar logout:', e);
             }
             try { sessionStorage.removeItem(chaveSessaoLogin(usuarioSaindo)); } catch(e) {}
+            pararTimerInatividadeLogin();
             minimizarPostit();
             currentUser = ""; localStorage.removeItem("topline_user");
             usuarioSelecionado = "";
@@ -3192,20 +3227,49 @@
             document.getElementById('last-update-tag').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         }
 
+        function valorDashboardReal(valor) {
+            if (valor instanceof Date) return !isNaN(valor.getTime());
+            if (valor && typeof valor === 'object') {
+                if ('v' in valor) return valorDashboardReal(valor.v);
+                if ('f' in valor) return valorDashboardReal(valor.f);
+                return false;
+            }
+            const raw = String(valor ?? '').trim();
+            if (!raw) return false;
+            if (/^[\-–—_\.\s]+$/.test(raw)) return false;
+            const norm = raw
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+            return !['-', '--', '---', '—', 'n/a', 'na', 'n.a', 'null', 'undefined', 'sem informacao', 'sem informação', 'vazio'].includes(norm);
+        }
+
+        function colunaDashboardOperacional(col) {
+            const c = String(col || '').trim();
+            const n = c.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+            if (!c) return false;
+            if (c.startsWith('__')) return false;
+            if (n.endsWith('_DONE')) return false;
+            return !['CLIENTE', 'CNPJ', 'RAZAO SOCIAL', 'RAZÃO SOCIAL', 'EMAIL', 'E-MAIL', 'WHATSAPP', 'TELEFONE', 'CONTATO', 'CCM', 'CIDADE', 'ENDERECO', 'ENDEREÇO'].includes(n);
+        }
+
         function updateAnalytics() {
             let c = { vencido: 0, andamento: 0, analise: 0 };
             let totalOperacional = 0;
 
-            rawData.forEach(row => headers.forEach(col => {
-                if (col === 'CLIENTE') return;
+            rawData.forEach(row => (headers || []).forEach(col => {
+                if (!colunaDashboardOperacional(col)) return;
 
-                const status = getStatus(row[col], row, col);
-                if (!status) return;
+                const valor = row ? row[col] : null;
+                if (!valorDashboardReal(valor)) return;
 
-                // Total operacional = todas as células da planilha que representam uma tarefa/status real.
-                // Não conta colunas cadastrais sem status, preservando o cálculo dos demais painéis.
+                // Total operacional = somente células reais da planilha: datas ou textos preenchidos.
+                // Não conta vazio, '-', 'n/a', travessão, campos auxiliares nem colunas cadastrais.
                 totalOperacional++;
 
+                const status = getStatus(valor, row, col);
                 if (status === 'vencido') c.vencido++;
                 if (status === 'andamento') c.andamento++;
                 if (status === 'analise') c.analise++;
@@ -4762,6 +4826,19 @@ function limparFiltrosHistorico() {
 }
 
 function classificarLogAcao(acao) { const a = normalizarTexto(acao); if (a.includes('erro')) return 'erro'; if (a.includes('envio')) return 'envio'; if (a.includes('alter') || a.includes('salv') || a.includes('inform')) return 'alteracao'; return ''; }
+function classeUsuarioLog(usuario) {
+    const u = String(usuario || '').trim().toUpperCase();
+    const mapa = {
+        'NIKOLAS': 'bg-slate-100 text-slate-800 border-slate-300',
+        'INGRID': 'bg-pink-50 text-pink-700 border-pink-200',
+        'JORDAN': 'bg-blue-50 text-blue-700 border-blue-200',
+        'PATRICIA': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'PATRÍCIA': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'SIRLENE': 'bg-purple-50 text-purple-700 border-purple-200',
+        'BRENDA': 'bg-orange-50 text-orange-700 border-orange-200'
+    };
+    return mapa[u] || 'bg-slate-50 text-slate-700 border-slate-200';
+}
 const _renderizarLogsBase = typeof renderizarLogs === 'function' ? renderizarLogs : null;
 renderizarLogs = function(dados) {
     const tbody = document.getElementById('logsBody'); if (!tbody) return;
@@ -4769,8 +4846,10 @@ renderizarLogs = function(dados) {
     if (!dados || !dados.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log de login/logout encontrado.</td></tr>'; return; }
     tbody.innerHTML = dados.map(log => {
         const dt = new Date(log.created_at); const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        const cls = classificarLogAcao(log.acao);
-        return '<tr class="' + (cls==='erro'?'log-row-error':cls==='alteracao'?'log-row-success':'') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td class="font-bold text-slate-700">' + escapeHtml(log.usuario || '-') + '</td><td><span class="log-action-pill ' + cls + '">' + escapeHtml(formatarAcaoLog(log.acao) || '-') + '</span></td><td class="font-bold text-slate-700">' + escapeHtml(log.cliente || '-') + '</td><td class="text-xs text-emerald-600 font-bold">' + escapeHtml(log.documento || '-') + '</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(formatarDetalheLog(log) || '-') + '</td></tr>';
+        const tipo = (typeof tipoAcessoLog === 'function') ? tipoAcessoLog(log) : formatarAcaoLog(log.acao);
+        const saida = (typeof textoLogNormalizado === 'function') ? textoLogNormalizado(tipo).includes('logout') || textoLogNormalizado(tipo).includes('saida') : String(tipo).toLowerCase().includes('logout');
+        const usuarioClasse = classeUsuarioLog(log.usuario);
+        return '<tr class="' + (saida ? 'log-row-error' : 'log-row-success') + '"><td class="font-mono text-[10px] text-slate-500">' + dataStr + '</td><td><span class="inline-flex px-2 py-1 rounded-full border text-[9px] font-black uppercase ' + usuarioClasse + '">' + escapeHtml(log.usuario || '-') + '</span></td><td><span class="log-action-pill ' + (saida ? 'erro' : 'alteracao') + '">' + escapeHtml(tipo || '-') + '</span></td><td class="font-bold text-slate-700">' + escapeHtml(log.cliente || '-') + '</td><td class="text-xs text-emerald-600 font-bold">' + escapeHtml(log.documento || '-') + '</td><td class="text-xs text-slate-700 font-extrabold max-w-xl">' + escapeHtml(formatarDetalheLog(log) || '-') + '</td></tr>';
     }).join('');
 };
 function exportarLogsCSV() {
