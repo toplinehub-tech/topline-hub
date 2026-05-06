@@ -5399,6 +5399,156 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
     window.popularMesesFinanceiro();
   });
 })();
+
+
+/* =========================================================
+   PATCH FINAL - DÍVIDAS E HISTÓRICO EMPRESAS/PARCELAMENTOS
+   Ajuste pontual, sem mexer em Sheets/Supabase já existentes.
+   ========================================================= */
+function normalizarBuscaPatch(v) {
+    return String(v ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function valorDividaEhVazioPatch(v) {
+    const raw = String(v ?? '').trim();
+    const norm = normalizarBuscaPatch(raw).replace(/\s+/g, ' ');
+    if (!norm) return true;
+    if (/^[\-–—_\.\s]+$/.test(raw)) return true;
+    return ['-', '--', '---', '—', 'n/a', 'na', 'null', 'undefined', 'sem informacao', 'sem informação', 'vazio'].includes(norm);
+}
+
+function formatarValorDivida(valor) {
+    if (valor instanceof Date) return valor.toLocaleDateString('pt-BR');
+    if (valor && typeof valor === 'object') {
+        if ('v' in valor) return formatarValorDivida(valor.v);
+        if ('f' in valor) return formatarValorDivida(valor.f);
+    }
+    return String(valor ?? '').trim();
+}
+
+function textoContemDivida(valor) {
+    const exibido = formatarValorDivida(valor);
+    if (valorDividaEhVazioPatch(exibido)) return false;
+    return normalizarBuscaPatch(exibido).includes('divida');
+}
+
+function getDividasMatches(row) {
+    if (!row) return [];
+
+    const chaves = [];
+    const adicionar = h => {
+        if (!h) return;
+        if (chaves.includes(h)) return;
+        const hn = normalizarBuscaPatch(h);
+        if (hn === 'cliente' || hn === 'cnpj') return;
+        chaves.push(h);
+    };
+
+    try { (headers || []).forEach(adicionar); } catch(e) {}
+    Object.keys(row || {}).forEach(adicionar);
+
+    return chaves
+        .map(campo => ({ campo, valor: formatarValorDivida(row[campo]) }))
+        .filter(item => item.campo && textoContemDivida(item.valor));
+}
+
+function documentoHistoricoEhParcelamentoPatch(doc, obs) {
+    const texto = normalizarBuscaPatch(`${doc || ''} ${obs || ''}`);
+    return texto.includes('parcelamento') || texto.includes('pgdas') || texto.includes('enviado') || texto.includes('informacoes de parcelamento') || texto.includes('informacao de parcelamento');
+}
+
+function clienteHistoricoConferePatch(a, b) {
+    const ca = normalizarBuscaPatch(a).replace(/[^a-z0-9]/g, '');
+    const cb = normalizarBuscaPatch(b).replace(/[^a-z0-9]/g, '');
+    if (!ca || !cb) return false;
+    return ca === cb || ca.includes(cb) || cb.includes(ca);
+}
+
+async function abrirHistoricoModal(cliente, documento) {
+    const modal = document.getElementById('historicoModal');
+    const title = document.getElementById('historicoModalTitle');
+    const content = document.getElementById('historicoModalContent');
+    if (!modal || !title || !content) return;
+
+    const documentoOriginal = documento || '';
+    const docNorm = normalizarBuscaPatch(documentoOriginal);
+    const modoParcelamentos = docNorm.includes('parcelamento') || docNorm.includes('pgdas') || docNorm.includes('empresas');
+
+    title.innerText = `Histórico: ${cliente || '-'} — ${modoParcelamentos ? 'Parcelamentos / PGDAS' : documentoOriginal}`;
+    content.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Carregando histórico...</p>';
+    modal.classList.remove('hidden');
+
+    try {
+        let registrosBase = [];
+
+        const { data, error } = await supabaseClient
+            .from('historico_observacoes')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(3000);
+
+        if (error) throw error;
+        registrosBase = data || [];
+
+        const mesmoCliente = h => clienteHistoricoConferePatch(h.cliente || '', cliente || '');
+
+        let registros = registrosBase.filter(h => {
+            if (!mesmoCliente(h)) return false;
+            if (modoParcelamentos) return documentoHistoricoEhParcelamentoPatch(h.documento, h.observacao);
+            return normalizarBuscaPatch(h.documento || '') === normalizarBuscaPatch(documentoOriginal || '');
+        });
+
+        // Segurança: se a aba Histórico mostra observações do cliente, mas o documento antigo foi salvo com nome diferente,
+        // exibe os registros do mesmo cliente em vez de deixar o modal vazio.
+        if (!registros.length && modoParcelamentos) {
+            registros = registrosBase.filter(mesmoCliente);
+        }
+
+        if (!registros.length) {
+            content.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Nenhuma observação registrada para este cliente.</p>';
+            return;
+        }
+
+        const coresStatus = {
+            'analise': 'bg-orange-100 text-orange-700',
+            'andamento': 'bg-purple-100 text-purple-700',
+            'data': 'bg-emerald-100 text-emerald-700',
+            'enviado': 'bg-emerald-100 text-emerald-700',
+            'não enviado': 'bg-slate-100 text-slate-600',
+            'nao enviado': 'bg-slate-100 text-slate-600',
+            'nao_enviado': 'bg-slate-100 text-slate-600'
+        };
+
+        content.innerHTML = registros.map(h => {
+            const dt = h.created_at ? new Date(h.created_at) : null;
+            const dataStr = dt && !isNaN(dt.getTime())
+                ? dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                : '-';
+            const statusRaw = h.status_novo || '';
+            const statusKey = normalizarBuscaPatch(statusRaw).replace(/_/g, ' ');
+            const corStatus = coresStatus[statusKey] || 'bg-slate-100 text-slate-600';
+            const statusLabel = statusRaw === 'analise' ? 'Análise' : statusRaw === 'andamento' ? 'Andamento' : statusRaw === 'data' ? 'Data' : (statusRaw || 'Registro');
+            return `<div class="hist-item">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="text-[10px] font-black text-slate-600">${escapeHtml(h.usuario || 'Sistema')}</span>
+                    <span class="text-[9px] text-slate-400 font-mono">${escapeHtml(dataStr)}</span>
+                </div>
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-600">${escapeHtml(h.documento || '-')}</span>
+                    ${statusLabel ? `<span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${corStatus}">${escapeHtml(statusLabel)}</span>` : ''}
+                </div>
+                <p class="text-xs text-slate-700 whitespace-pre-wrap">${escapeHtml(h.observacao || '')}</p>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        console.error('Erro ao carregar histórico do modal:', e);
+        content.innerHTML = `<p class="text-xs text-red-400 text-center py-4">Erro ao carregar histórico: ${escapeHtml(e.message || 'Erro desconhecido')}</p>`;
+    }
+}
 </script>
 
 </html>
