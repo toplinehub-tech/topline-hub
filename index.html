@@ -2852,33 +2852,73 @@
 
         function normalizarTextoDivida(valor) {
             return String(valor ?? '')
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
                 .trim();
         }
 
+        function valorDividaEhVazio(valor) {
+            const raw = String(valor ?? '').trim();
+            const texto = normalizarTextoDivida(raw).replace(/\s+/g, ' ');
+
+            if (!texto) return true;
+            if (/^[\-–—_\.\s]+$/.test(raw)) return true;
+
+            return [
+                '-', '--', '---', '—', 'n/a', 'na', 'null', 'undefined',
+                'sem informacao', 'sem informação', 'vazio'
+            ].includes(texto);
+        }
+
         function textoContemDivida(valor) {
-            const textoOriginal = String(valor ?? '').trim();
+            if (valorDividaEhVazio(valor)) return false;
+
+            // Normaliza dívida/dívida -> divida e aceita a palavra em qualquer trecho real do campo.
             const texto = normalizarTextoDivida(valor);
-
-            // O filtro DÍVIDAS só pode considerar campos que realmente tenham texto.
-            // Ignora células vazias, traço, travessão e marcadores equivalentes.
-            if (!texto || texto === '-' || texto === '—' || texto === '--' || texto === 'n/a') return false;
-
-            return /(^|[^a-z0-9])divida([^a-z0-9]|$)/i.test(texto);
+            return texto.includes('divida');
         }
 
         function formatarValorDivida(valor) {
             if (valor instanceof Date) return valor.toLocaleDateString('pt-BR');
+
+            // Garante compatibilidade caso alguma leitura venha como objeto do Sheets/XLSX.
+            if (valor && typeof valor === 'object') {
+                if ('f' in valor && valor.f !== undefined && valor.f !== null) return formatarValorDivida(valor.f);
+                if ('v' in valor && valor.v !== undefined && valor.v !== null) return formatarValorDivida(valor.v);
+            }
+
             return String(valor ?? '').trim();
         }
 
         function getDividasMatches(row) {
             if (!row) return [];
 
-            return headers
-                .filter(h => h !== 'CLIENTE' && h !== 'CNPJ')
-                .map(h => ({ campo: h, valor: formatarValorDivida(row[h]) }))
+            const camposParaBuscar = [];
+            const adicionarCampo = (campo) => {
+                if (!campo) return;
+
+                const campoStr = String(campo).trim();
+                const campoNorm = normalizarTextoDivida(campoStr);
+
+                if (!campoStr) return;
+                if (campoNorm === 'cliente' || campoNorm === 'cnpj') return;
+                if (campoStr.startsWith('__')) return;
+                if (camposParaBuscar.includes(campoStr)) return;
+
+                camposParaBuscar.push(campoStr);
+            };
+
+            // Usa tanto os headers da planilha quanto as chaves reais da linha.
+            // Isso evita listar linhas com '-' quando o dado não está exatamente no mesmo array de headers.
+            (headers || []).forEach(adicionarCampo);
+            Object.keys(row || {}).forEach(adicionarCampo);
+
+            return camposParaBuscar
+                .map(campo => ({
+                    campo,
+                    valor: formatarValorDivida(row[campo])
+                }))
                 .filter(item => textoContemDivida(item.valor));
         }
 
@@ -2992,19 +3032,31 @@
 
             if (activeDividas) {
                 const linhasDividas = [];
+
                 rawData.forEach(row => {
-                    if (!row.CLIENTE?.toString().toLowerCase().includes(q)) return;
-                    getDividasMatches(row).forEach(match => linhasDividas.push({ row, match }));
+                    const clienteBusca = String(row.CLIENTE || '').toLowerCase();
+                    const cnpjBusca = String(row.CNPJ || '').toLowerCase();
+                    if (q && !clienteBusca.includes(q) && !cnpjBusca.includes(q)) return;
+
+                    const matches = getDividasMatches(row);
+                    if (!matches.length) return;
+
+                    matches.forEach(match => {
+                        if (!match || !match.campo || !textoContemDivida(match.valor)) return;
+                        linhasDividas.push({ row, match });
+                    });
                 });
+
                 body.innerHTML = linhasDividas.length ? linhasDividas.map(item => {
                     const row = item.row;
                     const match = item.match;
                     const hi = getHighlightAttrs(getFilterColor('dividas'));
+                    const rowIndex = rawData.indexOf(row);
                     return `<tr>
                         <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
                         <td class="cnpj-cell" style="cursor:pointer" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
-                        <td class="${hi.cls}" style="${hi.style}"><span class="divida-chip">${escapeHtml(match.campo || '-')}</span></td>
-                        <td class="${hi.cls}" style="${hi.style}" onclick="openEditCell(${rawData.indexOf(row)}, '${match.campo}')">${escapeHtml(match.valor)}</td>
+                        <td class="${hi.cls}" style="${hi.style}"><span class="divida-chip">${escapeHtml(match.campo)}</span></td>
+                        <td class="${hi.cls}" style="${hi.style}" onclick="openEditCell(${rowIndex}, '${escapeAttr(match.campo)}')">${escapeHtml(match.valor)}</td>
                     </tr>`;
                 }).join('') : '<tr><td colspan="4" class="text-center py-10 text-slate-400">Nenhuma empresa com a palavra dívida encontrada.</td></tr>';
                 updateAnalytics();
