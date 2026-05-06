@@ -1212,7 +1212,6 @@
                                     <th>Total</th>
                                     <th>Concluídas</th>
                                     <th>Progresso</th>
-                                    <th>Registrado por</th>
                                 </tr>
                             </thead>
                             <tbody id="monitor-historico-body"></tbody>
@@ -2445,7 +2444,7 @@
 
             // REMOVER TAREFA IMEDIATAMENTE DO ARRAY LOCAL
             let tarefaRemovidaDoSorteio = false;
-            ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+            ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].forEach(colab => {
                 const tarefas = distribuicaoAtual[colab] || [];
                 const idx = tarefas.findIndex(t => t.rowIndex === r && t.documento === c);
                 if (idx >= 0) {
@@ -2956,11 +2955,12 @@
                     ${CAMPOS_SENHAS.map(campo => {
                         const val = String(getSenhaCampo(p, campo) || '');
                         const isSenha = val.trim().length > 0;
-                        return `<td class="${isSenha ? 'bg-amber-50/50' : 'bg-slate-50'}">
-                            <button onclick="abrirModalSenha('${escapeAttr(cliente)}', '${escapeAttr(campo)}')"
-                                    class="${isSenha ? 'font-black text-amber-600 hover:text-amber-700' : 'text-slate-400 italic hover:text-emerald-600'} transition-all"
-                                    title="${isSenha ? 'Copiar ou editar senha' : 'Cadastrar senha'}">
-                                ${isSenha ? escapeHtml(val) : '(vazio)'}
+                        return `<td class="${isSenha ? 'bg-amber-50/50' : 'bg-slate-50 hover:bg-emerald-50'}" onclick="abrirModalSenha('${escapeAttr(cliente)}', '${escapeAttr(campo)}')" title="${isSenha ? 'Copiar ou editar senha' : 'Inserir nova senha'}">
+                            <button type="button"
+                                    onclick="event.stopPropagation(); abrirModalSenha('${escapeAttr(cliente)}', '${escapeAttr(campo)}')"
+                                    class="${isSenha ? 'font-black text-amber-600 hover:text-amber-700' : 'text-slate-400 italic hover:text-emerald-600'} transition-all w-full text-left"
+                                    title="${isSenha ? 'Copiar ou editar senha' : 'Inserir nova senha'}">
+                                ${isSenha ? escapeHtml(val) : '-'}
                             </button>
                         </td>`;
                     }).join('')}
@@ -2971,30 +2971,33 @@
         function abrirModalSenha(cliente, campo) {
             const row = encontrarLinhaSenha(cliente);
             const valor = String(getSenhaCampo(row, campo) || '');
+            const isNovaSenha = valor.trim().length === 0;
             const modal = document.getElementById('editModal');
             const title = document.getElementById('modalTitle');
             const content = document.getElementById('modalContent');
             const saveBtn = document.getElementById('modalSaveBtn');
             if (!modal || !title || !content || !saveBtn) return;
 
-            title.innerText = `${campo}`;
+            title.innerText = isNovaSenha ? `Inserir nova senha - ${campo}` : `${campo}`;
             content.innerHTML = `
                 <div>
                     <p class="text-[9px] text-slate-400 uppercase font-bold mb-2">${escapeHtml(cliente)}</p>
+                    ${isNovaSenha ? '<p class="text-[10px] text-emerald-700 font-black uppercase mb-3 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">Este campo está vazio. Insira a nova senha abaixo.</p>' : ''}
                     <div class="mb-3">
-                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-1">Senha da aba SENHAS</label>
-                        <input type="text" id="senhaInput" placeholder="Digite a senha" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" value="${escapeAttr(valor)}">
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-1">${isNovaSenha ? 'Inserir nova senha' : 'Senha da aba SENHAS'}</label>
+                        <input type="text" id="senhaInput" placeholder="${isNovaSenha ? 'Digite a nova senha' : 'Digite a senha'}" class="w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" value="${escapeAttr(valor)}">
                     </div>
                     <div class="grid grid-cols-1 gap-2 mb-3">
-                        <button onclick="copiarSenhaModal()" class="w-full bg-slate-800 text-white py-2 rounded-lg font-bold uppercase text-[8px] flex items-center justify-center gap-1 hover:bg-slate-900 transition" type="button">
+                        <button onclick="copiarSenhaModal()" class="w-full ${isNovaSenha ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-800 text-white hover:bg-slate-900'} py-2 rounded-lg font-bold uppercase text-[8px] flex items-center justify-center gap-1 transition" type="button" ${isNovaSenha ? 'disabled' : ''}>
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
                             Copiar senha
                         </button>
                     </div>
-                    <p class="text-[10px] text-slate-400">Campos vazios também ficam editáveis. Ao salvar, a alteração é enviada para a aba SENHAS do Google Sheets.</p>
+                    <p class="text-[10px] text-slate-400">Ao salvar, a ${isNovaSenha ? 'nova senha será inserida' : 'alteração será enviada'} na aba SENHAS do Google Sheets.</p>
                 </div>
             `;
             saveBtn.classList.remove('hidden');
+            saveBtn.innerText = isNovaSenha ? 'Inserir nova senha' : 'Salvar';
             saveBtn.onclick = () => salvarSenha(cliente, campo);
             modal.classList.remove('hidden');
             setTimeout(() => document.getElementById('senhaInput')?.focus(), 50);
@@ -3050,6 +3053,8 @@
         async function salvarSenha(cliente, campo) {
             const input = document.getElementById('senhaInput');
             const novoValor = input ? input.value : '';
+            const rowAntes = encontrarLinhaSenha(cliente);
+            const eraNovaSenha = String(getSenhaCampo(rowAntes, campo) || '').trim().length === 0;
 
             try {
                 await enviarSenhaParaGoogleSheets(cliente, campo, novoValor);
@@ -3058,7 +3063,7 @@
                 if (row) setSenhaCampoLocal(row, campo, novoValor);
 
                 renderSenhas();
-                showNotification('Senha atualizada com sucesso na aba SENHAS!', false, cliente);
+                showNotification(eraNovaSenha ? 'Nova senha inserida com sucesso na aba SENHAS!' : 'Senha atualizada com sucesso na aba SENHAS!', false, cliente);
                 closeModal();
 
                 // Recarrega somente a base de senhas depois que o Apps Script confirmou a gravação.
@@ -3944,7 +3949,7 @@
             // Não restringe por perfil para que qualquer usuário possa atualizar o monitor
             const hoje = new Date().toISOString().slice(0, 10);
             const registros = [];
-            ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+            ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].forEach(colab => {
                 const totalPendentes = getTarefasPendentesColaborador(colab).length;
                 registros.push({
                     data: hoje,
@@ -4012,7 +4017,7 @@
                 console.log('Dados carregados do Monitor:', registros, 'Data inicio:', dataInicio);
 
                 const agrupado = {};
-                ['Jordan', 'Sirlene', 'Ingrid'].forEach(c => {
+                ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].forEach(c => {
                     agrupado[c] = { total: 0, concluidas: 0, registros: 0 };
                 });
                 
@@ -4033,7 +4038,7 @@
                     // não para quem clicou e executou a alteração.
                     let responsavel = log.usuario || '';
                     const detalhes = String(log.detalhes || '');
-                    const matchSorteio = detalhes.match(/Sorteio de (Jordan|Sirlene|Ingrid)/i);
+                    const matchSorteio = detalhes.match(/Sorteio de (Jordan|Sirlene|Ingrid|Nikolas)/i);
                     if (matchSorteio) responsavel = matchSorteio[1];
 
                     if (!contagemGeralPorUsuario[responsavel]) contagemGeralPorUsuario[responsavel] = 0;
@@ -4042,7 +4047,7 @@
 
                 // SE FOR DIÁRIO, USA OS DADOS EM TEMPO REAL DO PAINEL
                 if (monitorPeriodoAtual === 'diario') {
-                    ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                    ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].forEach(colab => {
                         const totalPendentes = getTarefasPendentesColaborador(colab).length;
                         agrupado[colab] = { total: totalPendentes, concluidas: 0, registros: 1 };
                     });
@@ -4056,7 +4061,7 @@
                     });
                 }
 
-                ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].forEach(colab => {
                     const extras = contagemGeralPorUsuario[colab] || 0;
                     if (extras > 0) {
                         // Tarefas realizadas entram como produtividade concluída.
@@ -4066,10 +4071,10 @@
                     }
                 });
 
-                const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899' };
-                const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8' };
+                const cores = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899', Nikolas: '#334155' };
+                const coresLight = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8', Nikolas: '#f8fafc' };
 
-                document.getElementById('monitor-cards').innerHTML = ['Jordan', 'Sirlene', 'Ingrid'].map(colab => {
+                document.getElementById('monitor-cards').innerHTML = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].map(colab => {
                     const d = agrupado[colab];
                     const pct = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
                     return `<div class="colab-card" style="border-top: 6px solid ${cores[colab]}; background: ${coresLight[colab]};">
@@ -4092,9 +4097,9 @@
                 }).join('');
 
                 // Gráfico de barras
-                const labelsBar = ['Jordan', 'Sirlene', 'Ingrid'];
+                const labelsBar = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'];
                 const dataBar = labelsBar.map(c => agrupado[c].concluidas);
-                const bgBar = ['#3b82f6', '#a855f7', '#ec4899'];
+                const bgBar = ['#3b82f6', '#a855f7', '#ec4899', '#334155'];
 
                 if (monitorBarChart) monitorBarChart.destroy();
                 const ctxBar = document.getElementById('monitor-bar-chart').getContext('2d');
@@ -4151,16 +4156,16 @@
                 // Tabela de histórico
                 const tbody = document.getElementById('monitor-historico-body');
                 if (registros.length === 0 && monitorPeriodoAtual !== 'diario') {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum registro encontrado. Clique em "+ Registrar Hoje" para começar.</td></tr>';
                 } else {
                     // SE FOR DIÁRIO, ADICIONA O REGISTRO ATUAL NO TOPO DA TABELA
                     let html = '';
                     if (monitorPeriodoAtual === 'diario') {
                         const hojeStr = hoje.toISOString().slice(0, 10);
-                        ['Jordan', 'Sirlene', 'Ingrid'].forEach(colab => {
+                        ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'].forEach(colab => {
                             const d = agrupado[colab];
                             const pctR = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
-                            const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
+                            const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600', Nikolas: 'text-slate-700' };
                             html += `<tr>
                                 <td class="font-mono text-xs">${new Date(hojeStr + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                 <td class="font-bold ${corColab[colab] || ''}">${colab}</td>
@@ -4172,14 +4177,13 @@
                                         <span class="text-xs font-bold">${pctR}%</span>
                                     </div>
                                 </td>
-                                <td class="text-slate-400 text-xs">Tempo Real</td>
                             </tr>`;
                         });
                     }
                     
                     html += registros.map(r => {
                         const pctR = r.total_tarefas > 0 ? Math.round((r.concluidas / r.total_tarefas) * 100) : 0;
-                        const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600' };
+                        const corColab = { Jordan: 'text-blue-600', Sirlene: 'text-purple-600', Ingrid: 'text-pink-600', Nikolas: 'text-slate-700' };
                         return `<tr>
                             <td class="font-mono text-xs">${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                             <td class="font-bold ${corColab[r.colaborador] || ''}">${r.colaborador}</td>
@@ -4191,7 +4195,6 @@
                                     <span class="text-xs font-bold">${pctR}%</span>
                                 </div>
                             </td>
-                            <td class="text-slate-400 text-xs">${r.registrado_por}</td>
                         </tr>`;
                     }).join('');
                     tbody.innerHTML = html;
@@ -4199,7 +4202,7 @@
 
             } catch (err) {
                 console.error('Erro ao carregar monitor:', err);
-                document.getElementById('monitor-historico-body').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Erro ao carregar dados. Verifique a tabela no Supabase.</td></tr>';
+                document.getElementById('monitor-historico-body').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400">Erro ao carregar dados. Verifique a tabela no Supabase.</td></tr>';
             }
         }
     
