@@ -2341,14 +2341,24 @@
             const title = document.getElementById('historicoModalTitle');
             const content = document.getElementById('historicoModalContent');
             if (!modal || !title || !content) return;
-            title.innerText = `Histórico: ${cliente} — ${documento}`;
+
+            const documentoOriginal = documento || '';
+            const documentoNorm = normalizarTexto(documentoOriginal);
+            const isHistoricoEmpresasParcelamentos = ['PARCELAMENTOS', 'PGDAS', 'EMPRESAS/PARCELAMENTOS', 'EMPRESAS PARCELAMENTOS'].includes(documentoNorm);
+            const documentosAceitos = isHistoricoEmpresasParcelamentos
+                ? ['PARCELAMENTOS', 'PGDAS']
+                : [documentoNorm];
+
+            title.innerText = `Histórico: ${cliente} — ${isHistoricoEmpresasParcelamentos ? 'Parcelamentos / PGDAS' : documentoOriginal}`;
             content.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Carregando...</p>';
             modal.classList.remove('hidden');
+
             try {
                 const clienteNorm = normalizarTexto(cliente || '');
-                const documentoNorm = normalizarTexto(documento || '');
 
-                // Busca robusta: evita falhas por diferença de maiúsculas, acentos, espaços ou registros antigos.
+                // Busca os mesmos registros exibidos na aba Histórico e filtra no navegador.
+                // Assim o botão Ver Histórico mostra também observações salvas por PGDAS/Enviado
+                // e por Informações/Parcelamentos, sem criar novos registros e sem afetar Sheets.
                 const { data, error } = await supabaseClient
                     .from('historico_observacoes')
                     .select('*')
@@ -2360,7 +2370,7 @@
                     const hCliente = normalizarTexto(h.cliente || '');
                     const hDocumento = normalizarTexto(h.documento || '');
                     const mesmoCliente = hCliente === clienteNorm || hCliente.includes(clienteNorm) || clienteNorm.includes(hCliente);
-                    const mesmoDocumento = hDocumento === documentoNorm;
+                    const mesmoDocumento = documentosAceitos.includes(hDocumento);
                     return mesmoCliente && mesmoDocumento;
                 });
 
@@ -2374,21 +2384,27 @@
                     'andamento': 'bg-purple-100 text-purple-700',
                     'data': 'bg-emerald-100 text-emerald-700',
                     'enviado': 'bg-emerald-100 text-emerald-700',
-                    'nao_enviado': 'bg-slate-100 text-slate-600',
-                    'não enviado': 'bg-slate-100 text-slate-600'
+                    'não enviado': 'bg-slate-100 text-slate-600',
+                    'nao enviado': 'bg-slate-100 text-slate-600',
+                    'nao_enviado': 'bg-slate-100 text-slate-600'
                 };
+
                 content.innerHTML = registros.map(h => {
                     const dt = new Date(h.created_at);
                     const dataStr = isNaN(dt.getTime()) ? '-' : dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     const statusRaw = h.status_novo || '';
-                    const corStatus = coresStatus[String(statusRaw).toLowerCase()] || 'bg-slate-100 text-slate-600';
+                    const statusKey = normalizarTexto(statusRaw).toLowerCase().replace(/_/g, ' ');
+                    const corStatus = coresStatus[statusKey] || coresStatus[String(statusRaw).toLowerCase()] || 'bg-slate-100 text-slate-600';
                     const statusLabel = statusRaw === 'analise' ? 'Análise' : statusRaw === 'andamento' ? 'Andamento' : statusRaw === 'data' ? 'Data' : (statusRaw || 'Registro');
                     return `<div class="hist-item">
                         <div class="flex justify-between items-start mb-1">
                             <span class="text-[10px] font-black text-slate-600">${escapeHtml(h.usuario || 'Sistema')}</span>
                             <span class="text-[9px] text-slate-400 font-mono">${escapeHtml(dataStr)}</span>
                         </div>
-                        ${statusLabel ? `<span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${corStatus} mb-1">${escapeHtml(statusLabel)}</span>` : ''}
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-600">${escapeHtml(h.documento || '-')}</span>
+                            ${statusLabel ? `<span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${corStatus}">${escapeHtml(statusLabel)}</span>` : ''}
+                        </div>
                         <p class="text-xs text-slate-700 whitespace-pre-wrap">${escapeHtml(h.observacao || '')}</p>
                     </div>`;
                 }).join('');
@@ -2834,19 +2850,36 @@
             return null;
         }
 
-        function textoContemDivida(valor) {
-            return String(valor || '')
+        function normalizarTextoDivida(valor) {
+            return String(valor ?? '')
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
-                .includes('divida');
+                .trim();
+        }
+
+        function textoContemDivida(valor) {
+            const textoOriginal = String(valor ?? '').trim();
+            const texto = normalizarTextoDivida(valor);
+
+            // O filtro DÍVIDAS só pode considerar campos que realmente tenham texto.
+            // Ignora células vazias, traço, travessão e marcadores equivalentes.
+            if (!texto || texto === '-' || texto === '—' || texto === '--' || texto === 'n/a') return false;
+
+            return /(^|[^a-z0-9])divida([^a-z0-9]|$)/i.test(texto);
+        }
+
+        function formatarValorDivida(valor) {
+            if (valor instanceof Date) return valor.toLocaleDateString('pt-BR');
+            return String(valor ?? '').trim();
         }
 
         function getDividasMatches(row) {
             if (!row) return [];
+
             return headers
                 .filter(h => h !== 'CLIENTE' && h !== 'CNPJ')
-                .filter(h => textoContemDivida(row[h]))
-                .map(h => ({ campo: h, valor: row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : String(row[h] || '') }));
+                .map(h => ({ campo: h, valor: formatarValorDivida(row[h]) }))
+                .filter(item => textoContemDivida(item.valor));
         }
 
         function toggleDividasFilter() {
@@ -2971,7 +3004,7 @@
                         <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
                         <td class="cnpj-cell" style="cursor:pointer" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
                         <td class="${hi.cls}" style="${hi.style}"><span class="divida-chip">${escapeHtml(match.campo || '-')}</span></td>
-                        <td class="${hi.cls}" style="${hi.style}" onclick="openEditCell(${rawData.indexOf(row)}, '${match.campo}')">${escapeHtml(match.valor || '-')}</td>
+                        <td class="${hi.cls}" style="${hi.style}" onclick="openEditCell(${rawData.indexOf(row)}, '${match.campo}')">${escapeHtml(match.valor)}</td>
                     </tr>`;
                 }).join('') : '<tr><td colspan="4" class="text-center py-10 text-slate-400">Nenhuma empresa com a palavra dívida encontrada.</td></tr>';
                 updateAnalytics();
