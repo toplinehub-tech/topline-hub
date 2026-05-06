@@ -3047,17 +3047,27 @@
             });
         }
 
-        function salvarSenha(cliente, campo) {
+        async function salvarSenha(cliente, campo) {
             const input = document.getElementById('senhaInput');
             const novoValor = input ? input.value : '';
-            enviarSenhaParaGoogleSheets(cliente, campo, novoValor).then(() => {
+
+            try {
+                await enviarSenhaParaGoogleSheets(cliente, campo, novoValor);
+
                 const row = encontrarLinhaSenha(cliente);
                 if (row) setSenhaCampoLocal(row, campo, novoValor);
+
                 renderSenhas();
                 showNotification('Senha atualizada com sucesso na aba SENHAS!', false, cliente);
                 closeModal();
+
+                // Recarrega somente a base de senhas depois que o Apps Script confirmou a gravação.
                 setTimeout(() => fetchGoogleSheets(false, true), 1000);
-            }).catch(err => showNotification('Erro ao salvar senha: ' + err.message, true));
+                return true;
+            } catch (err) {
+                showNotification('Erro ao salvar senha: ' + err.message, true);
+                throw err;
+            }
         }
 
         function copyToClipboard(text) {
