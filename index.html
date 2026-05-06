@@ -3,6 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Controle de cache: evita o navegador ficar preso em versões antigas -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script>
+        window.TOPLINE_APP_VERSION = "2026.05.06.1";
+        (function() {
+            try {
+                var key = "toplinehub_app_version";
+                var oldVersion = localStorage.getItem(key);
+                localStorage.setItem(key, window.TOPLINE_APP_VERSION);
+
+                if ("serviceWorker" in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                        regs.forEach(function(reg) { reg.unregister(); });
+                    }).catch(function() {});
+                }
+
+                if (window.caches && caches.keys) {
+                    caches.keys().then(function(names) {
+                        names.forEach(function(name) { caches.delete(name); });
+                    }).catch(function() {});
+                }
+
+                window.addEventListener("pageshow", function(event) {
+                    if (event.persisted) window.location.reload();
+                });
+            } catch (e) {
+                console.warn("Controle de cache não pôde ser aplicado:", e);
+            }
+        })();
+    </script>
+
     <title>TopLineHub | Gestão Integrada </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -2348,6 +2381,8 @@
             return new Promise((resolve, reject) => {
                 const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
                 const params = new URLSearchParams({ action: 'editCell', cliente, coluna, tipo, valor, callback: callbackName });
+                params.set('_v', Date.now().toString());
+                params.set('_v', Date.now().toString());
                 const url = `${URL_SCRIPT_GOOGLE}?${params.toString()}`;
                 window[callbackName] = function(response) {
                     delete window[callbackName];
@@ -2846,7 +2881,7 @@
 
             // Busca Clima (Zona Leste SP)
             try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5329&longitude=-46.4428&current=temperature_2m,relative_humidity_2m,weather_code&timezone=America%2FSao_Paulo');
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5329&longitude=-46.4428&current=temperature_2m,relative_humidity_2m,weather_code&timezone=America%2FSao_Paulo&_v=' + Date.now(), { cache: 'no-store' });
                 const data = await res.json();
                 if (data && data.current) {
                     const temp = Math.round(data.current.temperature_2m);
