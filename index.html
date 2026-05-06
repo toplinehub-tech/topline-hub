@@ -3731,10 +3731,11 @@
         function openParcelamentoInfoModal(r) {
             const c = 'PARCELAMENTOS';
             if (!rawData[r]) return;
+            const row = rawData[r];
             currentEditTarget = { r, c };
             selectedOption = null;
-            const cliente = rawData[r].CLIENTE || '';
-            const valorAtual = rawData[r][c];
+            const cliente = row.CLIENTE || '';
+            const valorAtual = row[c];
             const quantidadeAtual = getParcelamentoQuantidadeAtual(valorAtual);
             const ultimaObs = getUltimaObservacaoParcelamento(cliente);
             const valorExibicao = valorAtual instanceof Date ? valorAtual.toLocaleDateString('pt-BR') : (valorAtual ? escapeHtml(String(valorAtual)) : '<span class="text-slate-300 italic">vazio</span>');
