@@ -329,7 +329,7 @@
         .parcelamento-qty-select:focus { border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.12); }
         .empresas-setor-active { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important; color:#1e3a8a !important; border-color:#93c5fd !important; box-shadow:0 8px 18px -14px rgba(37,99,235,.55); transform:translateY(-1px); }
         .pgdas-status-pill { display:inline-flex; align-items:center; justify-content:center; gap:4px; min-width:86px; padding:4px 10px; border-radius:999px; font-size:9px; font-weight:900; text-transform:uppercase; }
-        .pgdas-status-pill.enviado { background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .pgdas-status-pill.enviado { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
         .pgdas-status-pill.nao-enviado { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
         .pgdas-action-selected { background:#dbeafe !important; border-color:#3b82f6 !important; color:#1d4ed8 !important; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
 
@@ -353,6 +353,17 @@
         th.filter-column-highlight { color: var(--filter-column-text, #065f46) !important; border-bottom-color: var(--filter-column-border, #10b981) !important; }
         td.filter-column-highlight { color: var(--filter-column-text, inherit); font-weight: 700; }
         .badge-blue { background: #3b82f6; }
+        .dividas-filter-btn { color:#991b1b !important; border-color:#fecaca !important; background:#fef2f2 !important; }
+        .dividas-filter-btn.dividas-filter-active { color:#ffffff !important; border-color:#dc2626 !important; background:#ef4444 !important; box-shadow:0 4px 8px rgba(239,68,68,.22); }
+        .divida-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 9px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+        .mini-kpi.kpi-vencidos { border:1.5px solid #fecaca; background:linear-gradient(135deg,#fff7f7,#fef2f2); box-shadow:0 8px 16px -14px rgba(239,68,68,.45); }
+        .mini-kpi.kpi-vencidos strong { color:#dc2626; }
+        .mini-kpi.kpi-30 { border:1.5px solid #fde68a; background:linear-gradient(135deg,#fffbeb,#fef3c7); box-shadow:0 8px 16px -14px rgba(245,158,11,.45); }
+        .mini-kpi.kpi-30 strong { color:#d97706; }
+        .mini-kpi.kpi-60 { border:1.5px solid #a7f3d0; background:linear-gradient(135deg,#ecfdf5,#d1fae5); box-shadow:0 8px 16px -14px rgba(16,185,129,.45); }
+        .mini-kpi.kpi-60 strong { color:#059669; }
+        .mini-kpi.kpi-90 { border:1.5px solid #bae6fd; background:linear-gradient(135deg,#f0f9ff,#e0f2fe); box-shadow:0 8px 16px -14px rgba(14,165,233,.45); }
+        .mini-kpi.kpi-90 strong { color:#0284c7; }
 
 
         /* Melhorias v1.1 - usabilidade global */
@@ -862,10 +873,10 @@
             <!-- PAINEL -->
             <div id="view-dash">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" id="resumoDiaCards">
-                    <div class="mini-kpi"><strong id="resumo-vencidos">0</strong><span>Vencidos</span></div>
-                    <div class="mini-kpi"><strong id="resumo-30">0</strong><span>Próx. 30 dias</span></div>
-                    <div class="mini-kpi"><strong id="resumo-60">0</strong><span>Próx. 60 dias</span></div>
-                    <div class="mini-kpi"><strong id="resumo-90">0</strong><span>Próx. 90 dias</span></div>
+                    <div class="mini-kpi kpi-vencidos"><strong id="resumo-vencidos">0</strong><span>Vencidos</span></div>
+                    <div class="mini-kpi kpi-30"><strong id="resumo-30">0</strong><span>Próx. 30 dias</span></div>
+                    <div class="mini-kpi kpi-60"><strong id="resumo-60">0</strong><span>Próx. 60 dias</span></div>
+                    <div class="mini-kpi kpi-90"><strong id="resumo-90">0</strong><span>Próx. 90 dias</span></div>
                 </div>
                 <div class="grid grid-cols-3 gap-4 mb-6">
                     <div class="white-card dashboard-card p-5 border-t-8 border-blue-500">
@@ -1001,10 +1012,10 @@
                         <button onclick="setEmpresasParcelamentosSetorFiltro('3')" id="emp-parc-btn-setor-3" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">3º Setor</button>
                         <button onclick="limparFiltrosEmpresasParcelamentos()" class="btn-mini text-slate-600 border-slate-200 bg-white">Limpar filtros</button>
                     </div>
-                    <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, setor, status, quantidade ou observação..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
+                    <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, setor, quantidade ou PGDAS..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>STATUS</th><th>QTD.</th><th>PGDAS</th><th>ÚLTIMA OBSERVAÇÃO</th><th>AÇÕES</th></tr></thead>
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>QTD.</th><th>PGDAS</th><th>AÇÕES</th></tr></thead>
                             <tbody id="empresasParcelamentosBody"></tbody>
                         </table>
                     </div>
@@ -1534,6 +1545,7 @@
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
         let activeParcelamentos = false, activeParcelamentosStatus = null;
+        let activeDividas = false;
         let empresasParcelamentosFiltro = 'todos';
         let empresasParcelamentosQuantidadeFiltro = '';
         let empresasParcelamentosSetorFiltro = '';
@@ -1705,6 +1717,14 @@
             parcelBtn.innerText = "PARCELAMENTOS";
             parcelBtn.onclick = (e) => { e.preventDefault(); toggleParcelamentosFilter(); };
             container.appendChild(parcelBtn);
+
+            // Mini botão DÍVIDAS: filtra empresas que possuem a palavra dívida/divida em qualquer campo da planilha.
+            const dividasBtn = document.createElement('button');
+            dividasBtn.className = "btn-mini dividas-filter-btn";
+            dividasBtn.id = "btn-dividas";
+            dividasBtn.innerText = "DÍVIDAS";
+            dividasBtn.onclick = (e) => { e.preventDefault(); toggleDividasFilter(); };
+            container.appendChild(dividasBtn);
 
             const parcelSubfilters = document.createElement('div');
             parcelSubfilters.id = "parcelamentosSubfilters";
@@ -2320,38 +2340,60 @@
             const modal = document.getElementById('historicoModal');
             const title = document.getElementById('historicoModalTitle');
             const content = document.getElementById('historicoModalContent');
+            if (!modal || !title || !content) return;
             title.innerText = `Histórico: ${cliente} — ${documento}`;
             content.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Carregando...</p>';
             modal.classList.remove('hidden');
             try {
+                const clienteNorm = normalizarTexto(cliente || '');
+                const documentoNorm = normalizarTexto(documento || '');
+
+                // Busca robusta: evita falhas por diferença de maiúsculas, acentos, espaços ou registros antigos.
                 const { data, error } = await supabaseClient
                     .from('historico_observacoes')
                     .select('*')
-                    .eq('cliente', cliente)
-                    .eq('documento', documento)
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(1000);
                 if (error) throw error;
-                if (!data || data.length === 0) {
+
+                const registros = (data || []).filter(h => {
+                    const hCliente = normalizarTexto(h.cliente || '');
+                    const hDocumento = normalizarTexto(h.documento || '');
+                    const mesmoCliente = hCliente === clienteNorm || hCliente.includes(clienteNorm) || clienteNorm.includes(hCliente);
+                    const mesmoDocumento = hDocumento === documentoNorm;
+                    return mesmoCliente && mesmoDocumento;
+                });
+
+                if (!registros.length) {
                     content.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Nenhuma observação registrada para este item.</p>';
                     return;
                 }
-                const coresStatus = { 'analise': 'bg-orange-100 text-orange-700', 'andamento': 'bg-purple-100 text-purple-700', 'data': 'bg-emerald-100 text-emerald-700' };
-                content.innerHTML = data.map(h => {
+
+                const coresStatus = {
+                    'analise': 'bg-orange-100 text-orange-700',
+                    'andamento': 'bg-purple-100 text-purple-700',
+                    'data': 'bg-emerald-100 text-emerald-700',
+                    'enviado': 'bg-emerald-100 text-emerald-700',
+                    'nao_enviado': 'bg-slate-100 text-slate-600',
+                    'não enviado': 'bg-slate-100 text-slate-600'
+                };
+                content.innerHTML = registros.map(h => {
                     const dt = new Date(h.created_at);
-                    const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    const corStatus = coresStatus[h.status_novo] || 'bg-slate-100 text-slate-600';
-                    const statusLabel = h.status_novo === 'analise' ? 'Análise' : h.status_novo === 'andamento' ? 'Andamento' : h.status_novo === 'data' ? 'Data' : (h.status_novo || '');
+                    const dataStr = isNaN(dt.getTime()) ? '-' : dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const statusRaw = h.status_novo || '';
+                    const corStatus = coresStatus[String(statusRaw).toLowerCase()] || 'bg-slate-100 text-slate-600';
+                    const statusLabel = statusRaw === 'analise' ? 'Análise' : statusRaw === 'andamento' ? 'Andamento' : statusRaw === 'data' ? 'Data' : (statusRaw || 'Registro');
                     return `<div class="hist-item">
                         <div class="flex justify-between items-start mb-1">
-                            <span class="text-[10px] font-black text-slate-600">${h.usuario}</span>
-                            <span class="text-[9px] text-slate-400 font-mono">${dataStr}</span>
+                            <span class="text-[10px] font-black text-slate-600">${escapeHtml(h.usuario || 'Sistema')}</span>
+                            <span class="text-[9px] text-slate-400 font-mono">${escapeHtml(dataStr)}</span>
                         </div>
-                        ${statusLabel ? `<span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${corStatus} mb-1">${statusLabel}</span>` : ''}
-                        <p class="text-xs text-slate-700">${h.observacao}</p>
+                        ${statusLabel ? `<span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${corStatus} mb-1">${escapeHtml(statusLabel)}</span>` : ''}
+                        <p class="text-xs text-slate-700 whitespace-pre-wrap">${escapeHtml(h.observacao || '')}</p>
                     </div>`;
                 }).join('');
             } catch(e) {
-                content.innerHTML = `<p class="text-xs text-red-400 text-center py-4">Erro ao carregar: ${e.message}</p>`;
+                content.innerHTML = `<p class="text-xs text-red-400 text-center py-4">Erro ao carregar: ${escapeHtml(e.message || 'Erro desconhecido')}</p>`;
             }
         }
 
@@ -2759,8 +2801,10 @@
 
         function toggleStatusFilter(s) { 
             activeStatus = (activeStatus === s) ? null : s;
+            activeDividas = false;
             document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected'));
             if (activeStatus) document.getElementById('btn-'+s).classList.add('card-selected');
+            updateDividasButton();
             renderTable();
         }
 
@@ -2768,9 +2812,11 @@
             activeDoc = (activeDoc === d) ? null : d;
             activeParcelamentos = false;
             activeParcelamentosStatus = null;
+            activeDividas = false;
             document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
             if (activeDoc) document.getElementById('btn-doc-'+d).classList.add('doc-btn-active');
             updateParcelamentosButtons();
+            updateDividasButton();
             renderTable();
         }
 
@@ -2788,12 +2834,47 @@
             return null;
         }
 
+        function textoContemDivida(valor) {
+            return String(valor || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .includes('divida');
+        }
+
+        function getDividasMatches(row) {
+            if (!row) return [];
+            return headers
+                .filter(h => h !== 'CLIENTE' && h !== 'CNPJ')
+                .filter(h => textoContemDivida(row[h]))
+                .map(h => ({ campo: h, valor: row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : String(row[h] || '') }));
+        }
+
+        function toggleDividasFilter() {
+            activeDividas = !activeDividas;
+            activeParcelamentos = false;
+            activeParcelamentosStatus = null;
+            activeDoc = null;
+            activeStatus = null;
+            document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
+            document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected'));
+            updateParcelamentosButtons();
+            updateDividasButton();
+            renderTable();
+        }
+
+        function updateDividasButton() {
+            const btn = document.getElementById('btn-dividas');
+            if (btn) btn.classList.toggle('dividas-filter-active', activeDividas);
+        }
+
         function toggleParcelamentosFilter() {
             activeParcelamentos = !activeParcelamentos;
             activeDoc = null;
+            activeDividas = false;
             if (!activeParcelamentos) activeParcelamentosStatus = null;
             document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
             updateParcelamentosButtons();
+            updateDividasButton();
             renderTable();
         }
 
@@ -2801,8 +2882,10 @@
             activeParcelamentos = true;
             activeParcelamentosStatus = (activeParcelamentosStatus === status) ? null : status;
             activeDoc = null;
+            activeDividas = false;
             document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
             updateParcelamentosButtons();
+            updateDividasButton();
             renderTable();
         }
 
@@ -2827,12 +2910,14 @@
                 analise: { bg: 'rgba(251, 146, 60, 0.16)', text: '#9a3412', border: '#fb923c' },
                 ativos: { bg: 'rgba(16, 185, 129, 0.16)', text: '#065f46', border: '#10b981' },
                 inativos: { bg: 'rgba(239, 68, 68, 0.14)', text: '#991b1b', border: '#ef4444' },
-                doc: { bg: 'rgba(16, 185, 129, 0.10)', text: '#065f46', border: '#10b981' }
+                doc: { bg: 'rgba(16, 185, 129, 0.10)', text: '#065f46', border: '#10b981' },
+                dividas: { bg: 'rgba(239, 68, 68, 0.12)', text: '#991b1b', border: '#ef4444' }
             };
             return colors[status] || colors.doc;
         }
 
         function getColumnHighlight(h, row = null) {
+            if (activeDividas && (h === 'CAMPO COM DÍVIDA' || h === 'DETALHE')) return getFilterColor('dividas');
             if (activeParcelamentos && h === 'PARCELAMENTOS') {
                 const status = activeParcelamentosStatus || (row ? getParcelamentosStatus(row[h]) : 'ativos');
                 return getFilterColor(status || 'doc');
@@ -2853,6 +2938,7 @@
         function getVisibleHeadersForCurrentFilter() {
             const base = ['CLIENTE', 'CNPJ'];
             let filtroColuna = null;
+            if (activeDividas) return ['CLIENTE', 'CNPJ', 'CAMPO COM DÍVIDA', 'DETALHE'];
             if (activeParcelamentos) filtroColuna = 'PARCELAMENTOS';
             else if (activeDoc) filtroColuna = activeDoc;
             else if (activeStatus) return headers;
@@ -2870,6 +2956,28 @@
                 const hi = getHighlightAttrs(getColumnHighlight(h));
                 return `<th class="${h==='CLIENTE'?'col-fixed':''}${hi.cls}" style="${hi.style}">${h}</th>`;
             }).join('')}</tr>`;
+
+            if (activeDividas) {
+                const linhasDividas = [];
+                rawData.forEach(row => {
+                    if (!row.CLIENTE?.toString().toLowerCase().includes(q)) return;
+                    getDividasMatches(row).forEach(match => linhasDividas.push({ row, match }));
+                });
+                body.innerHTML = linhasDividas.length ? linhasDividas.map(item => {
+                    const row = item.row;
+                    const match = item.match;
+                    const hi = getHighlightAttrs(getFilterColor('dividas'));
+                    return `<tr>
+                        <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
+                        <td class="cnpj-cell" style="cursor:pointer" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
+                        <td class="${hi.cls}" style="${hi.style}"><span class="divida-chip">${escapeHtml(match.campo || '-')}</span></td>
+                        <td class="${hi.cls}" style="${hi.style}" onclick="openEditCell(${rawData.indexOf(row)}, '${match.campo}')">${escapeHtml(match.valor || '-')}</td>
+                    </tr>`;
+                }).join('') : '<tr><td colspan="4" class="text-center py-10 text-slate-400">Nenhuma empresa com a palavra dívida encontrada.</td></tr>';
+                updateAnalytics();
+                return;
+            }
+
             const filtered = rawData.filter(row => {
                 if (!row.CLIENTE?.toString().toLowerCase().includes(q)) return false;
                 if (activeParcelamentos) {
@@ -2885,8 +2993,8 @@
                 const s = getStatus(row[h], row, h);
                 const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
                 const hi = getHighlightAttrs(getColumnHighlight(h, row));
-                if(h==='CNPJ') return `<td class="cnpj-cell${hi.cls}" style="cursor:pointer;${hi.style}" onclick="copiarCNPJ('${val}', event)">${val}</td>`;
-                return `<td class="${h==='CLIENTE'?'col-fixed':(s||'')}${hi.cls}" style="${hi.style}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${val}</td>`;
+                if(h==='CNPJ') return `<td class="cnpj-cell${hi.cls}" style="cursor:pointer;${hi.style}" onclick="copiarCNPJ('${escapeAttr(val)}', event)">${escapeHtml(val)}</td>`;
+                return `<td class="${h==='CLIENTE'?'col-fixed':(s||'')}${hi.cls}" style="${hi.style}" onclick="openEditCell(${rawData.indexOf(row)}, '${h}')">${escapeHtml(val)}</td>`;
             }).join('')}</tr>`).join('');
             updateAnalytics();
         }
@@ -3692,25 +3800,18 @@
                 });
             if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
             if (!linhas.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
                 return;
             }
             tbody.innerHTML = linhas.map(item => {
                 const row = item.row;
-                const status = item.status || 'sem-status';
-                const statusLabel = getParcelamentosStatusLabel(item.status);
-                const valor = row.PARCELAMENTOS instanceof Date ? row.PARCELAMENTOS.toLocaleDateString('pt-BR') : (row.PARCELAMENTOS || '-');
-                const ultimaObs = getUltimaObservacaoParcelamento(row.CLIENTE);
-                const obsTexto = ultimaObs ? escapeHtml(ultimaObs.observacao || '-') : '<span class="text-slate-300 italic">Sem observação</span>';
                 const qtd = item.qtd ? `${item.qtd}/${30}` : '-';
                 return `<tr class="empresas-row" onclick="openParcelamentoInfoModal(${item.index})">
                     <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
                     <td class="cnpj-cell" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
                     <td><span class="parcelamento-status-pill sem-status">${escapeHtml(getSetorParcelamentosLabel(row.SETOR))}</span></td>
-                    <td><span class="parcelamento-status-pill ${status}">${statusLabel}</span><span class="ml-2 text-[10px] text-slate-500">${escapeHtml(valor)}</span></td>
                     <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
                     <td>${renderPGDASStatusPill(row)}</td>
-                    <td><span class="last-obs-chip" title="${escapeAttr(ultimaObs?.observacao || '')}">${obsTexto}</span></td>
                     <td><button onclick="event.stopPropagation(); openParcelamentoInfoModal(${item.index})" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Informações</button></td>
                 </tr>`;
             }).join('');
@@ -3767,7 +3868,7 @@
         
         function resetAllFilters() {
             activeDoc = null; activeStatus = null;
-            activeParcelamentos = false; activeParcelamentosStatus = null;
+            activeParcelamentos = false; activeParcelamentosStatus = null; activeDividas = false;
             document.getElementById('searchInput').value = "";
             document.querySelectorAll('#statusCards button').forEach(b => b.classList.remove('card-selected'));
             document.querySelectorAll('.doc-filter-btn').forEach(b => b.classList.remove('doc-btn-active'));
@@ -4470,6 +4571,7 @@ function updateActiveFilterTags() {
     if (activeDoc) tags.push('Doc: ' + activeDoc);
     if (activeStatus) tags.push('Status: ' + activeStatus);
     if (activeParcelamentos) tags.push('Parcelamentos' + (activeParcelamentosStatus ? ': ' + activeParcelamentosStatus : ''));
+    if (activeDividas) tags.push('Dívidas');
     box.innerHTML = tags.map(t => '<span class="filter-tag selected-filter-hint">' + escapeHtml(t) + '</span>').join('');
 }
 
