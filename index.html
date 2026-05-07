@@ -2228,6 +2228,7 @@
                     <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
                     <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
                     <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
+                    <button onclick="distribuirTarefas('dividas')" class="btn-mini border-red-300 text-red-700 bg-red-50">🎲 Sortear Dívidas</button>
                 `;
                 resetContainer.innerHTML = `<button onclick="resetarDistribuicao()" class="btn-mini border-red-500 text-red-700 bg-red-50">🔄 Resetar Distribuição</button>`;
                 avisoRestricao.classList.add('hidden');
@@ -2237,6 +2238,7 @@
                     <button class="btn-mini border-amber-200 text-amber-700 btn-disabled" disabled>🔒 Sortear 30 D</button>
                     <button class="btn-mini border-emerald-200 text-emerald-700 btn-disabled" disabled>🔒 Sortear 60 D</button>
                     <button class="btn-mini border-sky-200 text-sky-700 btn-disabled" disabled>🔒 Sortear 90 D</button>
+                    <button class="btn-mini border-red-300 text-red-700 bg-red-50 btn-disabled" disabled>🔒 Sortear Dívidas</button>
                 `;
                 resetContainer.innerHTML = '';
                 avisoRestricao.classList.remove('hidden');
@@ -2681,8 +2683,13 @@
                                 if (linha) {
                                     // SÓ ADICIONA SE AINDA ESTIVER PENDENTE NO RAWDATA
                                     // Se virou OK, CONCLUÍDO, ANÁLISE ou EM ANDAMENTO, não volta para o card ao atualizar a página.
-                                    if (isTarefaPendente(idx, documento)) {
-                                        dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
+                                    const ehSorteioDividas = status === 'dividas';
+                                    const aindaPendente = ehSorteioDividas
+                                        ? (typeof textoContemDivida === 'function' && textoContemDivida(linha[documento]))
+                                        : isTarefaPendente(idx, documento);
+                                    if (aindaPendente) {
+                                        const valorExibido = linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-');
+                                        dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: valorExibido, tipo: ehSorteioDividas ? 'dividas' : undefined });
                                     }
                                 }
                             }
@@ -2698,7 +2705,7 @@
                         const dataStr = new Date(dataRegistro).toLocaleString('pt-BR');
                         let infoDiv = document.querySelector('.info-sorteio');
                         if (!infoDiv) { infoDiv = document.createElement('div'); infoDiv.className = 'info-sorteio'; const tc = document.querySelector('#view-tasks .white-card:first-child'); if (tc) tc.appendChild(infoDiv); }
-                        const statusNome = status === 'vencido' ? 'Vencidas' : (status === '30' ? '30 Dias' : (status === '60' ? '60 Dias' : (status === '90' ? '90 Dias' : status)));
+                        const statusNome = status === 'vencido' ? 'Vencidas' : (status === '30' ? '30 Dias' : (status === '60' ? '60 Dias' : (status === '90' ? '90 Dias' : (status === 'dividas' ? 'Dívidas' : status))));
                         infoDiv.innerHTML = `📊 Último sorteio: ${dataStr} - Status: ${statusNome}`;
                     }
                     return true;
@@ -4506,39 +4513,64 @@
             loadingOverlay.style.display = 'flex';
             try {
                 const empresasComTarefas = new Map();
+                const isSorteioDividas = statusAlvo === 'dividas';
+
                 for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
                     const row = rawData[rowIndex];
                     if (!row || !row.CLIENTE) continue;
                     const clienteNome = String(row.CLIENTE).trim();
                     if (!clienteNome) continue;
+
                     const tarefasDaEmpresa = [];
-                    for (let colIndex = 0; colIndex < headers.length; colIndex++) {
-                        const col = headers[colIndex];
-                        if (col === 'CLIENTE') continue;
-                        if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
+
+                    if (isSorteioDividas) {
+                        const dividas = (typeof getDividasMatches === 'function') ? getDividasMatches(row) : [];
+                        dividas.forEach(item => {
+                            if (!item || !item.campo) return;
+                            tarefasDaEmpresa.push({
+                                rowIndex,
+                                documento: item.campo,
+                                tipo: 'dividas',
+                                prazo: item.valor || 'Dívida'
+                            });
+                        });
+                    } else {
+                        for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+                            const col = headers[colIndex];
+                            if (col === 'CLIENTE') continue;
+                            if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
+                        }
                     }
+
                     if (tarefasDaEmpresa.length > 0) empresasComTarefas.set(clienteNome, tarefasDaEmpresa);
                 }
+
                 if (empresasComTarefas.size === 0) {
-                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
+                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias', dividas:'Dívidas' };
                     showNotification(`⚠️ Nenhuma tarefa para: ${n[statusAlvo]||statusAlvo}`, true);
                     loadingOverlay.style.display = 'none'; return;
                 }
+
                 let arr = Array.from(empresasComTarefas.entries());
                 arr.sort((a, b) => b[1].length - a[1].length);
                 const novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
                 const cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
+
                 for (const [empresa, tarefas] of arr) {
                     let escolhido = 'Jordan', menor = cargas.Jordan;
                     if (cargas.Sirlene < menor) { menor = cargas.Sirlene; escolhido = 'Sirlene'; }
                     if (cargas.Ingrid < menor) { escolhido = 'Ingrid'; }
+
                     novaDistribuicao[escolhido].push(...tarefas);
                     cargas[escolhido] += tarefas.length;
                 }
+
                 distribuicaoAtual = novaDistribuicao;
+                statusDistribuicaoAtual = statusAlvo;
                 await salvarDistribuicaoNoServidor(statusAlvo);
                 await carregarDistribuicaoGlobal();
-                const n2 = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
+
+                const n2 = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias', dividas:'Dívidas' };
                 registrarLog('Sorteio realizado', null, null, `Sorteio para ${n2[statusAlvo]||statusAlvo}: J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
                 showNotification(`✅ Distribuição concluída! ${empresasComTarefas.size} empresas para ${n2[statusAlvo]||statusAlvo}`, false, `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
             } catch (error) { showNotification('Erro ao realizar sorteio: ' + error.message, true); }
@@ -4954,30 +4986,41 @@ function limparFiltrosTarefas() {
 renderizarTarefas = function() {
     const q = normalizarTexto(document.getElementById('searchTarefas')?.value || '');
     const prioridade = document.getElementById('filtroTarefasPrioridade')?.value || '';
+    const sorteioAtualEhDividas = statusDistribuicaoAtual === 'dividas';
+
     ['Jordan', 'Sirlene', 'Ingrid'].forEach(resp => {
         const container = document.getElementById('list-' + resp.toLowerCase());
         const countSpan = document.getElementById('count-' + resp.toLowerCase());
         const tarefas = distribuicaoAtual[resp] || [];
         if (!container || !countSpan) return;
+
         let tarefasPendentes = tarefas.filter(t => {
+            const row = rawData[t.rowIndex] || {};
+            const tarefaEhDivida = sorteioAtualEhDividas || t.tipo === 'dividas' || (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento]));
             const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
             const foiRealizada = isAtividadeRealizada(t.rowIndex, t.documento);
-            const row = rawData[t.rowIndex] || {};
-            const texto = normalizarTexto([t.cliente,row.CNPJ,t.documento,t.prazo].join(' '));
+            const texto = normalizarTexto([t.cliente,row.CNPJ,t.documento,t.prazo,row[t.documento]].join(' '));
             const stPrazo = getStatus(row[t.documento], row, t.documento);
             const passaMinha = !mostrarSomenteMinhasTarefas || resp === currentUser;
-            return statusTarefa !== 'concluido' && !foiRealizada && (!q || texto.includes(q)) && (!prioridade || stPrazo === prioridade) && passaMinha;
+            const pendente = tarefaEhDivida ? (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento])) : (statusTarefa !== 'concluido' && !foiRealizada);
+            const passaPrioridade = tarefaEhDivida ? true : (!prioridade || stPrazo === prioridade);
+            return pendente && (!q || texto.includes(q)) && passaPrioridade && passaMinha;
         });
+
         countSpan.innerText = tarefasPendentes.length;
         container.innerHTML = tarefasPendentes.length ? '' : '<div class="text-center py-8 text-[10px] text-slate-400 italic">Nenhuma tarefa para este filtro.</div>';
+
         tarefasPendentes.forEach(t => {
             const row = rawData[t.rowIndex] || {};
+            const tarefaEhDivida = sorteioAtualEhDividas || t.tipo === 'dividas' || (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento]));
             const stPrazo = getStatus(row[t.documento], row, t.documento);
-            const cor = stPrazo === 'vencido' ? 'border-red-200 bg-red-50' : stPrazo === '30' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white';
+            const cor = tarefaEhDivida ? 'border-red-200 bg-red-50' : (stPrazo === 'vencido' ? 'border-red-200 bg-red-50' : stPrazo === '30' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white');
+            const badge = tarefaEhDivida ? 'DÍVIDA' : (stPrazo || 'pendente');
+            const valorExibido = tarefaEhDivida ? (row[t.documento] || t.prazo || 'Dívida') : (t.prazo || '-');
             const card = document.createElement('div');
             card.className = 'p-3 border rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm ' + cor;
             card.onclick = () => { openEditCell(t.rowIndex, t.documento); };
-            card.innerHTML = '<div class="font-black text-slate-800 uppercase flex justify-between"><span>' + escapeHtml(t.cliente) + '</span><span class="filter-tag">' + (stPrazo || 'pendente') + '</span></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">' + escapeHtml(t.documento) + '</span><span class="text-slate-400 font-mono font-bold">' + escapeHtml(t.prazo) + '</span></div>';
+            card.innerHTML = '<div class="font-black text-slate-800 uppercase flex justify-between"><span>' + escapeHtml(t.cliente) + '</span><span class="filter-tag">' + escapeHtml(badge) + '</span></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">' + escapeHtml(t.documento) + '</span><span class="text-slate-400 font-mono font-bold">' + escapeHtml(valorExibido) + '</span></div>';
             container.appendChild(card);
         });
     });
