@@ -6151,7 +6151,139 @@ async function abrirHistoricoModal(cliente, documento) {
         content.innerHTML = `<p class="text-xs text-red-400 text-center py-4">Erro ao carregar histórico: ${escapeHtml(e.message || 'Erro desconhecido')}</p>`;
     }
 }
-\n\n// ============================================\n// CENTRAL DE PENDENCIAS - modulo adicional seguro\n// ============================================\n(function(){\n    function ce(id){ return document.getElementById(id); }\n    function setCount(id, n){ const el = ce(id); if (el) el.textContent = String(n || 0); }\n    function safeHtml(v){\n        if (typeof escapeHtml === 'function') return escapeHtml(v == null ? '' : String(v));\n        return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); });\n    }\n    function linhaVazia(cols, texto){ return `<tr><td colspan="${cols}" class="central-empty">${safeHtml(texto || 'Nenhum item encontrado.')}</td></tr>`; }\n    function dtBr(v){\n        if (!v) return '-';\n        try {\n            if (v instanceof Date && !isNaN(v)) return v.toLocaleDateString('pt-BR');\n            const d = new Date(v);\n            if (!isNaN(d)) return d.toLocaleDateString('pt-BR');\n        } catch(e) {}\n        return String(v);\n    }\n    function raw(){ try { return Array.isArray(rawData) ? rawData : []; } catch(e) { return []; } }\n    function heads(){ try { return Array.isArray(headers) ? headers : []; } catch(e) { return []; } }\n    function ignorarCampo(c){\n        const n = String(c || '').toUpperCase().trim();\n        return !n || ['CLIENTE','CNPJ','EMAIL','E-MAIL','WHATSAPP','TELEFONE','SETOR','OBS','OBSERVAÇÃO','OBSERVACAO'].includes(n) || n.startsWith('__');\n    }\n    function contemDividaSeguro(valor){\n        try { if (typeof textoContemDivida === 'function') return textoContemDivida(valor); } catch(e) {}\n        return /d[ií]vida|debito|d[eé]bito|pend[eê]ncia|parcelamento em atraso|divida ativa/i.test(String(valor || ''));\n    }\n    function dividasDaLinha(row){\n        try { if (typeof obterDividasDaLinha === 'function') return obterDividasDaLinha(row) || []; } catch(e) {}\n        const campos = Array.from(new Set([...(heads() || []), ...Object.keys(row || {})]));\n        return campos.filter(c => !ignorarCampo(c)).map(c => ({campo:c, valor:row[c]})).filter(x => contemDividaSeguro(x.valor));\n    }\n\n    window.centralPendenciasAtualizar = async function(){\n        try {\n            centralPendenciasRenderCertidoes();\n            centralPendenciasRenderDividas();\n            await centralPendenciasRenderFinanceiro();\n            centralPendenciasRenderParcelamentos();\n            await centralPendenciasRenderAvisos();\n        } catch(e) {\n            console.warn('Erro ao atualizar Central de Pendências:', e);\n            if (typeof showNotification === 'function') showNotification('Não foi possível atualizar toda a Central de Pendências.', true);\n        }\n    };\n\n    window.centralPendenciasRenderCertidoes = function(){\n        const tbody = ce('central-certidoes-body'); if (!tbody) return;\n        const rows = [];\n        const campos = heads().filter(c => !ignorarCampo(c));\n        raw().forEach(row => {\n            campos.forEach(c => {\n                let st = null;\n                try { st = typeof getStatus === 'function' ? getStatus(row[c], row, c) : null; } catch(e) {}\n                if (st === 'vencido') rows.push({cliente: row.CLIENTE || '-', doc: c, venc: row[c]});\n            });\n        });\n        setCount('central-count-certidoes', rows.length);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td><span class="central-chip red">${safeHtml(r.doc)}</span></td><td>${safeHtml(dtBr(r.venc))}</td></tr>`).join('') : linhaVazia(3,'Nenhuma certidão vencida encontrada.');\n    };\n\n    window.centralPendenciasRenderDividas = function(){\n        const tbody = ce('central-dividas-body'); if (!tbody) return;\n        const rows = [];\n        raw().forEach(row => {\n            const divs = dividasDaLinha(row);\n            if (divs.length) rows.push({cliente: row.CLIENTE || '-', cnpj: row.CNPJ || '-', campo: divs.map(d => d.campo).join(', ')});\n        });\n        setCount('central-count-dividas', rows.length);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td>${safeHtml(r.cnpj)}</td><td><span class="central-chip red">${safeHtml(r.campo || 'Dívida')}</span></td></tr>`).join('') : linhaVazia(3,'Nenhuma dívida encontrada.');\n    };\n\n    window.centralPendenciasRenderFinanceiro = async function(){\n        const tbody = ce('central-financeiro-body'); if (!tbody) return;\n        try {\n            if (typeof window.carregarAtrasadosFinanceiro === 'function') await window.carregarAtrasadosFinanceiro(false);\n        } catch(e) { console.warn('Central: financeiro atrasado indisponível.', e); }\n        const rows = Array.isArray(window.financeiroAtrasadosData) ? window.financeiroAtrasadosData : [];\n        const total = rows.reduce((acc, row) => {\n            if (Array.isArray(row.meses)) return acc + row.meses.length;\n            if (row.meses && typeof row.meses === 'object') return acc + Object.values(row.meses).filter(m => m && m.status !== 'pago').length;\n            return acc + 1;\n        }, 0);\n        setCount('central-count-financeiro', total);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(row => {\n            let meses = '-';\n            if (Array.isArray(row.meses)) meses = row.meses.map(m => m.competencia || m).join(', ');\n            else if (row.meses && typeof row.meses === 'object') meses = Object.values(row.meses).filter(m => m && m.status !== 'pago').map(m => m.competencia || '').filter(Boolean).join(', ') || 'Em aberto';\n            return `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(row.cliente || row.CLIENTE || '-')}</td><td>${safeHtml(meses)}</td><td><span class="central-chip amber">Atrasado</span></td></tr>`;\n        }).join('') : linhaVazia(3,'Nenhum financeiro atrasado carregado/encontrado.');\n    };\n\n    window.centralPendenciasRenderParcelamentos = function(){\n        const tbody = ce('central-parcelamentos-body'); if (!tbody) return;\n        const rows = [];\n        raw().forEach(row => {\n            const parc = row.PARCELAMENTOS || row.Parcelamentos || row.parcelamentos || '';\n            let qtd = '';\n            try { if (typeof getQuantidadeParcelamentos === 'function') qtd = getQuantidadeParcelamentos(row); } catch(e) {}\n            let pgdas = '';\n            try { if (typeof getPGDASStatus === 'function') pgdas = getPGDASStatus(row); } catch(e) {}\n            if (parc || qtd || (pgdas && !/enviado/i.test(String(pgdas)))) rows.push({cliente: row.CLIENTE || '-', parc: qtd ? `${qtd} parcelamento(s)` : (parc || 'Mapeado'), pgdas: pgdas || '-'});\n        });\n        setCount('central-count-parcelamentos', rows.length);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td><span class="central-chip blue">${safeHtml(r.parc)}</span></td><td>${safeHtml(r.pgdas)}</td></tr>`).join('') : linhaVazia(3,'Nenhum parcelamento pendente encontrado.');\n    };\n\n    window.centralPendenciasRenderAvisos = async function(){\n        const tbody = ce('central-avisos-body'); if (!tbody) return;\n        try {\n            if (!window.supabaseClient && typeof supabaseClient === 'undefined') throw new Error('Supabase indisponível');\n            const sb = window.supabaseClient || supabaseClient;\n            const { data: avisos, error } = await sb.from('avisos').select('*').order('created_at', { ascending: false });\n            if (error) throw error;\n            const { data: lidos, error: errLidos } = await sb.from('avisos_lidos').select('*').eq('usuario', (window.currentUser || currentUser || ''));\n            if (errLidos) throw errLidos;\n            const lidosIds = new Set((lidos || []).map(l => l.aviso_id));\n            const pendentes = (avisos || []).filter(a => !lidosIds.has(a.id));\n            setCount('central-count-avisos', pendentes.length);\n            tbody.innerHTML = pendentes.length ? pendentes.slice(0,80).map(a => `<tr><td>${safeHtml(dtBr(a.created_at))}</td><td class="font-bold text-slate-700">${safeHtml(a.titulo || '-')}</td><td><span class="central-chip green">${safeHtml(a.autor || '-')}</span></td></tr>`).join('') : linhaVazia(3,'Nenhum aviso não lido.');\n        } catch(e) {\n            console.warn('Central: avisos não lidos indisponíveis.', e);\n            setCount('central-count-avisos', 0);\n            tbody.innerHTML = linhaVazia(3,'Não foi possível carregar avisos agora.');\n        }\n    };\n})();\n
+
+
+// ============================================
+// CENTRAL DE PENDENCIAS - modulo adicional seguro
+// ============================================
+(function(){
+    function ce(id){ return document.getElementById(id); }
+    function setCount(id, n){ const el = ce(id); if (el) el.textContent = String(n || 0); }
+    function safeHtml(v){
+        if (typeof escapeHtml === 'function') return escapeHtml(v == null ? '' : String(v));
+        return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); });
+    }
+    function linhaVazia(cols, texto){ return `<tr><td colspan="${cols}" class="central-empty">${safeHtml(texto || 'Nenhum item encontrado.')}</td></tr>`; }
+    function dtBr(v){
+        if (!v) return '-';
+        try {
+            if (v instanceof Date && !isNaN(v)) return v.toLocaleDateString('pt-BR');
+            const d = new Date(v);
+            if (!isNaN(d)) return d.toLocaleDateString('pt-BR');
+        } catch(e) {}
+        return String(v);
+    }
+    function raw(){ try { return Array.isArray(rawData) ? rawData : []; } catch(e) { return []; } }
+    function heads(){ try { return Array.isArray(headers) ? headers : []; } catch(e) { return []; } }
+    function ignorarCampo(c){
+        const n = String(c || '').toUpperCase().trim();
+        return !n || ['CLIENTE','CNPJ','EMAIL','E-MAIL','WHATSAPP','TELEFONE','SETOR','OBS','OBSERVAÇÃO','OBSERVACAO'].includes(n) || n.startsWith('__');
+    }
+    function contemDividaSeguro(valor){
+        try { if (typeof textoContemDivida === 'function') return textoContemDivida(valor); } catch(e) {}
+        return /d[ií]vida|debito|d[eé]bito|pend[eê]ncia|parcelamento em atraso|divida ativa/i.test(String(valor || ''));
+    }
+    function dividasDaLinha(row){
+        try { if (typeof obterDividasDaLinha === 'function') return obterDividasDaLinha(row) || []; } catch(e) {}
+        const campos = Array.from(new Set([...(heads() || []), ...Object.keys(row || {})]));
+        return campos.filter(c => !ignorarCampo(c)).map(c => ({campo:c, valor:row[c]})).filter(x => contemDividaSeguro(x.valor));
+    }
+
+    window.centralPendenciasAtualizar = async function(){
+        try {
+            centralPendenciasRenderCertidoes();
+            centralPendenciasRenderDividas();
+            await centralPendenciasRenderFinanceiro();
+            centralPendenciasRenderParcelamentos();
+            await centralPendenciasRenderAvisos();
+        } catch(e) {
+            console.warn('Erro ao atualizar Central de Pendências:', e);
+            if (typeof showNotification === 'function') showNotification('Não foi possível atualizar toda a Central de Pendências.', true);
+        }
+    };
+
+    window.centralPendenciasRenderCertidoes = function(){
+        const tbody = ce('central-certidoes-body'); if (!tbody) return;
+        const rows = [];
+        const campos = heads().filter(c => !ignorarCampo(c));
+        raw().forEach(row => {
+            campos.forEach(c => {
+                let st = null;
+                try { st = typeof getStatus === 'function' ? getStatus(row[c], row, c) : null; } catch(e) {}
+                if (st === 'vencido') rows.push({cliente: row.CLIENTE || '-', doc: c, venc: row[c]});
+            });
+        });
+        setCount('central-count-certidoes', rows.length);
+        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td><span class="central-chip red">${safeHtml(r.doc)}</span></td><td>${safeHtml(dtBr(r.venc))}</td></tr>`).join('') : linhaVazia(3,'Nenhuma certidão vencida encontrada.');
+    };
+
+    window.centralPendenciasRenderDividas = function(){
+        const tbody = ce('central-dividas-body'); if (!tbody) return;
+        const rows = [];
+        raw().forEach(row => {
+            const divs = dividasDaLinha(row);
+            if (divs.length) rows.push({cliente: row.CLIENTE || '-', cnpj: row.CNPJ || '-', campo: divs.map(d => d.campo).join(', ')});
+        });
+        setCount('central-count-dividas', rows.length);
+        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td>${safeHtml(r.cnpj)}</td><td><span class="central-chip red">${safeHtml(r.campo || 'Dívida')}</span></td></tr>`).join('') : linhaVazia(3,'Nenhuma dívida encontrada.');
+    };
+
+    window.centralPendenciasRenderFinanceiro = async function(){
+        const tbody = ce('central-financeiro-body'); if (!tbody) return;
+        try {
+            if (typeof window.carregarAtrasadosFinanceiro === 'function') await window.carregarAtrasadosFinanceiro(false);
+        } catch(e) { console.warn('Central: financeiro atrasado indisponível.', e); }
+        const rows = Array.isArray(window.financeiroAtrasadosData) ? window.financeiroAtrasadosData : [];
+        const total = rows.reduce((acc, row) => {
+            if (Array.isArray(row.meses)) return acc + row.meses.length;
+            if (row.meses && typeof row.meses === 'object') return acc + Object.values(row.meses).filter(m => m && m.status !== 'pago').length;
+            return acc + 1;
+        }, 0);
+        setCount('central-count-financeiro', total);
+        tbody.innerHTML = rows.length ? rows.slice(0,80).map(row => {
+            let meses = '-';
+            if (Array.isArray(row.meses)) meses = row.meses.map(m => m.competencia || m).join(', ');
+            else if (row.meses && typeof row.meses === 'object') meses = Object.values(row.meses).filter(m => m && m.status !== 'pago').map(m => m.competencia || '').filter(Boolean).join(', ') || 'Em aberto';
+            return `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(row.cliente || row.CLIENTE || '-')}</td><td>${safeHtml(meses)}</td><td><span class="central-chip amber">Atrasado</span></td></tr>`;
+        }).join('') : linhaVazia(3,'Nenhum financeiro atrasado carregado/encontrado.');
+    };
+
+    window.centralPendenciasRenderParcelamentos = function(){
+        const tbody = ce('central-parcelamentos-body'); if (!tbody) return;
+        const rows = [];
+        raw().forEach(row => {
+            const parc = row.PARCELAMENTOS || row.Parcelamentos || row.parcelamentos || '';
+            let qtd = '';
+            try { if (typeof getQuantidadeParcelamentos === 'function') qtd = getQuantidadeParcelamentos(row); } catch(e) {}
+            let pgdas = '';
+            try { if (typeof getPGDASStatus === 'function') pgdas = getPGDASStatus(row); } catch(e) {}
+            if (parc || qtd || (pgdas && !/enviado/i.test(String(pgdas)))) rows.push({cliente: row.CLIENTE || '-', parc: qtd ? `${qtd} parcelamento(s)` : (parc || 'Mapeado'), pgdas: pgdas || '-'});
+        });
+        setCount('central-count-parcelamentos', rows.length);
+        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td><span class="central-chip blue">${safeHtml(r.parc)}</span></td><td>${safeHtml(r.pgdas)}</td></tr>`).join('') : linhaVazia(3,'Nenhum parcelamento pendente encontrado.');
+    };
+
+    window.centralPendenciasRenderAvisos = async function(){
+        const tbody = ce('central-avisos-body'); if (!tbody) return;
+        try {
+            if (!window.supabaseClient && typeof supabaseClient === 'undefined') throw new Error('Supabase indisponível');
+            const sb = window.supabaseClient || supabaseClient;
+            const { data: avisos, error } = await sb.from('avisos').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            const { data: lidos, error: errLidos } = await sb.from('avisos_lidos').select('*').eq('usuario', (window.currentUser || currentUser || ''));
+            if (errLidos) throw errLidos;
+            const lidosIds = new Set((lidos || []).map(l => l.aviso_id));
+            const pendentes = (avisos || []).filter(a => !lidosIds.has(a.id));
+            setCount('central-count-avisos', pendentes.length);
+            tbody.innerHTML = pendentes.length ? pendentes.slice(0,80).map(a => `<tr><td>${safeHtml(dtBr(a.created_at))}</td><td class="font-bold text-slate-700">${safeHtml(a.titulo || '-')}</td><td><span class="central-chip green">${safeHtml(a.autor || '-')}</span></td></tr>`).join('') : linhaVazia(3,'Nenhum aviso não lido.');
+        } catch(e) {
+            console.warn('Central: avisos não lidos indisponíveis.', e);
+            setCount('central-count-avisos', 0);
+            tbody.innerHTML = linhaVazia(3,'Não foi possível carregar avisos agora.');
+        }
+    };
+})();
+
 </script>
 
 </html>
