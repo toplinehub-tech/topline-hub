@@ -315,6 +315,8 @@
         }
         .login-btn-item.login-top { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-color: #22c55e; color: #065f46; box-shadow: 0 8px 18px rgba(34,197,94,0.12); }
         .login-btn-item.login-bottom { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac; color: #166534; }
+        .login-btn-item.login-dev { grid-column: 1 / -1; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-color: #ef4444; color: #991b1b; box-shadow: 0 8px 18px rgba(239,68,68,0.14); }
+        .login-btn-item.login-dev:hover { background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%); border-color: #dc2626; color: #7f1d1d; box-shadow: 0 10px 24px rgba(239,68,68,0.24); }
         .login-btn-item:hover { background: #dcfce7; border-color: #10b981; color: #065f46; transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 18px rgba(16,185,129,0.18); }
         .login-btn-item svg { width: 15px; height: 15px; color: currentColor; opacity:.78; }
         .login-btn-item:hover svg { color: currentColor; opacity:1; }
@@ -667,6 +669,12 @@
             color: #dbeafe !important;
             box-shadow: 0 12px 26px rgba(37, 99, 235, .16), inset 0 1px 0 rgba(255,255,255,.10) !important;
         }
+        #login-card .login-btn-item.login-dev {
+            background: linear-gradient(135deg, rgba(127, 29, 29, .92), rgba(220, 38, 38, .82)) !important;
+            border-color: rgba(252, 165, 165, .62) !important;
+            color: #fff1f2 !important;
+            box-shadow: 0 14px 30px rgba(239, 68, 68, .24), inset 0 1px 0 rgba(255,255,255,.14) !important;
+        }
         #login-card .login-btn-item:hover {
             transform: translateY(-4px) scale(1.035) !important;
             box-shadow: 0 16px 38px rgba(59, 130, 246, .34), 0 0 22px rgba(96, 165, 250, .22) !important;
@@ -792,6 +800,10 @@
                     <button onclick="selecionarUsuario('Sirlene')" class="login-btn-item login-bottom">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         Sirlene
+                    </button>
+                    <button onclick="selecionarUsuario('Dev')" class="login-btn-item login-dev">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zM5 21a7 7 0 0114 0M19 8h1m-1 4h1M4 8h1m-1 4h1"></path></svg>
+                        Dev
                     </button>
                 </div>
             </div>
@@ -1058,13 +1070,13 @@
             <div id="view-tasks" class="hidden">
                 <div class="topline-toolbar mb-4">
                     <input type="text" id="searchTarefas" oninput="renderizarTarefas()" placeholder="Buscar tarefa por cliente, CNPJ ou documento..." class="flex-1 min-w-[220px]">
-                    <select id="filtroTarefasPrioridade" onchange="renderizarTarefas()"><option value="">Todas prioridades</option><option value="vencido">Vencidas</option><option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select>
+                    <select id="filtroTarefasPrioridade" onchange="renderizarTarefas()"><option value="">Todas prioridades</option><option value="vencido">Vencidas</option><option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option><option value="dividas">Dívidas</option></select>
                     <button onclick="toggleMinhasTarefas()" id="btnMinhasTarefas" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">Somente minhas tarefas</button>
                     <button onclick="limparFiltrosTarefas()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button>
                 </div>
                 <div class="white-card p-4 mb-8">
                     <div class="flex gap-3 justify-center flex-wrap" id="botoesSorteioTasks"></div>
-                    <div id="avisoRestricao" class="text-center text-xs text-slate-400 mt-3 hidden">⚠️ Apenas a Ingrid pode realizar novos sorteios e resetar distribuições</div>
+                    <div id="avisoRestricao" class="text-center text-xs text-slate-400 mt-3 hidden">⚠️ Apenas Ingrid ou Dev podem realizar novos sorteios e resetar distribuições</div>
                     <div id="resetButtonContainer" class="flex justify-center mt-3"></div>
                 </div>
                 <div class="grid grid-cols-3 gap-6">
@@ -1205,6 +1217,7 @@
                             <option value="Patricia">Patricia</option>
                             <option value="Sirlene">Sirlene</option>
                             <option value="Brenda">Brenda</option>
+                            <option value="Dev">Dev</option>
                         </select>
                         <button onclick="limparFiltrosHistorico()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar filtros</button>
                         <select id="filtroDocumento" oninput="filtrarHistorico()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
@@ -1319,6 +1332,7 @@
                                 <option value="Patricia">Patricia</option>
                                 <option value="Sirlene">Sirlene</option>
                                 <option value="Brenda">Brenda</option>
+                                <option value="Dev">Dev</option>
                             </select>
                             <button onclick="exportarLogsCSV()" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Exportar</button><button onclick="carregarLogs()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
                         </div>
@@ -1392,7 +1406,7 @@
                         <div class="scroll-container financeiro-atrasados-wrap" style="max-height: 32vh;"><table class="w-full text-left financeiro-table financeiro-atrasados-table"><thead><tr><th>Cliente</th><th>Meses atrasados</th></tr></thead><tbody id="financeiro-atrasados-body"><tr><td colspan="2" class="text-center py-8 text-slate-400">Carregando atrasados...</td></tr></tbody></table></div>
                     </div>
                     <div id="financeiro-log-section" class="mt-8 hidden">
-                        <div class="flex flex-wrap gap-3 justify-between items-center mb-3"><div><h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Log Financeiro</h3><p class="text-[10px] text-slate-400 font-semibold">Acesso restrito a Brenda e Nikolas.</p></div><button onclick="carregarLogsFinanceiro()" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">Atualizar log</button></div>
+                        <div class="flex flex-wrap gap-3 justify-between items-center mb-3"><div><h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Log Financeiro</h3><p class="text-[10px] text-slate-400 font-semibold">Acesso restrito a Brenda, Nikolas e Dev.</p></div><button onclick="carregarLogsFinanceiro()" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">Atualizar log</button></div>
                         <div class="scroll-container financeiro-log-wrap" style="max-height: 32vh;"><table class="w-full text-left financeiro-log-table"><thead><tr><th>Data</th><th>Usuário</th><th>Cliente</th><th>Ação</th><th>Detalhes</th></tr></thead><tbody id="financeiro-log-body"><tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando logs financeiros...</td></tr></tbody></table></div>
                     </div>
                 </div>
@@ -1468,7 +1482,7 @@
 </style>
 <script id="financeiro-v21-script">
 (function(){
-  const PERFIS_LOG = ['Nikolas', 'Brenda'];
+  const PERFIS_LOG = ['Nikolas', 'Brenda', 'Dev'];
   window.financeiroCompetenciaSelecionada = window.financeiroCompetenciaSelecionada || null;
   window.financeiroData = window.financeiroData || [];
   window.financeiroStatusMensal = window.financeiroStatusMensal || {};
@@ -1726,17 +1740,18 @@
             'Jordan':   'NKTOP2026',
             'Patricia': 'NKTOP2026',
             'Sirlene':  'NKTOP2026',
-            'Brenda':   'NoahNK2026'
+            'Brenda':   'NoahNK2026',
+            'Dev':      '13Paradise'
         };
 
         // Perfis com acesso a Logs
-        const PERFIS_LOGS = ['Nikolas', 'Ingrid', 'Jordan', 'Patricia', 'Sirlene', 'Brenda'];
+        const PERFIS_LOGS = ['Nikolas', 'Ingrid', 'Jordan', 'Patricia', 'Sirlene', 'Brenda', 'Dev'];
         // Perfis com acesso a Monitor
-        const PERFIS_MONITOR = ['Nikolas', 'Ingrid'];
+        const PERFIS_MONITOR = ['Nikolas', 'Ingrid', 'Dev'];
         // Perfis que podem realizar sorteios
-        const PERFIS_SORTEIO = ['Ingrid'];
+        const PERFIS_SORTEIO = ['Ingrid', 'Dev'];
         // Perfis com acesso a Financeiro
-        const PERFIS_FINANCEIRO = ['Nikolas', 'Brenda'];
+        const PERFIS_FINANCEIRO = ['Nikolas', 'Brenda', 'Dev'];
 
         let rawData = [], headers = [], passwordData = [];
         let activeDoc = null, activeStatus = null;
@@ -2157,6 +2172,7 @@
             const usuarioLogin = userName || usuarioSelecionado || currentUser || 'Sistema';
             localStorage.setItem("topline_user", usuarioLogin);
             currentUser = usuarioLogin;
+            window.currentUser = currentUser;
             document.getElementById('current-user-name').innerText = currentUser;
             carregarPostitUsuario();
             document.getElementById('login-screen').style.display = 'none';
@@ -2209,7 +2225,7 @@
             try { sessionStorage.removeItem(chaveSessaoLogin(usuarioSaindo)); } catch(e) {}
             pararTimerInatividadeLogin();
             minimizarPostit();
-            currentUser = ""; localStorage.removeItem("topline_user");
+            currentUser = ""; window.currentUser = ""; localStorage.removeItem("topline_user");
             usuarioSelecionado = "";
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('login-screen').style.display = 'flex';
@@ -2228,7 +2244,7 @@
                     <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
                     <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
                     <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
-                    <button onclick="distribuirTarefas('dividas')" class="btn-mini border-red-300 text-red-700 bg-red-50">🎲 Sortear Dívidas</button>
+                    <button onclick="distribuirTarefasDividas()" class="btn-mini border-red-300 text-red-700 bg-red-50">🎲 Sortear Dívidas</button>
                 `;
                 resetContainer.innerHTML = `<button onclick="resetarDistribuicao()" class="btn-mini border-red-500 text-red-700 bg-red-50">🔄 Resetar Distribuição</button>`;
                 avisoRestricao.classList.add('hidden');
@@ -2359,7 +2375,7 @@
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log de entrada ou saída encontrado.</td></tr>';
                 return;
             }
-            const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600', Brenda: 'text-orange-600' };
+            const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600', Brenda: 'text-orange-600', Dev: 'text-red-600' };
             tbody.innerHTML = dados.map(log => {
                 const dt = log.created_at ? new Date(log.created_at) : new Date();
                 const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -2436,7 +2452,7 @@
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma observação registrada ainda.</td></tr>';
                 return;
             }
-            const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600', Brenda: 'text-indigo-600' };
+            const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600', Brenda: 'text-indigo-600', Dev: 'text-red-600' };
             tbody.innerHTML = dados.map(h => {
                 const dt = new Date(h.created_at);
                 const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -2683,13 +2699,8 @@
                                 if (linha) {
                                     // SÓ ADICIONA SE AINDA ESTIVER PENDENTE NO RAWDATA
                                     // Se virou OK, CONCLUÍDO, ANÁLISE ou EM ANDAMENTO, não volta para o card ao atualizar a página.
-                                    const ehSorteioDividas = status === 'dividas';
-                                    const aindaPendente = ehSorteioDividas
-                                        ? (typeof textoContemDivida === 'function' && textoContemDivida(linha[documento]))
-                                        : isTarefaPendente(idx, documento);
-                                    if (aindaPendente) {
-                                        const valorExibido = linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-');
-                                        dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: valorExibido, tipo: ehSorteioDividas ? 'dividas' : undefined });
+                                    if (isTarefaPendente(idx, documento)) {
+                                        dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
                                     }
                                 }
                             }
@@ -2715,7 +2726,7 @@
         }
 
         async function resetarDistribuicao() {
-            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas a Ingrid pode resetar a distribuição!', true); return; }
+            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas Ingrid ou Dev podem resetar a distribuição!', true); return; }
             if (!confirm('⚠️ ATENÇÃO! Isso irá remover TODAS as tarefas atribuídas. Deseja continuar?')) return;
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
@@ -4508,73 +4519,138 @@
         // SORTEIO
         // ============================================
         async function distribuirTarefas(statusAlvo) {
-            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas a Ingrid pode realizar sorteios!', true); return; }
+            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas Ingrid ou Dev podem realizar sorteios!', true); return; }
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
             try {
                 const empresasComTarefas = new Map();
-                const isSorteioDividas = statusAlvo === 'dividas';
-
                 for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
                     const row = rawData[rowIndex];
                     if (!row || !row.CLIENTE) continue;
                     const clienteNome = String(row.CLIENTE).trim();
                     if (!clienteNome) continue;
-
                     const tarefasDaEmpresa = [];
-
-                    if (isSorteioDividas) {
-                        const dividas = (typeof getDividasMatches === 'function') ? getDividasMatches(row) : [];
-                        dividas.forEach(item => {
-                            if (!item || !item.campo) return;
-                            tarefasDaEmpresa.push({
-                                rowIndex,
-                                documento: item.campo,
-                                tipo: 'dividas',
-                                prazo: item.valor || 'Dívida'
-                            });
-                        });
-                    } else {
-                        for (let colIndex = 0; colIndex < headers.length; colIndex++) {
-                            const col = headers[colIndex];
-                            if (col === 'CLIENTE') continue;
-                            if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
-                        }
+                    for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+                        const col = headers[colIndex];
+                        if (col === 'CLIENTE') continue;
+                        if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
                     }
-
                     if (tarefasDaEmpresa.length > 0) empresasComTarefas.set(clienteNome, tarefasDaEmpresa);
                 }
-
                 if (empresasComTarefas.size === 0) {
-                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias', dividas:'Dívidas' };
+                    const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
                     showNotification(`⚠️ Nenhuma tarefa para: ${n[statusAlvo]||statusAlvo}`, true);
                     loadingOverlay.style.display = 'none'; return;
                 }
-
                 let arr = Array.from(empresasComTarefas.entries());
                 arr.sort((a, b) => b[1].length - a[1].length);
                 const novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
                 const cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
-
                 for (const [empresa, tarefas] of arr) {
                     let escolhido = 'Jordan', menor = cargas.Jordan;
                     if (cargas.Sirlene < menor) { menor = cargas.Sirlene; escolhido = 'Sirlene'; }
                     if (cargas.Ingrid < menor) { escolhido = 'Ingrid'; }
-
                     novaDistribuicao[escolhido].push(...tarefas);
                     cargas[escolhido] += tarefas.length;
                 }
-
                 distribuicaoAtual = novaDistribuicao;
-                statusDistribuicaoAtual = statusAlvo;
                 await salvarDistribuicaoNoServidor(statusAlvo);
                 await carregarDistribuicaoGlobal();
-
                 const n2 = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias', dividas:'Dívidas' };
                 registrarLog('Sorteio realizado', null, null, `Sorteio para ${n2[statusAlvo]||statusAlvo}: J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
                 showNotification(`✅ Distribuição concluída! ${empresasComTarefas.size} empresas para ${n2[statusAlvo]||statusAlvo}`, false, `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`);
             } catch (error) { showNotification('Erro ao realizar sorteio: ' + error.message, true); }
             finally { loadingOverlay.style.display = 'none'; }
+        }
+
+
+        // ============================================
+        // SORTEIO DE DÍVIDAS
+        // ============================================
+        async function distribuirTarefasDividas() {
+            if (!PERFIS_SORTEIO.includes(currentUser)) {
+                showNotification('❌ Apenas Ingrid ou Dev podem realizar sorteios!', true);
+                return;
+            }
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) loadingOverlay.style.display = 'flex';
+
+            try {
+                const tarefasDividas = [];
+                const vistos = new Set();
+
+                for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
+                    const row = rawData[rowIndex];
+                    if (!row || !row.CLIENTE) continue;
+
+                    let matches = [];
+                    if (typeof getDividasMatches === 'function') {
+                        matches = getDividasMatches(row) || [];
+                    } else {
+                        matches = (headers || [])
+                            .filter(campo => campo !== 'CLIENTE' && campo !== 'CNPJ')
+                            .filter(campo => String(row[campo] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('divida'))
+                            .map(campo => ({ campo, valor: row[campo] }));
+                    }
+
+                    matches.forEach(match => {
+                        const documento = match.campo || match.documento;
+                        if (!documento || documento === 'CLIENTE' || documento === 'CNPJ') return;
+                        const chave = rowIndex + '|' + documento;
+                        if (vistos.has(chave)) return;
+                        vistos.add(chave);
+
+                        // Mantém o documento real da planilha para permitir abrir/editar a célula original.
+                        // A identificação de que é dívida fica no status do sorteio e no texto exibido.
+                        tarefasDividas.push({
+                            rowIndex,
+                            documento,
+                            cliente: row.CLIENTE,
+                            prazo: 'DÍVIDA',
+                            tipo: 'divida'
+                        });
+                    });
+                }
+
+                if (!tarefasDividas.length) {
+                    showNotification('⚠️ Nenhuma dívida encontrada para sortear.', true);
+                    return;
+                }
+
+                // Distribuição igualitária por quantidade de tarefas, em ordem de cliente para manter previsibilidade.
+                tarefasDividas.sort((a, b) => String(a.cliente || '').localeCompare(String(b.cliente || ''), 'pt-BR'));
+                const novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
+                const colaboradores = ['Jordan', 'Sirlene', 'Ingrid'];
+
+                tarefasDividas.forEach((tarefa, idx) => {
+                    novaDistribuicao[colaboradores[idx % colaboradores.length]].push(tarefa);
+                });
+
+                distribuicaoAtual = novaDistribuicao;
+                statusDistribuicaoAtual = 'dividas';
+
+                await salvarDistribuicaoNoServidor('dividas');
+                await carregarDistribuicaoGlobal();
+
+                registrarLog(
+                    'Sorteio realizado',
+                    null,
+                    'DÍVIDA',
+                    `Sorteio de Dívidas: J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`
+                );
+
+                showNotification(
+                    `✅ Sorteio de Dívidas concluído!`,
+                    false,
+                    `J:${novaDistribuicao.Jordan.length} | S:${novaDistribuicao.Sirlene.length} | I:${novaDistribuicao.Ingrid.length} tarefas`
+                );
+            } catch (error) {
+                console.error('Erro ao sortear dívidas:', error);
+                showNotification('Erro ao sortear dívidas: ' + (error.message || 'Erro desconhecido'), true);
+            } finally {
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+            }
         }
 
 
@@ -4897,7 +4973,7 @@
     
 
         function copiarCNPJ(cnpj, event) { if (cnpj === '-') return; event.stopPropagation(); navigator.clipboard.writeText(cnpj).then(() => { const tooltip = document.createElement('div'); tooltip.className = 'cnpj-tooltip'; tooltip.textContent = '✓ CNPJ copiado'; tooltip.style.left = (event.pageX - 50) + 'px'; tooltip.style.top = (event.pageY - 30) + 'px'; document.body.appendChild(tooltip); setTimeout(() => tooltip.remove(), 2000); }); }
-        async function carregarAvisos() { try { const { data: avisos, error } = await supabaseClient.from('avisos').select('*').order('created_at', { ascending: false }); if (error) throw error; const { data: lidos, error: lidosError } = await supabaseClient.from('avisos_lidos').select('*'); if (lidosError) throw lidosError; const lidosPorAviso = {}; lidos.forEach(l => { if (!lidosPorAviso[l.aviso_id]) lidosPorAviso[l.aviso_id] = []; lidosPorAviso[l.aviso_id].push(l.usuario); }); const lidosIds = new Set(lidos.filter(l => l.usuario === currentUser).map(l => l.aviso_id)); const naoLidosCount = avisos.filter(a => !lidosIds.has(a.id)).length; const badge = document.getElementById('avisos-badge'); if (badge) { badge.innerText = naoLidosCount; badge.className = `badge-avisos ${naoLidosCount > 0 ? 'badge-red' : 'badge-blue'}`; } const lista = document.getElementById('avisos-lista'); if (lista) { if (avisos.length === 0) { lista.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs italic">Nenhum aviso no momento.</div>'; return; } lista.innerHTML = avisos.map(a => { const lido = lidosIds.has(a.id); const usuariosQueLeram = lidosPorAviso[a.id] || []; const isAdmin = ['Nikolas', 'Ingrid'].includes(currentUser); return `<div class="white-card p-4 border-l-4 ${lido ? 'border-slate-200 opacity-75' : 'border-emerald-500'}"><div class="flex justify-between items-start mb-2"><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${a.titulo}</h4><span class="text-[9px] text-slate-400 font-mono">${new Date(a.created_at).toLocaleString('pt-BR')}</span></div><p class="text-xs text-slate-600 mb-3">${a.conteudo}</p>${isAdmin ? `<div class="mb-3 p-2 bg-slate-50 rounded border border-slate-200 max-w-[50%]"><p class="text-[8px] font-bold text-slate-600 mb-1">Lido por (${usuariosQueLeram.length}):</p><div class="flex flex-wrap gap-1">${usuariosQueLeram.map(u => `<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[7px] font-bold">${u}</span>`).join('')}</div></div>` : ''}<div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${a.autor}</span>${!lido ? `<button onclick="marcarComoLido('${a.id}')" class="text-[9px] font-black text-emerald-600 uppercase hover:underline">Marcar como lido</button>` : '<span class="text-[9px] font-bold text-slate-300 uppercase italic">Lido</span>'}</div></div>`; }).join(''); } } catch (e) { console.error('Erro ao carregar avisos:', e); } }
+        async function carregarAvisos() { try { const { data: avisos, error } = await supabaseClient.from('avisos').select('*').order('created_at', { ascending: false }); if (error) throw error; const { data: lidos, error: lidosError } = await supabaseClient.from('avisos_lidos').select('*'); if (lidosError) throw lidosError; const lidosPorAviso = {}; lidos.forEach(l => { if (!lidosPorAviso[l.aviso_id]) lidosPorAviso[l.aviso_id] = []; lidosPorAviso[l.aviso_id].push(l.usuario); }); const lidosIds = new Set(lidos.filter(l => l.usuario === currentUser).map(l => l.aviso_id)); const naoLidosCount = avisos.filter(a => !lidosIds.has(a.id)).length; const badge = document.getElementById('avisos-badge'); if (badge) { badge.innerText = naoLidosCount; badge.className = `badge-avisos ${naoLidosCount > 0 ? 'badge-red' : 'badge-blue'}`; } const lista = document.getElementById('avisos-lista'); if (lista) { if (avisos.length === 0) { lista.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs italic">Nenhum aviso no momento.</div>'; return; } lista.innerHTML = avisos.map(a => { const lido = lidosIds.has(a.id); const usuariosQueLeram = lidosPorAviso[a.id] || []; const isAdmin = ['Nikolas', 'Ingrid', 'Dev'].includes(currentUser); return `<div class="white-card p-4 border-l-4 ${lido ? 'border-slate-200 opacity-75' : 'border-emerald-500'}"><div class="flex justify-between items-start mb-2"><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${a.titulo}</h4><span class="text-[9px] text-slate-400 font-mono">${new Date(a.created_at).toLocaleString('pt-BR')}</span></div><p class="text-xs text-slate-600 mb-3">${a.conteudo}</p>${isAdmin ? `<div class="mb-3 p-2 bg-slate-50 rounded border border-slate-200 max-w-[50%]"><p class="text-[8px] font-bold text-slate-600 mb-1">Lido por (${usuariosQueLeram.length}):</p><div class="flex flex-wrap gap-1">${usuariosQueLeram.map(u => `<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[7px] font-bold">${u}</span>`).join('')}</div></div>` : ''}<div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${a.autor}</span>${!lido ? `<button onclick="marcarComoLido('${a.id}')" class="text-[9px] font-black text-emerald-600 uppercase hover:underline">Marcar como lido</button>` : '<span class="text-[9px] font-bold text-slate-300 uppercase italic">Lido</span>'}</div></div>`; }).join(''); } } catch (e) { console.error('Erro ao carregar avisos:', e); } }
         async function marcarComoLido(avisoId) { try { await supabaseClient.from('avisos_lidos').insert([{ aviso_id: avisoId, usuario: currentUser }]); carregarAvisos(); } catch (e) { console.error(e); } }
         function abrirModalNovoAviso() { document.getElementById('avisoModal').classList.remove('hidden'); }
         function fecharModalAviso() { document.getElementById('avisoModal').classList.add('hidden'); }
@@ -4986,41 +5062,36 @@ function limparFiltrosTarefas() {
 renderizarTarefas = function() {
     const q = normalizarTexto(document.getElementById('searchTarefas')?.value || '');
     const prioridade = document.getElementById('filtroTarefasPrioridade')?.value || '';
-    const sorteioAtualEhDividas = statusDistribuicaoAtual === 'dividas';
-
     ['Jordan', 'Sirlene', 'Ingrid'].forEach(resp => {
         const container = document.getElementById('list-' + resp.toLowerCase());
         const countSpan = document.getElementById('count-' + resp.toLowerCase());
         const tarefas = distribuicaoAtual[resp] || [];
         if (!container || !countSpan) return;
-
         let tarefasPendentes = tarefas.filter(t => {
-            const row = rawData[t.rowIndex] || {};
-            const tarefaEhDivida = sorteioAtualEhDividas || t.tipo === 'dividas' || (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento]));
             const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
             const foiRealizada = isAtividadeRealizada(t.rowIndex, t.documento);
-            const texto = normalizarTexto([t.cliente,row.CNPJ,t.documento,t.prazo,row[t.documento]].join(' '));
+            const row = rawData[t.rowIndex] || {};
+            const texto = normalizarTexto([t.cliente,row.CNPJ,t.documento,t.prazo].join(' '));
             const stPrazo = getStatus(row[t.documento], row, t.documento);
+            const isDivida = t.tipo === 'divida' || statusDistribuicaoAtual === 'dividas' || (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento]));
+            const passaPrioridade = !prioridade || (prioridade === 'dividas' ? isDivida : stPrazo === prioridade);
             const passaMinha = !mostrarSomenteMinhasTarefas || resp === currentUser;
-            const pendente = tarefaEhDivida ? (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento])) : (statusTarefa !== 'concluido' && !foiRealizada);
-            const passaPrioridade = tarefaEhDivida ? true : (!prioridade || stPrazo === prioridade);
-            return pendente && (!q || texto.includes(q)) && passaPrioridade && passaMinha;
+            return statusTarefa !== 'concluido' && !foiRealizada && (!q || texto.includes(q)) && passaPrioridade && passaMinha;
         });
-
         countSpan.innerText = tarefasPendentes.length;
         container.innerHTML = tarefasPendentes.length ? '' : '<div class="text-center py-8 text-[10px] text-slate-400 italic">Nenhuma tarefa para este filtro.</div>';
-
         tarefasPendentes.forEach(t => {
             const row = rawData[t.rowIndex] || {};
-            const tarefaEhDivida = sorteioAtualEhDividas || t.tipo === 'dividas' || (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento]));
             const stPrazo = getStatus(row[t.documento], row, t.documento);
-            const cor = tarefaEhDivida ? 'border-red-200 bg-red-50' : (stPrazo === 'vencido' ? 'border-red-200 bg-red-50' : stPrazo === '30' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white');
-            const badge = tarefaEhDivida ? 'DÍVIDA' : (stPrazo || 'pendente');
-            const valorExibido = tarefaEhDivida ? (row[t.documento] || t.prazo || 'Dívida') : (t.prazo || '-');
+            const isDivida = t.tipo === 'divida' || statusDistribuicaoAtual === 'dividas' || (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento]));
+            const cor = isDivida ? 'border-red-200 bg-red-50' : (stPrazo === 'vencido' ? 'border-red-200 bg-red-50' : stPrazo === '30' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white');
+            const etiqueta = isDivida ? 'DÍVIDA' : (stPrazo || 'pendente');
+            const documentoLabel = isDivida ? ('DÍVIDA • ' + t.documento) : t.documento;
+            const prazoLabel = isDivida ? 'Campo com dívida' : t.prazo;
             const card = document.createElement('div');
             card.className = 'p-3 border rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm ' + cor;
             card.onclick = () => { openEditCell(t.rowIndex, t.documento); };
-            card.innerHTML = '<div class="font-black text-slate-800 uppercase flex justify-between"><span>' + escapeHtml(t.cliente) + '</span><span class="filter-tag">' + escapeHtml(badge) + '</span></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">' + escapeHtml(t.documento) + '</span><span class="text-slate-400 font-mono font-bold">' + escapeHtml(valorExibido) + '</span></div>';
+            card.innerHTML = '<div class="font-black text-slate-800 uppercase flex justify-between"><span>' + escapeHtml(t.cliente) + '</span><span class="filter-tag">' + escapeHtml(etiqueta) + '</span></div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">' + escapeHtml(documentoLabel) + '</span><span class="text-slate-400 font-mono font-bold">' + escapeHtml(prazoLabel) + '</span></div>';
             container.appendChild(card);
         });
     });
@@ -5131,7 +5202,7 @@ carregarAvisos = async function() {
         const lista = document.getElementById('avisos-lista'); if (!lista) return;
         if (!listaFiltrada.length) { lista.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs italic">Nenhum aviso neste filtro.</div>'; return; }
         lista.innerHTML = listaFiltrada.map(a => {
-            const lido = lidosIds.has(a.id); const usuariosQueLeram = lidosPorAviso[a.id] || []; const isAdmin = ['Nikolas','Ingrid'].includes(currentUser); const pr = a.prioridade || 'normal';
+            const lido = lidosIds.has(a.id); const usuariosQueLeram = lidosPorAviso[a.id] || []; const isAdmin = ['Nikolas','Ingrid','Dev'].includes(currentUser); const pr = a.prioridade || 'normal';
             const botaoLido = !lido ? `<button onclick="marcarComoLido('${a.id}')" class="text-[9px] font-black text-emerald-600 uppercase hover:underline">Marcar como lido</button>` : '<span class="text-[9px] font-bold text-slate-300 uppercase italic">Lido</span>';
             const blocoAdmin = isAdmin ? `<div class="mb-3 p-2 bg-slate-50 rounded border border-slate-200 max-w-[50%]"><p class="text-[8px] font-bold text-slate-600 mb-1">Lido por (${usuariosQueLeram.length}):</p><div class="flex flex-wrap gap-1">${usuariosQueLeram.map(u => '<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[7px] font-bold">' + escapeHtml(u) + '</span>').join('')}</div></div>` : '';
             return `<div class="white-card p-4 border-l-4 aviso-prioridade-${pr} ${lido ? 'opacity-75' : ''}"><div class="flex justify-between items-start mb-2"><div><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${escapeHtml(a.titulo)}</h4><span class="priority-pill priority-${pr}">${pr}</span></div><span class="text-[9px] text-slate-400 font-mono">${new Date(a.created_at).toLocaleString('pt-BR')}</span></div><p class="text-xs text-slate-600 mb-3">${escapeHtml(a.conteudo)}</p>${blocoAdmin}<div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${escapeHtml(a.autor || '-')}</span>${botaoLido}</div></div>`;
@@ -5583,7 +5654,7 @@ document.addEventListener('DOMContentLoaded', iniciarPostitArrastavel);
 /* =====================================================
    FINANCEIRO V2.0 - Controle mensal por cliente
    ===================================================== */
-const PERFIS_FINANCEIRO_LOG = ['Nikolas', 'Brenda'];
+const PERFIS_FINANCEIRO_LOG = ['Nikolas', 'Brenda', 'Dev'];
 let financeiroData = [];
 let financeiroStatusMensal = {};
 let financeiroLogsData = [];
@@ -5642,7 +5713,7 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 
 <script id="financeiro-v22-final-override">
 (function(){
-  const PERFIS_LOG_FIN = ['Nikolas','Brenda'];
+  const PERFIS_LOG_FIN = ['Nikolas','Brenda','Dev'];
   const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   window.financeiroCompetenciaSelecionada = window.financeiroCompetenciaSelecionada || null;
   window.financeiroData = window.financeiroData || [];
@@ -5777,7 +5848,7 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
   function parseBRL(v){const s=String(v||'').replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'); const n=Number(s); return Number.isFinite(n)?n:0;}
   function diaSeguro(v){const raw=String(v||'').replace(/\D/g,'').slice(0,2); if(!raw) return ''; const n=Math.max(1,Math.min(31,Number(raw))); return String(n).padStart(2,'0');}
   function statusVisual(reg,comp){ if(reg.status==='pago') return {txt:'Pago',cls:'financeiro-status-pago'}; const dia=Number(reg.vencimento_dia||0); if(isCompAtual(comp)&&dia&&dia<hojeDia()) return {txt:'Vencido',cls:'financeiro-status-vencido'}; if(reg.status!=='pago'&&dia) return {txt:'A vencer',cls:'financeiro-status-a_vencer'}; return {txt:'Não pago',cls:'financeiro-status-nao_pago'};}
-  function podeFinanceiro(){ try{return (PERFIS_FINANCEIRO||['Nikolas','Brenda']).includes(getUser());}catch(e){return ['Nikolas','Brenda'].includes(getUser());} }
+  function podeFinanceiro(){ try{return (PERFIS_FINANCEIRO||['Nikolas','Brenda','Dev']).includes(getUser());}catch(e){return ['Nikolas','Brenda','Dev'].includes(getUser());} }
   window.chaveFinanceira=clienteKey;
   window.competenciaFinanceiraAtual=function(){return window.financeiroCompetenciaSelecionada||compAtual();};
   window.podeVerLogFinanceiro=function(){return PERFIS_LOG_FIN.includes(getUser());};
