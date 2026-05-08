@@ -756,6 +756,23 @@
     letter-spacing: .08em;
 }
 
+
+/* CENTRAL DE PENDENCIAS - modulo adicional */
+.central-pendencias-grid { display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.central-pendencia-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px; box-shadow:0 8px 18px rgba(15,23,42,.04); }
+.central-pendencia-card strong { display:block; font-size:24px; line-height:1; font-weight:900; color:#0f172a; }
+.central-pendencia-card span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.central-section-title { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#334155; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.central-table-wrap { max-height: 34vh; min-height: 180px; }
+.central-empty { text-align:center; padding:22px; color:#94a3b8; font-size:11px; font-weight:800; }
+.central-chip { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:4px 8px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; white-space:nowrap; }
+.central-chip.red { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.central-chip.amber { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.central-chip.blue { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.central-chip.green { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+@media (max-width: 900px) { .central-pendencias-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .central-pendencias-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
+
 </style>
 </head>
 <body>
@@ -867,6 +884,7 @@
                     <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
                     <nav class="flex gap-4 items-center" id="main-nav">
                         <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
+                        <button onclick="switchTab('centralpendencias')" id="tab-centralpendencias" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Central de Pendências</button>
                         <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
                         <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                         <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
@@ -899,6 +917,54 @@
                 <div id="favoritosPanel" class="soft-card mt-2"></div>
                 <div id="alertasPanel" class="soft-card mt-2"></div>
             </header>
+
+
+            <!-- CENTRAL DE PENDÊNCIAS -->
+            <div id="view-centralpendencias" class="hidden">
+                <div class="white-card p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Central de Pendências</h2>
+                            <p class="text-[10px] text-slate-400 mt-1">Visão única de certidões vencidas, dívidas, financeiro atrasado, parcelamentos e avisos não lidos.</p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="centralPendenciasAtualizar()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar central</button>
+                            <button onclick="switchTab('dash')" class="btn-mini text-slate-700 border-slate-200 bg-white">Abrir painel</button>
+                        </div>
+                    </div>
+
+                    <div class="central-pendencias-grid">
+                        <div class="central-pendencia-card border-l-4 border-red-500"><strong id="central-count-certidoes">0</strong><span>Certidões vencidas</span></div>
+                        <div class="central-pendencia-card border-l-4 border-rose-500"><strong id="central-count-dividas">0</strong><span>Dívidas</span></div>
+                        <div class="central-pendencia-card border-l-4 border-amber-500"><strong id="central-count-financeiro">0</strong><span>Financeiro atrasado</span></div>
+                        <div class="central-pendencia-card border-l-4 border-sky-500"><strong id="central-count-parcelamentos">0</strong><span>Parcelamentos</span></div>
+                        <div class="central-pendencia-card border-l-4 border-blue-500"><strong id="central-count-avisos">0</strong><span>Avisos não lidos</span></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                        <div class="white-card p-4">
+                            <div class="central-section-title"><span>Certidões vencidas</span><button onclick="switchTab('dash'); setTimeout(function(){ try { toggleStatusFilter('vencido'); } catch(e) {} }, 50);" class="btn-mini text-red-700 border-red-200 bg-red-50">Ver no painel</button></div>
+                            <div class="scroll-container central-table-wrap"><table class="w-full text-left"><thead><tr><th>Cliente</th><th>Documento</th><th>Vencimento</th></tr></thead><tbody id="central-certidoes-body"><tr><td colspan="3" class="central-empty">Carregando...</td></tr></tbody></table></div>
+                        </div>
+                        <div class="white-card p-4">
+                            <div class="central-section-title"><span>Dívidas</span><button onclick="switchTab('dash'); setTimeout(function(){ try { toggleDividasFilter(); } catch(e) {} }, 50);" class="btn-mini text-rose-700 border-rose-200 bg-rose-50">Ver dívidas</button></div>
+                            <div class="scroll-container central-table-wrap"><table class="w-full text-left"><thead><tr><th>Cliente</th><th>CNPJ</th><th>Campo</th></tr></thead><tbody id="central-dividas-body"><tr><td colspan="3" class="central-empty">Carregando...</td></tr></tbody></table></div>
+                        </div>
+                        <div class="white-card p-4">
+                            <div class="central-section-title"><span>Financeiro atrasado</span><button onclick="switchTab('financeiro')" class="btn-mini text-amber-700 border-amber-200 bg-amber-50">Abrir financeiro</button></div>
+                            <div class="scroll-container central-table-wrap"><table class="w-full text-left"><thead><tr><th>Cliente</th><th>Meses</th><th>Status</th></tr></thead><tbody id="central-financeiro-body"><tr><td colspan="3" class="central-empty">Carregando...</td></tr></tbody></table></div>
+                        </div>
+                        <div class="white-card p-4">
+                            <div class="central-section-title"><span>Parcelamentos / PGDAS</span><button onclick="switchTab('empresasparcelamentos')" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Abrir parcelamentos</button></div>
+                            <div class="scroll-container central-table-wrap"><table class="w-full text-left"><thead><tr><th>Cliente</th><th>Parcelamento</th><th>PGDAS</th></tr></thead><tbody id="central-parcelamentos-body"><tr><td colspan="3" class="central-empty">Carregando...</td></tr></tbody></table></div>
+                        </div>
+                        <div class="white-card p-4 xl:col-span-2">
+                            <div class="central-section-title"><span>Avisos não lidos</span><button onclick="switchTab('avisos')" class="btn-mini text-blue-700 border-blue-200 bg-blue-50">Abrir avisos</button></div>
+                            <div class="scroll-container central-table-wrap"><table class="w-full text-left"><thead><tr><th>Data</th><th>Título</th><th>Autor</th></tr></thead><tbody id="central-avisos-body"><tr><td colspan="3" class="central-empty">Carregando...</td></tr></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             
             <!-- AVISOS -->
@@ -1479,6 +1545,23 @@
 .financeiro-atrasado-row { background:#fff7ed; }
 .financeiro-a-vencer-row { background:#f0f9ff; }
 @media (max-width: 768px) { .financeiro-table input.fin-dia-input, .financeiro-table input.fin-valor-input { max-width: 180px !important; } }
+
+/* CENTRAL DE PENDENCIAS - modulo adicional */
+.central-pendencias-grid { display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.central-pendencia-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px; box-shadow:0 8px 18px rgba(15,23,42,.04); }
+.central-pendencia-card strong { display:block; font-size:24px; line-height:1; font-weight:900; color:#0f172a; }
+.central-pendencia-card span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.central-section-title { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#334155; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.central-table-wrap { max-height: 34vh; min-height: 180px; }
+.central-empty { text-align:center; padding:22px; color:#94a3b8; font-size:11px; font-weight:800; }
+.central-chip { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:4px 8px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; white-space:nowrap; }
+.central-chip.red { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.central-chip.amber { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.central-chip.blue { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.central-chip.green { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+@media (max-width: 900px) { .central-pendencias-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .central-pendencias-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
+
 </style>
 <script id="financeiro-v21-script">
 (function(){
@@ -4185,7 +4268,7 @@
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','tasks','senhas','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -4205,6 +4288,7 @@
                 searchBar.classList.remove('visible');
             }
 
+            if (tab === 'centralpendencias') centralPendenciasAtualizar();
             if (tab === 'senhas') renderSenhas();
             if (tab === 'dash') atualizarDashboardDesempenho();
             if (tab === 'tasks') carregarDistribuicaoGlobal();
@@ -5708,6 +5792,23 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 .financeiro-atrasado-row { background:#fff7ed !important; }
 .financeiro-a-vencer-row { background:#f0f9ff !important; }
 @media (max-width:768px){ .financeiro-mes-control{width:100%; justify-content:center;} .financeiro-mes-title{display:none;} .financeiro-mes-select{flex:1;} .financeiro-table input.fin-dia-input, .financeiro-table input.fin-valor-input{max-width:180px !important;} }
+
+/* CENTRAL DE PENDENCIAS - modulo adicional */
+.central-pendencias-grid { display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.central-pendencia-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px; box-shadow:0 8px 18px rgba(15,23,42,.04); }
+.central-pendencia-card strong { display:block; font-size:24px; line-height:1; font-weight:900; color:#0f172a; }
+.central-pendencia-card span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.central-section-title { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#334155; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.central-table-wrap { max-height: 34vh; min-height: 180px; }
+.central-empty { text-align:center; padding:22px; color:#94a3b8; font-size:11px; font-weight:800; }
+.central-chip { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:4px 8px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; white-space:nowrap; }
+.central-chip.red { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.central-chip.amber { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.central-chip.blue { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.central-chip.green { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+@media (max-width: 900px) { .central-pendencias-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .central-pendencias-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
+
 </style>
 
 
@@ -5821,6 +5922,23 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 .financeiro-status-pill.financeiro-status-vencido { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
 .financeiro-status-pill.financeiro-status-a_vencer { background:#e0f2fe; color:#0369a1; border-color:#bae6fd; }
 @media (max-width:768px){ .financeiro-mes-control { width:100%; justify-content:space-between; } .financeiro-mes-select { min-width:150px; } .financeiro-table input.fin-dia-input, .financeiro-table input.fin-valor-input { max-width:180px !important; } .financeiro-atrasados-table th:first-child, .financeiro-atrasados-table td:first-child { min-width:180px; } }
+
+/* CENTRAL DE PENDENCIAS - modulo adicional */
+.central-pendencias-grid { display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.central-pendencia-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px; box-shadow:0 8px 18px rgba(15,23,42,.04); }
+.central-pendencia-card strong { display:block; font-size:24px; line-height:1; font-weight:900; color:#0f172a; }
+.central-pendencia-card span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.central-section-title { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#334155; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.central-table-wrap { max-height: 34vh; min-height: 180px; }
+.central-empty { text-align:center; padding:22px; color:#94a3b8; font-size:11px; font-weight:800; }
+.central-chip { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:4px 8px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; white-space:nowrap; }
+.central-chip.red { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.central-chip.amber { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.central-chip.blue { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.central-chip.green { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+@media (max-width: 900px) { .central-pendencias-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .central-pendencias-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
+
 </style>
 <script id="financeiro-v23-final-script">
 (function(){
@@ -6033,6 +6151,7 @@ async function abrirHistoricoModal(cliente, documento) {
         content.innerHTML = `<p class="text-xs text-red-400 text-center py-4">Erro ao carregar histórico: ${escapeHtml(e.message || 'Erro desconhecido')}</p>`;
     }
 }
+\n\n// ============================================\n// CENTRAL DE PENDENCIAS - modulo adicional seguro\n// ============================================\n(function(){\n    function ce(id){ return document.getElementById(id); }\n    function setCount(id, n){ const el = ce(id); if (el) el.textContent = String(n || 0); }\n    function safeHtml(v){\n        if (typeof escapeHtml === 'function') return escapeHtml(v == null ? '' : String(v));\n        return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); });\n    }\n    function linhaVazia(cols, texto){ return `<tr><td colspan="${cols}" class="central-empty">${safeHtml(texto || 'Nenhum item encontrado.')}</td></tr>`; }\n    function dtBr(v){\n        if (!v) return '-';\n        try {\n            if (v instanceof Date && !isNaN(v)) return v.toLocaleDateString('pt-BR');\n            const d = new Date(v);\n            if (!isNaN(d)) return d.toLocaleDateString('pt-BR');\n        } catch(e) {}\n        return String(v);\n    }\n    function raw(){ try { return Array.isArray(rawData) ? rawData : []; } catch(e) { return []; } }\n    function heads(){ try { return Array.isArray(headers) ? headers : []; } catch(e) { return []; } }\n    function ignorarCampo(c){\n        const n = String(c || '').toUpperCase().trim();\n        return !n || ['CLIENTE','CNPJ','EMAIL','E-MAIL','WHATSAPP','TELEFONE','SETOR','OBS','OBSERVAÇÃO','OBSERVACAO'].includes(n) || n.startsWith('__');\n    }\n    function contemDividaSeguro(valor){\n        try { if (typeof textoContemDivida === 'function') return textoContemDivida(valor); } catch(e) {}\n        return /d[ií]vida|debito|d[eé]bito|pend[eê]ncia|parcelamento em atraso|divida ativa/i.test(String(valor || ''));\n    }\n    function dividasDaLinha(row){\n        try { if (typeof obterDividasDaLinha === 'function') return obterDividasDaLinha(row) || []; } catch(e) {}\n        const campos = Array.from(new Set([...(heads() || []), ...Object.keys(row || {})]));\n        return campos.filter(c => !ignorarCampo(c)).map(c => ({campo:c, valor:row[c]})).filter(x => contemDividaSeguro(x.valor));\n    }\n\n    window.centralPendenciasAtualizar = async function(){\n        try {\n            centralPendenciasRenderCertidoes();\n            centralPendenciasRenderDividas();\n            await centralPendenciasRenderFinanceiro();\n            centralPendenciasRenderParcelamentos();\n            await centralPendenciasRenderAvisos();\n        } catch(e) {\n            console.warn('Erro ao atualizar Central de Pendências:', e);\n            if (typeof showNotification === 'function') showNotification('Não foi possível atualizar toda a Central de Pendências.', true);\n        }\n    };\n\n    window.centralPendenciasRenderCertidoes = function(){\n        const tbody = ce('central-certidoes-body'); if (!tbody) return;\n        const rows = [];\n        const campos = heads().filter(c => !ignorarCampo(c));\n        raw().forEach(row => {\n            campos.forEach(c => {\n                let st = null;\n                try { st = typeof getStatus === 'function' ? getStatus(row[c], row, c) : null; } catch(e) {}\n                if (st === 'vencido') rows.push({cliente: row.CLIENTE || '-', doc: c, venc: row[c]});\n            });\n        });\n        setCount('central-count-certidoes', rows.length);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td><span class="central-chip red">${safeHtml(r.doc)}</span></td><td>${safeHtml(dtBr(r.venc))}</td></tr>`).join('') : linhaVazia(3,'Nenhuma certidão vencida encontrada.');\n    };\n\n    window.centralPendenciasRenderDividas = function(){\n        const tbody = ce('central-dividas-body'); if (!tbody) return;\n        const rows = [];\n        raw().forEach(row => {\n            const divs = dividasDaLinha(row);\n            if (divs.length) rows.push({cliente: row.CLIENTE || '-', cnpj: row.CNPJ || '-', campo: divs.map(d => d.campo).join(', ')});\n        });\n        setCount('central-count-dividas', rows.length);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td>${safeHtml(r.cnpj)}</td><td><span class="central-chip red">${safeHtml(r.campo || 'Dívida')}</span></td></tr>`).join('') : linhaVazia(3,'Nenhuma dívida encontrada.');\n    };\n\n    window.centralPendenciasRenderFinanceiro = async function(){\n        const tbody = ce('central-financeiro-body'); if (!tbody) return;\n        try {\n            if (typeof window.carregarAtrasadosFinanceiro === 'function') await window.carregarAtrasadosFinanceiro(false);\n        } catch(e) { console.warn('Central: financeiro atrasado indisponível.', e); }\n        const rows = Array.isArray(window.financeiroAtrasadosData) ? window.financeiroAtrasadosData : [];\n        const total = rows.reduce((acc, row) => {\n            if (Array.isArray(row.meses)) return acc + row.meses.length;\n            if (row.meses && typeof row.meses === 'object') return acc + Object.values(row.meses).filter(m => m && m.status !== 'pago').length;\n            return acc + 1;\n        }, 0);\n        setCount('central-count-financeiro', total);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(row => {\n            let meses = '-';\n            if (Array.isArray(row.meses)) meses = row.meses.map(m => m.competencia || m).join(', ');\n            else if (row.meses && typeof row.meses === 'object') meses = Object.values(row.meses).filter(m => m && m.status !== 'pago').map(m => m.competencia || '').filter(Boolean).join(', ') || 'Em aberto';\n            return `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(row.cliente || row.CLIENTE || '-')}</td><td>${safeHtml(meses)}</td><td><span class="central-chip amber">Atrasado</span></td></tr>`;\n        }).join('') : linhaVazia(3,'Nenhum financeiro atrasado carregado/encontrado.');\n    };\n\n    window.centralPendenciasRenderParcelamentos = function(){\n        const tbody = ce('central-parcelamentos-body'); if (!tbody) return;\n        const rows = [];\n        raw().forEach(row => {\n            const parc = row.PARCELAMENTOS || row.Parcelamentos || row.parcelamentos || '';\n            let qtd = '';\n            try { if (typeof getQuantidadeParcelamentos === 'function') qtd = getQuantidadeParcelamentos(row); } catch(e) {}\n            let pgdas = '';\n            try { if (typeof getPGDASStatus === 'function') pgdas = getPGDASStatus(row); } catch(e) {}\n            if (parc || qtd || (pgdas && !/enviado/i.test(String(pgdas)))) rows.push({cliente: row.CLIENTE || '-', parc: qtd ? `${qtd} parcelamento(s)` : (parc || 'Mapeado'), pgdas: pgdas || '-'});\n        });\n        setCount('central-count-parcelamentos', rows.length);\n        tbody.innerHTML = rows.length ? rows.slice(0,80).map(r => `<tr><td class="col-fixed font-bold text-slate-700">${safeHtml(r.cliente)}</td><td><span class="central-chip blue">${safeHtml(r.parc)}</span></td><td>${safeHtml(r.pgdas)}</td></tr>`).join('') : linhaVazia(3,'Nenhum parcelamento pendente encontrado.');\n    };\n\n    window.centralPendenciasRenderAvisos = async function(){\n        const tbody = ce('central-avisos-body'); if (!tbody) return;\n        try {\n            if (!window.supabaseClient && typeof supabaseClient === 'undefined') throw new Error('Supabase indisponível');\n            const sb = window.supabaseClient || supabaseClient;\n            const { data: avisos, error } = await sb.from('avisos').select('*').order('created_at', { ascending: false });\n            if (error) throw error;\n            const { data: lidos, error: errLidos } = await sb.from('avisos_lidos').select('*').eq('usuario', (window.currentUser || currentUser || ''));\n            if (errLidos) throw errLidos;\n            const lidosIds = new Set((lidos || []).map(l => l.aviso_id));\n            const pendentes = (avisos || []).filter(a => !lidosIds.has(a.id));\n            setCount('central-count-avisos', pendentes.length);\n            tbody.innerHTML = pendentes.length ? pendentes.slice(0,80).map(a => `<tr><td>${safeHtml(dtBr(a.created_at))}</td><td class="font-bold text-slate-700">${safeHtml(a.titulo || '-')}</td><td><span class="central-chip green">${safeHtml(a.autor || '-')}</span></td></tr>`).join('') : linhaVazia(3,'Nenhum aviso não lido.');\n        } catch(e) {\n            console.warn('Central: avisos não lidos indisponíveis.', e);\n            setCount('central-count-avisos', 0);\n            tbody.innerHTML = linhaVazia(3,'Não foi possível carregar avisos agora.');\n        }\n    };\n})();\n
 </script>
 
 </html>
