@@ -4761,16 +4761,19 @@
             });
             if (!item.nome || !item.cnpj || !item.documento || !item.validade) { showNotification('Preencha Nome, CNPJ, Documento e Validade.', true); return; }
             try {
-                const payload = { cnpj:item.cnpj, nome:item.nome, email:item.email, telefone:item.telefone, documento:item.documento, validade:item.validade, status:item.status, enviado:false, observacao:'', data_status:null, usuario_criacao: currentUser || 'Sistema' };
+                const payload = { cnpj:item.cnpj, cliente:item.nome, email:item.email, telefone:item.telefone, documento:item.documento, validade:item.validade, status:item.status, enviado:false, observacao:'', data_status:null, criado_por: currentUser || 'Sistema', atualizado_por: currentUser || 'Sistema' };
                 const { data, error } = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
                 if (error) throw error;
-                pontuaisData.unshift(normalizarPontual(data));
+                const salvo = normalizarPontual(data);
+                pontuaisData.unshift(salvo);
+                item.id = salvo.id;
             } catch(e) {
                 console.warn('Não foi possível salvar no Supabase. Salvando localmente.', e);
                 pontuaisData.unshift(item);
                 salvarPontuaisLocal();
             }
             await salvarObservacao(item.nome, item.documento, `Pontual cadastrado | CNPJ: ${item.cnpj} | Validade: ${formatDateBR(item.validade)}`, 'cadastrado');
+            await registrarHistoricoPontualEspecifico(item, 'CADASTRO', `CNPJ: ${item.cnpj} | Validade: ${formatDateBR(item.validade)}`, 'cadastrado', item.validade);
             await registrarLog('Pontual cadastrado', item.nome, item.documento, `CNPJ ${item.cnpj} | Validade ${formatDateBR(item.validade)}`);
             limparFormularioPontual();
             renderPontuais();
@@ -4844,21 +4847,41 @@
             ['analise','andamento','concluido'].forEach(s => { const btn = document.getElementById('pontual-status-' + s); if (btn) btn.classList.toggle('active', s === status); });
         }
 
+        async function registrarHistoricoPontualEspecifico(item, acao, observacao, status, dataStatus) {
+            try {
+                if (!item || String(item.id || '').includes('_')) return;
+                await supabaseClient.from('pontuais_historico').insert([{
+                    pontual_id: item.id,
+                    cliente: item.nome || item.cliente || '',
+                    documento: item.documento || '',
+                    usuario: currentUser || 'Sistema',
+                    acao: acao || 'ATUALIZACAO',
+                    observacao: observacao || '',
+                    status: status || item.status || null,
+                    data_status: dataStatus || item.data_status || null
+                }]);
+            } catch(e) {
+                console.warn('Histórico específico de pontuais não salvo. Verifique a tabela pontuais_historico.', e);
+            }
+        }
+
         async function atualizarPontual(id, patch) {
             const idx = (pontuaisData || []).findIndex(p => String(p.id) === String(id));
             if (idx < 0) return null;
             const anterior = { ...pontuaisData[idx] };
-            const atualizado = normalizarPontual({ ...pontuaisData[idx], ...patch, updated_at: new Date().toISOString() });
+            const patchSupabase = { ...patch, atualizado_por: currentUser || 'Sistema' };
+            const atualizado = normalizarPontual({ ...pontuaisData[idx], ...patchSupabase, updated_at: new Date().toISOString() });
             pontuaisData[idx] = atualizado;
             salvarPontuaisLocal();
             try {
-                const uuidLike = String(id).length >= 30 && !String(id).includes('_');
-                if (uuidLike) {
-                    const { error } = await supabaseClient.from('pontuais').update(patch).eq('id', id);
+                const idLocal = String(id).includes('_');
+                if (!idLocal) {
+                    const { data, error } = await supabaseClient.from('pontuais').update(patchSupabase).eq('id', id).select('*').single();
                     if (error) throw error;
+                    if (data) { pontuaisData[idx] = normalizarPontual(data); salvarPontuaisLocal(); }
                 }
             } catch(e) { console.warn('Atualização pontual salva localmente, mas não sincronizada.', e); }
-            return { anterior, atualizado };
+            return { anterior, atualizado: pontuaisData[idx] };
         }
 
         async function salvarAcompanhamentoPontual() {
@@ -4871,6 +4894,7 @@
             await atualizarPontual(id, patch);
             const statusLabel = labelStatusPontual(pontualStatusSelecionado);
             await salvarObservacao(item.nome, item.documento, `${statusLabel} em ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`, pontualStatusSelecionado);
+            await registrarHistoricoPontualEspecifico(item, 'ACOMPANHAMENTO', `${statusLabel} em ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`, pontualStatusSelecionado, dataStatus);
             await registrarLog('Pontual atualizado', item.nome, item.documento, `${statusLabel} | Data ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`);
             fecharModalPontual(); renderPontuais(); renderizarTarefas(); atualizarDashboardDesempenho();
             showNotification('Pontual atualizado.', false, item.nome);
@@ -4882,6 +4906,7 @@
             const hoje = new Date().toISOString().slice(0,10);
             await atualizarPontual(id, { enviado:true, status:'concluido', data_status: item.data_status || hoje });
             await salvarObservacao(item.nome, item.documento, `Marcado como enviado em ${formatDateBR(hoje)}`, 'concluido');
+            await registrarHistoricoPontualEspecifico(item, 'ENVIADO', `Marcado como enviado em ${formatDateBR(hoje)}`, 'concluido', hoje);
             await registrarLog('Pontual enviado', item.nome, item.documento, `Marcado como enviado em ${formatDateBR(hoje)}`);
             renderPontuais(); renderizarTarefas(); atualizarDashboardDesempenho();
             showNotification('Pontual marcado como enviado.', false, item.nome);
