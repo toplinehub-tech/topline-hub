@@ -1334,7 +1334,7 @@
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                         <div>
                             <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Pontuais</h2>
-                            <p class="text-[10px] text-slate-400 mt-1">Cadastre solicitações avulsas de documentos e acompanhe status, validade e envio.</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Cadastre solicitações avulsas de documentos e acompanhe data de cadastro, vencimento, status e envio.</p>
                         </div>
                         <div class="flex gap-2 flex-wrap">
                             <button onclick="carregarPontuais()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
@@ -1344,12 +1344,13 @@
 
                     <div class="soft-card mb-5">
                         <div class="pontuais-form-grid">
-                            <div class="pontuais-field"><label>CNPJ</label><input id="pontual-cnpj" type="text" placeholder="00.000.000/0000-00"></div>
+                            <div class="pontuais-field"><label>CNPJ <span class="text-slate-300 normal-case">(opcional)</span></label><input id="pontual-cnpj" type="text" placeholder="00.000.000/0000-00"></div>
                             <div class="pontuais-field"><label>Nome</label><input id="pontual-nome" type="text" placeholder="Nome da empresa"></div>
                             <div class="pontuais-field"><label>E-mail</label><input id="pontual-email" type="email" placeholder="email@empresa.com"></div>
                             <div class="pontuais-field"><label>Telefone</label><input id="pontual-telefone" type="text" placeholder="(00) 00000-0000"></div>
                             <div class="pontuais-field"><label>Documento</label><select id="pontual-documento" class="pontuais-doc-select"></select></div>
-                            <div class="pontuais-field"><label>Data de validade</label><input id="pontual-validade" type="date"></div>
+                            <div class="pontuais-field"><label>Data Cadastro</label><input id="pontual-data-cadastro" type="date"></div>
+                            <div class="pontuais-field"><label>Vencimento</label><input id="pontual-vencimento" type="date"></div>
                         </div>
                         <div class="flex justify-end mt-4">
                             <button onclick="salvarPontual()" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-lg">Cadastrar pontual</button>
@@ -1371,8 +1372,8 @@
 
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th>Nome</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Documento</th><th>Validade</th><th>Status</th><th>Observação</th><th>Ação</th></tr></thead>
-                            <tbody id="pontuais-body"><tr><td colspan="9" class="text-center py-10 text-slate-400">Nenhum pontual carregado.</td></tr></tbody>
+                            <thead><tr><th>Nome</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Documento</th><th>Data Cadastro</th><th>Vencimento</th><th>Status</th><th>Observação</th><th>Ação</th></tr></thead>
+                            <tbody id="pontuais-body"><tr><td colspan="10" class="text-center py-10 text-slate-400">Nenhum pontual carregado.</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -1758,6 +1759,13 @@
                     <button onclick="selecionarStatusPontual('andamento')" id="pontual-status-andamento" class="pontuais-modal-action andamento">Andamento</button>
                     <button onclick="selecionarStatusPontual('concluido')" id="pontual-status-concluido" class="pontuais-modal-action concluido">Concluído</button>
                 </div>
+                <div id="pontual-lembrete-andamento" class="hidden bg-purple-50 border border-purple-200 rounded-2xl p-3">
+                    <label class="block text-[9px] font-black text-purple-700 uppercase mb-2 tracking-wider">Lembrete de andamento</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="selecionarLembretePontual(5)" id="pontual-lembrete-5" class="pontuais-modal-action andamento">Me lembrar em 5 dias</button>
+                        <button type="button" onclick="selecionarLembretePontual(10)" id="pontual-lembrete-10" class="pontuais-modal-action andamento">Me lembrar em 10 dias</button>
+                    </div>
+                </div>
                 <div class="pontuais-field"><label>Data</label><input id="pontual-modal-data" type="date"></div>
                 <div class="pontuais-field"><label>Observação</label><textarea id="pontual-modal-observacao" rows="4" placeholder="Descreva a análise, andamento ou conclusão..."></textarea></div>
                 <div class="flex justify-end gap-2">
@@ -2117,6 +2125,8 @@
         let rawData = [], headers = [], passwordData = [];
         let pontuaisData = [];
         let pontualStatusSelecionado = 'andamento';
+        let pontualLembreteDiasSelecionado = null;
+        let andamentoLembreteDiasSelecionado = null;
         let activeDoc = null, activeStatus = null;
         let activeParcelamentos = false, activeParcelamentosStatus = null;
         let activeDividas = false;
@@ -3216,6 +3226,13 @@
                         <div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-lg p-2 text-center cursor-pointer"><div class="text-lg mb-1">📅</div><div class="text-[8px] font-black text-emerald-700 uppercase">Data</div><div class="text-[7px] text-emerald-500 mt-0.5">Define data</div></div>
                     </div>
                 </div>
+                <div id="andamentoReminderContainer" class="hidden bg-purple-50 border border-purple-200 rounded-xl p-3">
+                    <label class="block text-[9px] font-black text-purple-700 uppercase mb-2 tracking-wider">Lembrete de andamento</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="selecionarLembreteAndamento(5)" id="andamento-lembrete-5" class="option-card bg-white border-2 border-purple-200 rounded-lg p-2 text-center cursor-pointer"><div class="text-[8px] font-black text-purple-700 uppercase">Me lembrar em 5 dias</div></button>
+                        <button type="button" onclick="selecionarLembreteAndamento(10)" id="andamento-lembrete-10" class="option-card bg-white border-2 border-purple-200 rounded-lg p-2 text-center cursor-pointer"><div class="text-[8px] font-black text-purple-700 uppercase">Me lembrar em 10 dias</div></button>
+                    </div>
+                </div>
                 <div id="datePickerContainer" class="hidden">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Selecione a data</label>
                     <input type="date" id="dateValue" class="w-full border border-slate-200 p-2 rounded-lg text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
@@ -3235,11 +3252,20 @@
             document.getElementById('editModal').classList.remove('hidden');
         }
 
+        function selecionarLembreteAndamento(dias) {
+            andamentoLembreteDiasSelecionado = dias;
+            [5,10].forEach(d => { const btn = document.getElementById('andamento-lembrete-' + d); if (btn) btn.classList.toggle('option-selected', d === dias); });
+        }
+
         function selectOption(option) {
             selectedOption = option;
+            andamentoLembreteDiasSelecionado = null;
             ['analise','andamento','data'].forEach(o => document.getElementById('option-'+o).classList.remove('option-selected'));
             document.getElementById(`option-${option}`).classList.add('option-selected');
             document.getElementById('datePickerContainer').classList.add('hidden');
+            const reminder = document.getElementById('andamentoReminderContainer');
+            if (reminder) reminder.classList.toggle('hidden', option !== 'andamento');
+            [5,10].forEach(d => { const btn = document.getElementById('andamento-lembrete-' + d); if (btn) btn.classList.remove('option-selected'); });
             if (option === 'data') document.getElementById('datePickerContainer').classList.remove('hidden');
         }
 
@@ -3248,6 +3274,7 @@
             let valorParaSalvar = null;
             let tipo = selectedOption;
             if (!selectedOption) { showNotification('Selecione uma opção (Análise, Andamento ou Data)', true); return; }
+            if (selectedOption === 'andamento' && !andamentoLembreteDiasSelecionado) { showNotification('Selecione se deseja lembrar em 5 ou 10 dias.', true); return; }
             if (selectedOption === 'analise') valorParaSalvar = "ANALISE";
             else if (selectedOption === 'andamento') valorParaSalvar = "EM ANDAMENTO";
             else if (selectedOption === 'data') {
@@ -3315,6 +3342,9 @@
                     registrarTarefaMonitorGeral(r, c, valorAnterior, valorParaSalvar, observacao, colaboradorSorteioAntes),
                     registrarDesempenhoMonitor()
                 ]);
+                if (selectedOption === 'andamento') {
+                    await criarLembreteAndamento({ cliente, documento: c, responsavel: colaboradorSorteioAntes || currentUser || 'Sistema', dias: andamentoLembreteDiasSelecionado, observacao, origem: 'Painel/Sorteio' });
+                }
 
                 loadingOverlay.style.display = 'none';
                 showNotificationOnce(`✅ ${cliente} - ${c} atualizado!`, false, `${cliente}-${c}`);
@@ -4681,13 +4711,14 @@
         // ============================================
         // PONTUAIS
         // ============================================
-        const PONTUAIS_DOCUMENTOS = ['CLIENTE','CNPJ','ATA','CRED.','CENTS','CTM','CND','CMDCA','UTILIDADE','CRCE','CERTIF.DIGITAL','COMAS','COVISA'];
+        const PONTUAIS_DOCUMENTOS = ['CLIENTE','CNPJ','ATA.ESTATUTO','CRED.','CENTS','CTM','CND','CMDCA','UTILIDADE','CRCE','CERTIF.DIGITAL','COMAS','COVISA','Proc. Constituição'];
 
         function initPontuaisSelect() {
             const select = document.getElementById('pontual-documento');
             if (!select || select.dataset.loaded === '1') return;
             select.innerHTML = '<option value="">Selecione um documento</option>' + PONTUAIS_DOCUMENTOS.map(d => `<option value="${escapeAttr(d)}">${escapeHtml(d)}</option>`).join('');
             select.dataset.loaded = '1';
+            const dataCad = document.getElementById('pontual-data-cadastro'); if (dataCad && !dataCad.value) dataCad.value = new Date().toISOString().slice(0,10);
         }
 
         function pontualStorageKey() { return 'toplinehub_pontuais_v1'; }
@@ -4707,7 +4738,12 @@
                 email: item.email || '',
                 telefone: item.telefone || '',
                 documento: item.documento || '',
-                validade: item.validade || item.data_validade || '',
+                data_cadastro: item.data_cadastro || item.data_cadastro_pontual || (item.created_at ? String(item.created_at).slice(0,10) : '') || item.validade || item.data_validade || '',
+                vencimento: item.vencimento || item.data_vencimento || item.validade || item.data_validade || '',
+                validade: item.vencimento || item.data_vencimento || item.validade || item.data_validade || '',
+                lembrete_dias: item.lembrete_dias || null,
+                lembrete_data: item.lembrete_data || null,
+                responsavel_lembrete: item.responsavel_lembrete || '',
                 status: item.status || 'cadastrado',
                 enviado: !!item.enviado || item.status === 'concluido',
                 observacao: item.observacao || '',
@@ -4728,7 +4764,7 @@
         async function carregarPontuais() {
             initPontuaisSelect();
             const tbody = document.getElementById('pontuais-body');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">Carregando pontuais...</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">Carregando pontuais...</td></tr>';
             try {
                 const { data, error } = await supabaseClient.from('pontuais').select('*').order('created_at', { ascending: false });
                 if (error) throw error;
@@ -4737,13 +4773,14 @@
             } catch(e) {
                 console.warn('Tabela pontuais indisponivel. Usando armazenamento local.', e);
                 carregarPontuaisLocal();
-                if (tbody && !pontuaisData.length) tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-amber-500 font-bold">Crie a tabela pontuais no Supabase para salvar para todos os usuários.</td></tr>';
+                if (tbody && !pontuaisData.length) tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-amber-500 font-bold">Crie/ajuste a tabela pontuais no Supabase para salvar para todos os usuários.</td></tr>';
             }
             renderPontuais();
         }
 
         function limparFormularioPontual() {
-            ['pontual-cnpj','pontual-nome','pontual-email','pontual-telefone','pontual-validade'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            ['pontual-cnpj','pontual-nome','pontual-email','pontual-telefone','pontual-data-cadastro','pontual-vencimento'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            const dataCad = document.getElementById('pontual-data-cadastro'); if (dataCad) dataCad.value = new Date().toISOString().slice(0,10);
             const doc = document.getElementById('pontual-documento'); if (doc) doc.value = '';
         }
 
@@ -4755,13 +4792,15 @@
                 email: document.getElementById('pontual-email')?.value.trim() || '',
                 telefone: document.getElementById('pontual-telefone')?.value.trim() || '',
                 documento: document.getElementById('pontual-documento')?.value || '',
-                validade: document.getElementById('pontual-validade')?.value || '',
+                data_cadastro: document.getElementById('pontual-data-cadastro')?.value || new Date().toISOString().slice(0,10),
+                vencimento: document.getElementById('pontual-vencimento')?.value || '',
+                validade: document.getElementById('pontual-vencimento')?.value || '',
                 status: 'cadastrado',
                 enviado: false
             });
-            if (!item.nome || !item.cnpj || !item.documento || !item.validade) { showNotification('Preencha Nome, CNPJ, Documento e Validade.', true); return; }
+            if (!item.nome || !item.documento || !item.vencimento) { showNotification('Preencha Nome, Documento e Vencimento. O CNPJ é opcional.', true); return; }
             try {
-                const payload = { cnpj:item.cnpj, cliente:item.nome, email:item.email, telefone:item.telefone, documento:item.documento, validade:item.validade, status:item.status, enviado:false, observacao:'', data_status:null, criado_por: currentUser || 'Sistema', atualizado_por: currentUser || 'Sistema' };
+                const payload = { cnpj:item.cnpj || null, cliente:item.nome, email:item.email, telefone:item.telefone, documento:item.documento, data_cadastro:item.data_cadastro, vencimento:item.vencimento, validade:item.vencimento, status:item.status, enviado:false, observacao:'', data_status:null, criado_por: currentUser || 'Sistema', atualizado_por: currentUser || 'Sistema' };
                 const { data, error } = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
                 if (error) throw error;
                 const salvo = normalizarPontual(data);
@@ -4772,9 +4811,9 @@
                 pontuaisData.unshift(item);
                 salvarPontuaisLocal();
             }
-            await salvarObservacao(item.nome, item.documento, `Pontual cadastrado | CNPJ: ${item.cnpj} | Validade: ${formatDateBR(item.validade)}`, 'cadastrado');
-            await registrarHistoricoPontualEspecifico(item, 'CADASTRO', `CNPJ: ${item.cnpj} | Validade: ${formatDateBR(item.validade)}`, 'cadastrado', item.validade);
-            await registrarLog('Pontual cadastrado', item.nome, item.documento, `CNPJ ${item.cnpj} | Validade ${formatDateBR(item.validade)}`);
+            await salvarObservacao(item.nome, item.documento, `Pontual cadastrado | CNPJ: ${item.cnpj || '-'} | Data cadastro: ${formatDateBR(item.data_cadastro)} | Vencimento: ${formatDateBR(item.vencimento)}`, 'cadastrado');
+            await registrarHistoricoPontualEspecifico(item, 'CADASTRO', `CNPJ: ${item.cnpj || '-'} | Data cadastro: ${formatDateBR(item.data_cadastro)} | Vencimento: ${formatDateBR(item.vencimento)}`, 'cadastrado', item.vencimento);
+            await registrarLog('Pontual cadastrado', item.nome, item.documento, `CNPJ ${item.cnpj || '-'} | Data cadastro ${formatDateBR(item.data_cadastro)} | Vencimento ${formatDateBR(item.vencimento)}`);
             limparFormularioPontual();
             renderPontuais();
             showNotification('Pontual cadastrado com sucesso.', false, item.nome);
@@ -4782,8 +4821,8 @@
 
         function getPontualStatusVisual(item) {
             const hoje = new Date(); hoje.setHours(0,0,0,0);
-            const validade = item.validade ? new Date(item.validade + 'T00:00:00') : null;
-            if (!item.enviado && validade && validade < hoje) return 'vencido';
+            const vencimento = item.vencimento ? new Date(item.vencimento + 'T00:00:00') : null;
+            if (!item.enviado && vencimento && vencimento < hoje) return 'vencido';
             return item.status || 'cadastrado';
         }
 
@@ -4809,7 +4848,7 @@
             (pontuaisData || []).forEach(item => { const s = getPontualStatusVisual(item); if (s === 'vencido') counts.vencidos++; if (s === 'analise') counts.analise++; if (s === 'andamento') counts.andamento++; if (item.enviado || s === 'concluido') counts.concluidos++; });
             const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
             setText('pontuais-kpi-total', counts.total); setText('pontuais-kpi-vencidos', counts.vencidos); setText('pontuais-kpi-analise', counts.analise); setText('pontuais-kpi-andamento', counts.andamento); setText('pontuais-kpi-concluidos', counts.concluidos);
-            if (!lista.length) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">Nenhum pontual encontrado.</td></tr>'; return; }
+            if (!lista.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">Nenhum pontual encontrado.</td></tr>'; return; }
             tbody.innerHTML = lista.map(item => {
                 const statusVisual = getPontualStatusVisual(item);
                 const obs = item.observacao ? `<span class="last-obs-chip" title="${escapeAttr(item.observacao)}">${escapeHtml(item.observacao)}</span>` : '-';
@@ -4819,7 +4858,8 @@
                     <td>${escapeHtml(item.email || '-')}</td>
                     <td>${escapeHtml(item.telefone || '-')}</td>
                     <td><span class="pontuais-doc-click" onclick="abrirModalPontual('${escapeAttr(item.id)}')">${escapeHtml(item.documento || '-')}</span></td>
-                    <td><span class="pontuais-doc-click" onclick="abrirModalPontual('${escapeAttr(item.id)}')">${escapeHtml(formatDateBR(item.validade) || '-')}</span></td>
+                    <td>${escapeHtml(formatDateBR(item.data_cadastro) || '-')}</td>
+                    <td><span class="pontuais-doc-click" onclick="abrirModalPontual('${escapeAttr(item.id)}')">${escapeHtml(formatDateBR(item.vencimento) || '-')}</span></td>
                     <td><span class="pontuais-status-pill pontuais-status-${escapeAttr(statusVisual)}">${escapeHtml(labelStatusPontual(statusVisual))}</span></td>
                     <td>${obs}</td>
                     <td><button onclick="marcarPontualEnviado('${escapeAttr(item.id)}')" class="pontuais-enviado-btn ${item.enviado ? 'done' : ''}">${item.enviado ? 'Enviado ✓' : 'Marcar enviado'}</button></td>
@@ -4833,7 +4873,7 @@
             const modal = document.getElementById('pontualModal');
             document.getElementById('pontual-modal-id').value = item.id;
             document.getElementById('pontual-modal-title').textContent = `${item.documento || 'Documento'} - ${item.nome || ''}`;
-            document.getElementById('pontual-modal-subtitle').textContent = `${item.cnpj || ''} | Validade: ${formatDateBR(item.validade) || '-'}`;
+            document.getElementById('pontual-modal-subtitle').textContent = `${item.cnpj || 'Sem CNPJ'} | Cadastro: ${formatDateBR(item.data_cadastro) || '-'} | Vencimento: ${formatDateBR(item.vencimento) || '-'}`;
             document.getElementById('pontual-modal-observacao').value = item.observacao || '';
             document.getElementById('pontual-modal-data').value = item.data_status || new Date().toISOString().slice(0,10);
             selecionarStatusPontual(item.status === 'concluido' ? 'concluido' : (item.status || 'andamento'));
@@ -4842,9 +4882,18 @@
 
         function fecharModalPontual() { document.getElementById('pontualModal')?.classList.add('hidden'); }
 
+        function selecionarLembretePontual(dias) {
+            pontualLembreteDiasSelecionado = dias;
+            [5,10].forEach(d => { const btn = document.getElementById('pontual-lembrete-' + d); if (btn) btn.classList.toggle('active', d === dias); });
+        }
+
         function selecionarStatusPontual(status) {
             pontualStatusSelecionado = status;
+            pontualLembreteDiasSelecionado = null;
             ['analise','andamento','concluido'].forEach(s => { const btn = document.getElementById('pontual-status-' + s); if (btn) btn.classList.toggle('active', s === status); });
+            const box = document.getElementById('pontual-lembrete-andamento');
+            if (box) box.classList.toggle('hidden', status !== 'andamento');
+            [5,10].forEach(d => { const btn = document.getElementById('pontual-lembrete-' + d); if (btn) btn.classList.remove('active'); });
         }
 
         async function registrarHistoricoPontualEspecifico(item, acao, observacao, status, dataStatus) {
@@ -4884,18 +4933,69 @@
             return { anterior, atualizado: pontuaisData[idx] };
         }
 
+        function calcularDataLembrete(dias) {
+            const d = new Date();
+            d.setDate(d.getDate() + Number(dias || 0));
+            return d.toISOString().slice(0,10);
+        }
+
+        function tarefaPontualEstaNoSorteio(id) {
+            const colaboradoresParaVerificar = ['Jordan', 'Sirlene', 'Ingrid'];
+            for (const colab of colaboradoresParaVerificar) {
+                const tarefas = distribuicaoAtual[colab] || [];
+                const tarefaEncontrada = tarefas.find(t => t && t.tipo === 'pontual' && String(t.id) === String(id));
+                if (tarefaEncontrada) return colab;
+            }
+            return null;
+        }
+
+        async function criarLembreteAndamento({ cliente, documento, responsavel, dias, observacao, origem }) {
+            if (!dias) return;
+            const dataLembrete = calcularDataLembrete(dias);
+            const usuarioDestino = responsavel || currentUser || 'Sistema';
+            const titulo = `Lembrete de andamento: ${documento || 'Documento'}`;
+            const conteudo = `${cliente || 'Cliente'} está em andamento em ${documento || 'documento'}. Lembrete programado para ${formatDateBR(dataLembrete)}.${observacao ? ' Observação: ' + observacao : ''}`;
+            try {
+                const payload = { titulo, conteudo, prioridade: 'importante', autor: 'Sistema', destinatario: usuarioDestino, data_lembrete: dataLembrete };
+                let { error } = await supabaseClient.from('avisos').insert([payload]);
+                if (error) {
+                    const fallback = { titulo: `[${usuarioDestino}] ${titulo}`, conteudo, prioridade: 'importante', autor: 'Sistema' };
+                    const resp = await supabaseClient.from('avisos').insert([fallback]);
+                    if (resp.error) throw resp.error;
+                }
+                await salvarObservacaoComoSistema(cliente, documento, `Sistema programou lembrete de andamento para ${usuarioDestino} em ${formatDateBR(dataLembrete)}${origem ? ' | Origem: ' + origem : ''}`, 'andamento');
+                await registrarLog('Lembrete de andamento criado', cliente, documento, `Sistema avisará ${usuarioDestino} em ${formatDateBR(dataLembrete)}`, null, null, 'Sistema');
+            } catch(e) {
+                console.warn('Não foi possível criar aviso de lembrete de andamento:', e);
+                showNotification('Andamento salvo, mas o aviso automático não foi criado. Verifique o SQL dos avisos.', true);
+            }
+        }
+
+        async function salvarObservacaoComoSistema(cliente, documento, observacao, statusNovo) {
+            try {
+                await supabaseClient.from('historico_observacoes').insert([{
+                    cliente: cliente || 'N/A', documento: documento || 'N/A', observacao: observacao || '', status_novo: statusNovo || null, usuario: 'Sistema'
+                }]);
+            } catch(e) { console.warn('Histórico de sistema não salvo:', e); }
+        }
+
         async function salvarAcompanhamentoPontual() {
             const id = document.getElementById('pontual-modal-id')?.value;
             const item = (pontuaisData || []).find(p => String(p.id) === String(id));
             if (!item) return;
             const dataStatus = document.getElementById('pontual-modal-data')?.value || new Date().toISOString().slice(0,10);
             const observacao = document.getElementById('pontual-modal-observacao')?.value.trim() || '';
-            const patch = { status: pontualStatusSelecionado, observacao, data_status: dataStatus, enviado: pontualStatusSelecionado === 'concluido' ? true : !!item.enviado };
+            if (pontualStatusSelecionado === 'andamento' && !pontualLembreteDiasSelecionado) { showNotification('Selecione se deseja lembrar em 5 ou 10 dias.', true); return; }
+            const responsavelPontual = tarefaPontualEstaNoSorteio(id) || currentUser || 'Sistema';
+            const patch = { status: pontualStatusSelecionado, observacao, data_status: dataStatus, enviado: pontualStatusSelecionado === 'concluido' ? true : !!item.enviado, lembrete_dias: pontualStatusSelecionado === 'andamento' ? pontualLembreteDiasSelecionado : null, lembrete_data: pontualStatusSelecionado === 'andamento' ? calcularDataLembrete(pontualLembreteDiasSelecionado) : null, responsavel_lembrete: pontualStatusSelecionado === 'andamento' ? responsavelPontual : '' };
             await atualizarPontual(id, patch);
             const statusLabel = labelStatusPontual(pontualStatusSelecionado);
             await salvarObservacao(item.nome, item.documento, `${statusLabel} em ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`, pontualStatusSelecionado);
             await registrarHistoricoPontualEspecifico(item, 'ACOMPANHAMENTO', `${statusLabel} em ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`, pontualStatusSelecionado, dataStatus);
             await registrarLog('Pontual atualizado', item.nome, item.documento, `${statusLabel} | Data ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`);
+            if (pontualStatusSelecionado === 'andamento') {
+                await criarLembreteAndamento({ cliente: item.nome, documento: item.documento, responsavel: responsavelPontual, dias: pontualLembreteDiasSelecionado, observacao, origem: 'Pontuais' });
+            }
             fecharModalPontual(); renderPontuais(); renderizarTarefas(); atualizarDashboardDesempenho();
             showNotification('Pontual atualizado.', false, item.nome);
         }
@@ -4914,7 +5014,7 @@
 
         function obterPontuaisVencidosParaSorteio() {
             return (pontuaisData || []).filter(item => getPontualStatusVisual(item) === 'vencido').map(item => ({
-                tipo:'pontual', id:item.id, cliente:item.nome, documento:item.documento, rowIndex:'P:' + item.id, prazo:formatDateBR(item.validade) || '-', pontual:item
+                tipo:'pontual', id:item.id, cliente:item.nome, documento:item.documento, rowIndex:'P:' + item.id, prazo:formatDateBR(item.vencimento) || '-', pontual:item
             }));
         }
 
@@ -5949,8 +6049,14 @@ carregarAvisos = async function() {
         const lidosPorAviso = {}; (lidos || []).forEach(l => { if (!lidosPorAviso[l.aviso_id]) lidosPorAviso[l.aviso_id] = []; lidosPorAviso[l.aviso_id].push(l.usuario); });
         const lidosIds = new Set((lidos || []).filter(l => l.usuario === currentUser).map(l => l.aviso_id));
         const filtro = document.getElementById('filtroAvisosLeitura')?.value || 'todos';
-        const listaFiltrada = (avisos || []).filter(a => filtro === 'todos' ? true : filtro === 'lidos' ? lidosIds.has(a.id) : !lidosIds.has(a.id));
-        const naoLidosCount = (avisos || []).filter(a => !lidosIds.has(a.id)).length;
+        const hojeAviso = new Date().toISOString().slice(0,10);
+        const avisosVisiveis = (avisos || []).filter(a => {
+            const destinoOk = !a.destinatario || a.destinatario === 'todos' || a.destinatario === currentUser || ['Nikolas','Ingrid','Dev'].includes(currentUser);
+            const dataOk = !a.data_lembrete || String(a.data_lembrete).slice(0,10) <= hojeAviso;
+            return destinoOk && dataOk;
+        });
+        const listaFiltrada = avisosVisiveis.filter(a => filtro === 'todos' ? true : filtro === 'lidos' ? lidosIds.has(a.id) : !lidosIds.has(a.id));
+        const naoLidosCount = avisosVisiveis.filter(a => !lidosIds.has(a.id)).length;
         const badge = document.getElementById('avisos-badge'); if (badge) { badge.innerText = naoLidosCount; badge.className = 'badge-avisos ' + (naoLidosCount > 0 ? 'badge-red' : 'badge-blue'); }
         const lista = document.getElementById('avisos-lista'); if (!lista) return;
         if (!listaFiltrada.length) { lista.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs italic">Nenhum aviso neste filtro.</div>'; return; }
@@ -5958,7 +6064,7 @@ carregarAvisos = async function() {
             const lido = lidosIds.has(a.id); const usuariosQueLeram = lidosPorAviso[a.id] || []; const isAdmin = ['Nikolas','Ingrid','Dev'].includes(currentUser); const pr = a.prioridade || 'normal';
             const botaoLido = !lido ? `<button onclick="marcarComoLido('${a.id}')" class="text-[9px] font-black text-emerald-600 uppercase hover:underline">Marcar como lido</button>` : '<span class="text-[9px] font-bold text-slate-300 uppercase italic">Lido</span>';
             const blocoAdmin = isAdmin ? `<div class="mb-3 p-2 bg-slate-50 rounded border border-slate-200 max-w-[50%]"><p class="text-[8px] font-bold text-slate-600 mb-1">Lido por (${usuariosQueLeram.length}):</p><div class="flex flex-wrap gap-1">${usuariosQueLeram.map(u => '<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[7px] font-bold">' + escapeHtml(u) + '</span>').join('')}</div></div>` : '';
-            return `<div class="white-card p-4 border-l-4 aviso-prioridade-${pr} ${lido ? 'opacity-75' : ''}"><div class="flex justify-between items-start mb-2"><div><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${escapeHtml(a.titulo)}</h4><span class="priority-pill priority-${pr}">${pr}</span></div><span class="text-[9px] text-slate-400 font-mono">${new Date(a.created_at).toLocaleString('pt-BR')}</span></div><p class="text-xs text-slate-600 mb-3">${escapeHtml(a.conteudo)}</p>${blocoAdmin}<div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${escapeHtml(a.autor || '-')}</span>${botaoLido}</div></div>`;
+            return `<div class="white-card p-4 border-l-4 aviso-prioridade-${pr} ${lido ? 'opacity-75' : ''}"><div class="flex justify-between items-start mb-2"><div><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${escapeHtml(a.titulo)}</h4><span class="priority-pill priority-${pr}">${pr}</span></div><span class="text-[9px] text-slate-400 font-mono">${new Date(a.created_at).toLocaleString('pt-BR')}</span></div><p class="text-xs text-slate-600 mb-3">${escapeHtml(a.conteudo)}</p>${blocoAdmin}<div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${escapeHtml(a.autor || '-')}${a.destinatario ? ' | Para: ' + escapeHtml(a.destinatario) : ''}</span>${botaoLido}</div></div>`;
         }).join('');
     } catch(e) { console.error('Erro ao carregar avisos:', e); }
 };
