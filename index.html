@@ -135,6 +135,78 @@
         .analise { background-color: #fff7ed !important; color: #c2410c !important; }
         .concluido { background-color: #d1fae5 !important; color: #065f46 !important; }
         .tab-active { border-bottom: 2px solid #10b981; color: #065f46 !important; }
+
+        /* MENU REORGANIZADO - duas linhas com hover animado */
+        #main-nav {
+            flex: 1;
+            max-width: 920px;
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px !important;
+            padding: 2px 10px;
+        }
+        .nav-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        #main-nav button {
+            position: relative;
+            min-height: 30px;
+            padding: 7px 10px 6px !important;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            background: transparent;
+            transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, background .22s ease, color .22s ease, border-color .22s ease;
+            white-space: nowrap;
+        }
+        #main-nav button:hover {
+            transform: translateY(-4px) scale(1.045);
+        }
+        #main-nav .nav-row-top button:hover {
+            background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+            border-color: #fb923c;
+            color: #9a3412 !important;
+            box-shadow: 0 12px 24px rgba(249, 115, 22, .24), 0 0 0 4px rgba(251, 146, 60, .12);
+        }
+        #main-nav .nav-row-bottom button:hover {
+            background: linear-gradient(135deg, #fefce8 0%, #fde68a 100%);
+            border-color: #facc15;
+            color: #854d0e !important;
+            box-shadow: 0 12px 24px rgba(234, 179, 8, .24), 0 0 0 4px rgba(250, 204, 21, .14);
+        }
+        #main-nav button.tab-active {
+            border-bottom: 0 !important;
+            background: #ecfdf5;
+            border-color: #86efac;
+            color: #065f46 !important;
+            box-shadow: 0 8px 18px rgba(16,185,129,.14);
+        }
+        #main-nav button.tab-active::after {
+            content: '';
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: 4px;
+            height: 2px;
+            border-radius: 999px;
+            background: #10b981;
+        }
+        @media (max-width: 1024px) {
+            header .flex.justify-between.items-center.mb-4 { align-items: flex-start; flex-wrap: wrap; }
+            #main-nav { order: 3; max-width: none; width: 100%; margin-top: 8px; }
+        }
+        @media (max-width: 768px) {
+            #main-nav { width: 100%; overflow-x: visible !important; gap: 7px !important; padding-bottom: 4px; }
+            .nav-row { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+            #main-nav button { font-size: 9px !important; padding: 7px 9px 6px !important; }
+        }
+
         .white-card { background: #fafbfc; border: 1px solid rgba(16, 185, 129, 0.08); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03); transition: all 0.3s ease; }
         .scroll-container { min-height: 300px; max-height: 60vh; overflow: auto; background: #f8fafc; border-radius: 12px; border: 1px solid #e8ecf1; }
         th { background: #eef2f7; padding: 12px 10px; font-size: 9px; text-transform: uppercase; position: sticky; top: 0; z-index: 30; border-bottom: 2px solid #e8ecf1; white-space: nowrap; }
@@ -800,6 +872,33 @@
 .atribuicoes-legend-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px; }
 @media (max-width: 900px) { .atribuicoes-role-grid { grid-template-columns:repeat(1,minmax(0,1fr)); } .atribuicoes-table { min-width:760px; } }
 
+
+/* PONTUAIS - cadastro e acompanhamento */
+.pontuais-page-card { background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98)); }
+.pontuais-form-grid { display:grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.pontuais-field { display:flex; flex-direction:column; gap:6px; }
+.pontuais-field label { font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.pontuais-field input, .pontuais-field select, .pontuais-field textarea { border:1px solid #dbe4ee; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; color:#334155; background:white; outline:none; }
+.pontuais-field input:focus, .pontuais-field select:focus, .pontuais-field textarea:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
+.pontuais-doc-select { cursor:pointer; }
+.pontuais-status-pill { display:inline-flex; align-items:center; justify-content:center; padding:5px 10px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; white-space:nowrap; }
+.pontuais-status-cadastrado { background:#f8fafc; color:#475569; }
+.pontuais-status-analise { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+.pontuais-status-andamento { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+.pontuais-status-concluido, .pontuais-status-enviado { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+.pontuais-status-vencido { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+.pontuais-doc-click { cursor:pointer; font-weight:900; color:#0f766e; text-decoration: underline; text-decoration-style:dotted; text-underline-offset:3px; }
+.pontuais-enviado-btn { padding:6px 10px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #a7f3d0; color:#047857; background:#ecfdf5; transition:all .18s ease; }
+.pontuais-enviado-btn:hover { transform:translateY(-1px); box-shadow:0 8px 14px rgba(16,185,129,.16); }
+.pontuais-enviado-btn.done { color:#166534; background:#dcfce7; border-color:#86efac; }
+.pontuais-modal-action { padding:10px 12px; border-radius:12px; font-size:10px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:white; transition:all .18s ease; }
+.pontuais-modal-action:hover, .pontuais-modal-action.active { transform:translateY(-1px); box-shadow:0 8px 16px rgba(15,23,42,.08); }
+.pontuais-modal-action.analise { color:#c2410c; background:#fff7ed; border-color:#fed7aa; }
+.pontuais-modal-action.andamento { color:#6d28d9; background:#f5f3ff; border-color:#ddd6fe; }
+.pontuais-modal-action.concluido { color:#047857; background:#ecfdf5; border-color:#a7f3d0; }
+@media (max-width: 1100px) { .pontuais-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .pontuais-form-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
+
 </style>
 </head>
 <body>
@@ -909,21 +1008,25 @@
             <header class="white-card p-4 mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <div class="brand-name text-2xl cursor-pointer" onclick="window.location.reload()"><span class="topline-text">TopLine</span><span class="hub-text">Hub</span></div>
-                    <nav class="flex gap-4 items-center" id="main-nav">
-                        <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
-                        <button onclick="switchTab('centralpendencias')" id="tab-centralpendencias" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Central de Pendências</button>
-                        <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
-                        <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
-                        <button onclick="switchTab('atribuicoes')" id="tab-atribuicoes" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atribuições</button>
-                        <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
-                        <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
-                        <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
-                        <button onclick="switchTab('avisos')" id="tab-avisos" class="text-[10px] font-bold uppercase pb-1 text-slate-400 relative">Avisos<span id="avisos-badge" class="badge-avisos badge-blue">0</span></button>
-                        <button onclick="switchTab('financeiro')" id="tab-financeiro" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Financeiro</button>
-                        <button onclick="switchTab('empresasparcelamentos')" id="tab-empresasparcelamentos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Empresas/Parcelamentos</button>
-                        <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
-                        <button onclick="switchTab('logs')" id="tab-logs" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
-
+                    <nav id="main-nav" aria-label="Menu principal">
+                        <div class="nav-row nav-row-top">
+                            <button onclick="switchTab('dash')" id="tab-dash" class="text-[10px] font-bold uppercase pb-1 tab-active">Painel</button>
+                            <button onclick="switchTab('centralpendencias')" id="tab-centralpendencias" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Central de Pendências</button>
+                            <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
+                            <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                            <button onclick="switchTab('atribuicoes')" id="tab-atribuicoes" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atribuições</button>
+                            <button onclick="switchTab('pontuais')" id="tab-pontuais" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Pontuais</button>
+                            <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
+                        </div>
+                        <div class="nav-row nav-row-bottom">
+                            <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
+                            <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
+                            <button onclick="switchTab('avisos')" id="tab-avisos" class="text-[10px] font-bold uppercase pb-1 text-slate-400 relative">Avisos<span id="avisos-badge" class="badge-avisos badge-blue">0</span></button>
+                            <button onclick="switchTab('financeiro')" id="tab-financeiro" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Financeiro</button>
+                            <button onclick="switchTab('empresasparcelamentos')" id="tab-empresasparcelamentos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Empresas/Parcelamentos</button>
+                            <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
+                            <button onclick="switchTab('logs')" id="tab-logs" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
+                        </div>
                     </nav>
                     <div class="flex items-center gap-2">
 
@@ -1219,6 +1322,58 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- PONTUAIS -->
+            <div id="view-pontuais" class="hidden">
+                <div class="white-card pontuais-page-card p-6 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Pontuais</h2>
+                            <p class="text-[10px] text-slate-400 mt-1">Cadastre solicitações avulsas de documentos e acompanhe status, validade e envio.</p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="carregarPontuais()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                            <button onclick="limparFormularioPontual()" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button>
+                        </div>
+                    </div>
+
+                    <div class="soft-card mb-5">
+                        <div class="pontuais-form-grid">
+                            <div class="pontuais-field"><label>CNPJ</label><input id="pontual-cnpj" type="text" placeholder="00.000.000/0000-00"></div>
+                            <div class="pontuais-field"><label>Nome</label><input id="pontual-nome" type="text" placeholder="Nome da empresa"></div>
+                            <div class="pontuais-field"><label>E-mail</label><input id="pontual-email" type="email" placeholder="email@empresa.com"></div>
+                            <div class="pontuais-field"><label>Telefone</label><input id="pontual-telefone" type="text" placeholder="(00) 00000-0000"></div>
+                            <div class="pontuais-field"><label>Documento</label><select id="pontual-documento" class="pontuais-doc-select"></select></div>
+                            <div class="pontuais-field"><label>Data de validade</label><input id="pontual-validade" type="date"></div>
+                        </div>
+                        <div class="flex justify-end mt-4">
+                            <button onclick="salvarPontual()" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-lg">Cadastrar pontual</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                        <div class="mini-kpi"><strong id="pontuais-kpi-total">0</strong><span>Total</span></div>
+                        <div class="mini-kpi kpi-vencidos"><strong id="pontuais-kpi-vencidos">0</strong><span>Vencidos</span></div>
+                        <div class="mini-kpi kpi-30"><strong id="pontuais-kpi-analise">0</strong><span>Análise</span></div>
+                        <div class="mini-kpi kpi-60"><strong id="pontuais-kpi-andamento">0</strong><span>Andamento</span></div>
+                        <div class="mini-kpi kpi-90"><strong id="pontuais-kpi-concluidos">0</strong><span>Enviados</span></div>
+                    </div>
+
+                    <div class="topline-toolbar mb-4">
+                        <input type="text" id="pontuais-search" oninput="renderPontuais()" placeholder="Pesquisar por nome, CNPJ, documento, e-mail ou telefone..." class="flex-1 min-w-[240px]">
+                        <select id="pontuais-filtro-status" onchange="renderPontuais()"><option value="">Todos os status</option><option value="vencido">Vencidos</option><option value="cadastrado">Cadastrado</option><option value="analise">Análise</option><option value="andamento">Andamento</option><option value="concluido">Concluído / enviado</option></select>
+                    </div>
+
+                    <div class="scroll-container">
+                        <table class="w-full text-left border-collapse">
+                            <thead><tr><th>Nome</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Documento</th><th>Validade</th><th>Status</th><th>Observação</th><th>Ação</th></tr></thead>
+                            <tbody id="pontuais-body"><tr><td colspan="9" class="text-center py-10 text-slate-400">Nenhum pontual carregado.</td></tr></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -1585,6 +1740,34 @@
     </div>
 
     <!-- MODAL HISTÓRICO DE OBSERVAÇÕES (por cliente/documento) -->
+
+    <!-- MODAL PONTUAIS -->
+    <div id="pontualModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[350] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="p-5 border-b flex justify-between items-start gap-3">
+                <div>
+                    <h3 id="pontual-modal-title" class="text-sm font-black text-slate-800 uppercase">Acompanhamento pontual</h3>
+                    <p id="pontual-modal-subtitle" class="text-[10px] text-slate-400 mt-1">Atualize o status e registre observações.</p>
+                </div>
+                <button onclick="fecharModalPontual()" class="text-slate-400 hover:text-red-500 text-xl leading-none">×</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="pontual-modal-id">
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="selecionarStatusPontual('analise')" id="pontual-status-analise" class="pontuais-modal-action analise">Análise</button>
+                    <button onclick="selecionarStatusPontual('andamento')" id="pontual-status-andamento" class="pontuais-modal-action andamento">Andamento</button>
+                    <button onclick="selecionarStatusPontual('concluido')" id="pontual-status-concluido" class="pontuais-modal-action concluido">Concluído</button>
+                </div>
+                <div class="pontuais-field"><label>Data</label><input id="pontual-modal-data" type="date"></div>
+                <div class="pontuais-field"><label>Observação</label><textarea id="pontual-modal-observacao" rows="4" placeholder="Descreva a análise, andamento ou conclusão..."></textarea></div>
+                <div class="flex justify-end gap-2">
+                    <button onclick="fecharModalPontual()" class="btn-mini text-slate-600 border-slate-200 bg-white">Cancelar</button>
+                    <button onclick="salvarAcompanhamentoPontual()" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition">Salvar acompanhamento</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="historicoModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
         <div class="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl" style="max-height:85vh;overflow-y:auto;">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
@@ -1768,6 +1951,7 @@
     'view-financeiro',
     'view-empresasparcelamentos',
     'view-avisos',
+    'view-pontuais',
     'view-tasks'
   ];
 
@@ -1782,12 +1966,15 @@
     logs: 'view-logs',
     financeiro: 'view-financeiro',
     empresasparcelamentos: 'view-empresasparcelamentos',
-    avisos: 'view-avisos'
+    avisos: 'view-avisos',
+    pontuais: 'view-pontuais'
   };
 
   var functionToView = {
     renderizarTarefas: 'view-tasks',
     carregarAvisos: 'view-avisos',
+    carregarPontuais: 'view-pontuais',
+    renderPontuais: 'view-pontuais',
     renderSenhas: 'view-senhas',
     renderCommTable: 'view-comm',
     atualizarPreviewComunicado: 'view-comm',
@@ -1928,6 +2115,8 @@
         const PERFIS_FINANCEIRO = ['Nikolas', 'Brenda', 'Dev'];
 
         let rawData = [], headers = [], passwordData = [];
+        let pontuaisData = [];
+        let pontualStatusSelecionado = 'andamento';
         let activeDoc = null, activeStatus = null;
         let activeParcelamentos = false, activeParcelamentosStatus = null;
         let activeDividas = false;
@@ -2840,10 +3029,11 @@
         async function salvarDistribuicaoNoServidor(statusAlvo) {
             statusDistribuicaoAtual = statusAlvo || statusDistribuicaoAtual || 'atual';
             statusAlvo = statusDistribuicaoAtual;
+            const compactarTarefa = (t) => t && t.tipo === 'pontual' ? `P:${t.id}|${t.documento}` : `${t.rowIndex}|${t.documento}`;
             const dadosCompactos = {
-                J: distribuicaoAtual.Jordan.map(t => `${t.rowIndex}|${t.documento}`),
-                S: distribuicaoAtual.Sirlene.map(t => `${t.rowIndex}|${t.documento}`),
-                I: distribuicaoAtual.Ingrid.map(t => `${t.rowIndex}|${t.documento}`)
+                J: distribuicaoAtual.Jordan.map(compactarTarefa),
+                S: distribuicaoAtual.Sirlene.map(compactarTarefa),
+                I: distribuicaoAtual.Ingrid.map(compactarTarefa)
             };
             try {
                 await supabaseClient.from('distribuicao_tarefas').delete().eq('status', statusAlvo);
@@ -2868,6 +3058,14 @@
                         const mapPessoa = (arr, dest) => {
                             for (const item of arr) {
                                 const [rowIndex, documento] = item.split('|');
+                                if (String(rowIndex).startsWith('P:')) {
+                                    const pid = String(rowIndex).slice(2);
+                                    const pontual = (pontuaisData || []).find(p => String(p.id) === pid);
+                                    if (pontual && getPontualStatusVisual(pontual) === 'vencido') {
+                                        dest.push({ tipo:'pontual', id: pontual.id, cliente: pontual.nome, documento: pontual.documento, rowIndex:'P:' + pontual.id, prazo: formatDateBR(pontual.validade) || '-', pontual });
+                                    }
+                                    continue;
+                                }
                                 const idx = parseInt(rowIndex);
                                 const linha = rawData[idx];
                                 if (linha) {
@@ -2930,7 +3128,7 @@
                         rawData = newData;
                         lastKnownDataHash = csvDados;
                         if (rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
-                        renderTable(); renderizarTarefas(); atualizarDashboardDesempenho(); atualizarResumoParcelamentos();
+                        renderTable(); if (!pontuaisData.length) carregarPontuais(); renderizarTarefas(); atualizarDashboardDesempenho(); atualizarResumoParcelamentos();
                         if (!document.getElementById('view-comm').classList.contains('hidden')) renderCommTable();
                         if (!document.getElementById('view-empresasparcelamentos').classList.contains('hidden')) renderEmpresasParcelamentos();
                     }
@@ -3507,7 +3705,7 @@
                     tarefasPendentes.forEach(t => {
                         const card = document.createElement('div');
                         card.className = `p-3 bg-white border border-slate-200 rounded-xl text-[10px] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg mb-2 shadow-sm`;
-                        card.onclick = () => { openEditCell(t.rowIndex, t.documento); };
+                        card.onclick = () => { if (t.tipo === 'pontual') abrirTarefaPontual(t); else openEditCell(t.rowIndex, t.documento); };
                         card.innerHTML = `<div class="font-black text-slate-800 uppercase flex justify-between">${t.cliente}</div><div class="flex justify-between items-center mt-1"><span class="text-emerald-600 font-bold">${t.documento}</span><span class="text-slate-400 font-mono font-bold">${t.prazo}</span></div>`;
                         container.appendChild(card);
                     });
@@ -4478,11 +4676,230 @@
             }).join('');
         }
 
+
+
+        // ============================================
+        // PONTUAIS
+        // ============================================
+        const PONTUAIS_DOCUMENTOS = ['CLIENTE','CNPJ','ATA','CRED.','CENTS','CTM','CND','CMDCA','UTILIDADE','CRCE','CERTIF.DIGITAL','COMAS','COVISA'];
+
+        function initPontuaisSelect() {
+            const select = document.getElementById('pontual-documento');
+            if (!select || select.dataset.loaded === '1') return;
+            select.innerHTML = '<option value="">Selecione um documento</option>' + PONTUAIS_DOCUMENTOS.map(d => `<option value="${escapeAttr(d)}">${escapeHtml(d)}</option>`).join('');
+            select.dataset.loaded = '1';
+        }
+
+        function pontualStorageKey() { return 'toplinehub_pontuais_v1'; }
+        function formatDateBR(value) {
+            if (!value) return '';
+            const d = value instanceof Date ? value : new Date(String(value).includes('T') ? value : String(value) + 'T00:00:00');
+            if (isNaN(d.getTime())) return String(value);
+            return d.toLocaleDateString('pt-BR');
+        }
+
+
+        function normalizarPontual(item) {
+            return {
+                id: item.id || item.uuid || String(Date.now()) + '_' + Math.random().toString(16).slice(2),
+                cnpj: item.cnpj || item.CNPJ || '',
+                nome: item.nome || item.cliente || item.CLIENTE || '',
+                email: item.email || '',
+                telefone: item.telefone || '',
+                documento: item.documento || '',
+                validade: item.validade || item.data_validade || '',
+                status: item.status || 'cadastrado',
+                enviado: !!item.enviado || item.status === 'concluido',
+                observacao: item.observacao || '',
+                data_status: item.data_status || item.data_conclusao || '',
+                created_at: item.created_at || new Date().toISOString(),
+                updated_at: item.updated_at || null
+            };
+        }
+
+        function salvarPontuaisLocal() {
+            try { localStorage.setItem(pontualStorageKey(), JSON.stringify(pontuaisData || [])); } catch(e) {}
+        }
+
+        function carregarPontuaisLocal() {
+            try { pontuaisData = (JSON.parse(localStorage.getItem(pontualStorageKey()) || '[]') || []).map(normalizarPontual); } catch(e) { pontuaisData = []; }
+        }
+
+        async function carregarPontuais() {
+            initPontuaisSelect();
+            const tbody = document.getElementById('pontuais-body');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">Carregando pontuais...</td></tr>';
+            try {
+                const { data, error } = await supabaseClient.from('pontuais').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                pontuaisData = (data || []).map(normalizarPontual);
+                salvarPontuaisLocal();
+            } catch(e) {
+                console.warn('Tabela pontuais indisponivel. Usando armazenamento local.', e);
+                carregarPontuaisLocal();
+                if (tbody && !pontuaisData.length) tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-amber-500 font-bold">Crie a tabela pontuais no Supabase para salvar para todos os usuários.</td></tr>';
+            }
+            renderPontuais();
+        }
+
+        function limparFormularioPontual() {
+            ['pontual-cnpj','pontual-nome','pontual-email','pontual-telefone','pontual-validade'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            const doc = document.getElementById('pontual-documento'); if (doc) doc.value = '';
+        }
+
+        async function salvarPontual() {
+            initPontuaisSelect();
+            const item = normalizarPontual({
+                cnpj: document.getElementById('pontual-cnpj')?.value.trim() || '',
+                nome: document.getElementById('pontual-nome')?.value.trim() || '',
+                email: document.getElementById('pontual-email')?.value.trim() || '',
+                telefone: document.getElementById('pontual-telefone')?.value.trim() || '',
+                documento: document.getElementById('pontual-documento')?.value || '',
+                validade: document.getElementById('pontual-validade')?.value || '',
+                status: 'cadastrado',
+                enviado: false
+            });
+            if (!item.nome || !item.cnpj || !item.documento || !item.validade) { showNotification('Preencha Nome, CNPJ, Documento e Validade.', true); return; }
+            try {
+                const payload = { cnpj:item.cnpj, nome:item.nome, email:item.email, telefone:item.telefone, documento:item.documento, validade:item.validade, status:item.status, enviado:false, observacao:'', data_status:null, usuario_criacao: currentUser || 'Sistema' };
+                const { data, error } = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
+                if (error) throw error;
+                pontuaisData.unshift(normalizarPontual(data));
+            } catch(e) {
+                console.warn('Não foi possível salvar no Supabase. Salvando localmente.', e);
+                pontuaisData.unshift(item);
+                salvarPontuaisLocal();
+            }
+            await salvarObservacao(item.nome, item.documento, `Pontual cadastrado | CNPJ: ${item.cnpj} | Validade: ${formatDateBR(item.validade)}`, 'cadastrado');
+            await registrarLog('Pontual cadastrado', item.nome, item.documento, `CNPJ ${item.cnpj} | Validade ${formatDateBR(item.validade)}`);
+            limparFormularioPontual();
+            renderPontuais();
+            showNotification('Pontual cadastrado com sucesso.', false, item.nome);
+        }
+
+        function getPontualStatusVisual(item) {
+            const hoje = new Date(); hoje.setHours(0,0,0,0);
+            const validade = item.validade ? new Date(item.validade + 'T00:00:00') : null;
+            if (!item.enviado && validade && validade < hoje) return 'vencido';
+            return item.status || 'cadastrado';
+        }
+
+        function labelStatusPontual(status) {
+            const labels = { cadastrado:'Cadastrado', analise:'Análise', andamento:'Andamento', concluido:'Enviado', enviado:'Enviado', vencido:'Vencido' };
+            return labels[status] || status || '-';
+        }
+
+        function renderPontuais() {
+            initPontuaisSelect();
+            const tbody = document.getElementById('pontuais-body');
+            if (!tbody) return;
+            const q = (document.getElementById('pontuais-search')?.value || '').toLowerCase().trim();
+            const filtroStatus = document.getElementById('pontuais-filtro-status')?.value || '';
+            const lista = (pontuaisData || []).filter(item => {
+                const statusVisual = getPontualStatusVisual(item);
+                const texto = `${item.nome} ${item.cnpj} ${item.email} ${item.telefone} ${item.documento} ${item.observacao}`.toLowerCase();
+                const matchQ = !q || texto.includes(q);
+                const matchStatus = !filtroStatus || statusVisual === filtroStatus || (filtroStatus === 'concluido' && item.enviado);
+                return matchQ && matchStatus;
+            });
+            const counts = { total:pontuaisData.length, vencidos:0, analise:0, andamento:0, concluidos:0 };
+            (pontuaisData || []).forEach(item => { const s = getPontualStatusVisual(item); if (s === 'vencido') counts.vencidos++; if (s === 'analise') counts.analise++; if (s === 'andamento') counts.andamento++; if (item.enviado || s === 'concluido') counts.concluidos++; });
+            const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            setText('pontuais-kpi-total', counts.total); setText('pontuais-kpi-vencidos', counts.vencidos); setText('pontuais-kpi-analise', counts.analise); setText('pontuais-kpi-andamento', counts.andamento); setText('pontuais-kpi-concluidos', counts.concluidos);
+            if (!lista.length) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">Nenhum pontual encontrado.</td></tr>'; return; }
+            tbody.innerHTML = lista.map(item => {
+                const statusVisual = getPontualStatusVisual(item);
+                const obs = item.observacao ? `<span class="last-obs-chip" title="${escapeAttr(item.observacao)}">${escapeHtml(item.observacao)}</span>` : '-';
+                return `<tr>
+                    <td class="font-black text-slate-700">${escapeHtml(item.nome || '-')}</td>
+                    <td class="font-mono text-[10px]">${escapeHtml(item.cnpj || '-')}</td>
+                    <td>${escapeHtml(item.email || '-')}</td>
+                    <td>${escapeHtml(item.telefone || '-')}</td>
+                    <td><span class="pontuais-doc-click" onclick="abrirModalPontual('${escapeAttr(item.id)}')">${escapeHtml(item.documento || '-')}</span></td>
+                    <td><span class="pontuais-doc-click" onclick="abrirModalPontual('${escapeAttr(item.id)}')">${escapeHtml(formatDateBR(item.validade) || '-')}</span></td>
+                    <td><span class="pontuais-status-pill pontuais-status-${escapeAttr(statusVisual)}">${escapeHtml(labelStatusPontual(statusVisual))}</span></td>
+                    <td>${obs}</td>
+                    <td><button onclick="marcarPontualEnviado('${escapeAttr(item.id)}')" class="pontuais-enviado-btn ${item.enviado ? 'done' : ''}">${item.enviado ? 'Enviado ✓' : 'Marcar enviado'}</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function abrirModalPontual(id) {
+            const item = (pontuaisData || []).find(p => String(p.id) === String(id));
+            if (!item) return;
+            const modal = document.getElementById('pontualModal');
+            document.getElementById('pontual-modal-id').value = item.id;
+            document.getElementById('pontual-modal-title').textContent = `${item.documento || 'Documento'} - ${item.nome || ''}`;
+            document.getElementById('pontual-modal-subtitle').textContent = `${item.cnpj || ''} | Validade: ${formatDateBR(item.validade) || '-'}`;
+            document.getElementById('pontual-modal-observacao').value = item.observacao || '';
+            document.getElementById('pontual-modal-data').value = item.data_status || new Date().toISOString().slice(0,10);
+            selecionarStatusPontual(item.status === 'concluido' ? 'concluido' : (item.status || 'andamento'));
+            modal.classList.remove('hidden');
+        }
+
+        function fecharModalPontual() { document.getElementById('pontualModal')?.classList.add('hidden'); }
+
+        function selecionarStatusPontual(status) {
+            pontualStatusSelecionado = status;
+            ['analise','andamento','concluido'].forEach(s => { const btn = document.getElementById('pontual-status-' + s); if (btn) btn.classList.toggle('active', s === status); });
+        }
+
+        async function atualizarPontual(id, patch) {
+            const idx = (pontuaisData || []).findIndex(p => String(p.id) === String(id));
+            if (idx < 0) return null;
+            const anterior = { ...pontuaisData[idx] };
+            const atualizado = normalizarPontual({ ...pontuaisData[idx], ...patch, updated_at: new Date().toISOString() });
+            pontuaisData[idx] = atualizado;
+            salvarPontuaisLocal();
+            try {
+                const uuidLike = String(id).length >= 30 && !String(id).includes('_');
+                if (uuidLike) {
+                    const { error } = await supabaseClient.from('pontuais').update(patch).eq('id', id);
+                    if (error) throw error;
+                }
+            } catch(e) { console.warn('Atualização pontual salva localmente, mas não sincronizada.', e); }
+            return { anterior, atualizado };
+        }
+
+        async function salvarAcompanhamentoPontual() {
+            const id = document.getElementById('pontual-modal-id')?.value;
+            const item = (pontuaisData || []).find(p => String(p.id) === String(id));
+            if (!item) return;
+            const dataStatus = document.getElementById('pontual-modal-data')?.value || new Date().toISOString().slice(0,10);
+            const observacao = document.getElementById('pontual-modal-observacao')?.value.trim() || '';
+            const patch = { status: pontualStatusSelecionado, observacao, data_status: dataStatus, enviado: pontualStatusSelecionado === 'concluido' ? true : !!item.enviado };
+            await atualizarPontual(id, patch);
+            const statusLabel = labelStatusPontual(pontualStatusSelecionado);
+            await salvarObservacao(item.nome, item.documento, `${statusLabel} em ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`, pontualStatusSelecionado);
+            await registrarLog('Pontual atualizado', item.nome, item.documento, `${statusLabel} | Data ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`);
+            fecharModalPontual(); renderPontuais(); renderizarTarefas(); atualizarDashboardDesempenho();
+            showNotification('Pontual atualizado.', false, item.nome);
+        }
+
+        async function marcarPontualEnviado(id) {
+            const item = (pontuaisData || []).find(p => String(p.id) === String(id));
+            if (!item) return;
+            const hoje = new Date().toISOString().slice(0,10);
+            await atualizarPontual(id, { enviado:true, status:'concluido', data_status: item.data_status || hoje });
+            await salvarObservacao(item.nome, item.documento, `Marcado como enviado em ${formatDateBR(hoje)}`, 'concluido');
+            await registrarLog('Pontual enviado', item.nome, item.documento, `Marcado como enviado em ${formatDateBR(hoje)}`);
+            renderPontuais(); renderizarTarefas(); atualizarDashboardDesempenho();
+            showNotification('Pontual marcado como enviado.', false, item.nome);
+        }
+
+        function obterPontuaisVencidosParaSorteio() {
+            return (pontuaisData || []).filter(item => getPontualStatusVisual(item) === 'vencido').map(item => ({
+                tipo:'pontual', id:item.id, cliente:item.nome, documento:item.documento, rowIndex:'P:' + item.id, prazo:formatDateBR(item.validade) || '-', pontual:item
+            }));
+        }
+
+        function abrirTarefaPontual(t) { if (t && t.id) abrirModalPontual(t.id); }
+
         // ============================================
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -4505,6 +4922,7 @@
             if (tab === 'centralpendencias') centralPendenciasAtualizar();
             if (tab === 'senhas') renderSenhas();
             if (tab === 'atribuicoes') renderAtribuicoes();
+            if (tab === 'pontuais') carregarPontuais();
             if (tab === 'dash') atualizarDashboardDesempenho();
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
@@ -4835,6 +5253,17 @@
                         if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
                     }
                     if (tarefasDaEmpresa.length > 0) empresasComTarefas.set(clienteNome, tarefasDaEmpresa);
+                }
+                if (statusAlvo === 'vencido') {
+                    try {
+                        if (!pontuaisData || !pontuaisData.length) await carregarPontuais();
+                        obterPontuaisVencidosParaSorteio().forEach(t => {
+                            const chave = t.cliente || ('Pontual ' + t.id);
+                            const lista = empresasComTarefas.get(chave) || [];
+                            lista.push(t);
+                            empresasComTarefas.set(chave, lista);
+                        });
+                    } catch(e) { console.warn('Não foi possível incluir pontuais vencidos no sorteio.', e); }
                 }
                 if (empresasComTarefas.size === 0) {
                     const n = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias' };
