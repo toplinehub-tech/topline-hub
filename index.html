@@ -773,6 +773,33 @@
 @media (max-width: 900px) { .central-pendencias-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .central-pendencias-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
 
+
+/* ABA ATRIBUICOES - matriz visual RACI */
+.atribuicoes-hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 46%, #047857 100%); color: #fff; border-radius: 22px; padding: 22px; position: relative; overflow: hidden; box-shadow: 0 18px 42px -26px rgba(15,23,42,.65); }
+.atribuicoes-hero::after { content:''; position:absolute; right:-70px; bottom:-90px; width:260px; height:260px; border-radius:999px; background:rgba(255,255,255,.12); filter: blur(2px); }
+.atribuicoes-hero h2 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.atribuicoes-hero p { color: rgba(219,234,254,.86); font-size: 11px; max-width: 820px; margin-top: 6px; }
+.atribuicoes-kpi { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); border-radius: 16px; padding: 14px; backdrop-filter: blur(10px); }
+.atribuicoes-kpi strong { display:block; font-size: 24px; line-height: 1; font-weight: 900; }
+.atribuicoes-kpi span { display:block; margin-top: 4px; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: .09em; color: rgba(219,234,254,.72); }
+.atribuicoes-role-card { background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:16px; box-shadow:0 12px 24px -20px rgba(15,23,42,.35); transition:all .2s ease; }
+.atribuicoes-role-card:hover { transform: translateY(-2px); box-shadow:0 16px 28px -22px rgba(15,23,42,.45); }
+.atribuicoes-role-card.active { border-color:#10b981; box-shadow:0 0 0 4px rgba(16,185,129,.10), 0 16px 28px -22px rgba(16,185,129,.45); }
+.atribuicoes-role-title { font-size: 11px; font-weight: 900; color:#0f172a; text-transform:uppercase; letter-spacing:.06em; }
+.atribuicoes-role-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.atribuicoes-filter-btn { padding:8px 12px; border-radius:999px; border:1px solid #e2e8f0; background:#fff; color:#475569; font-size:9px; font-weight:900; text-transform:uppercase; transition:all .18s ease; }
+.atribuicoes-filter-btn:hover, .atribuicoes-filter-btn.active { background:#10b981; color:white; border-color:#059669; transform:translateY(-1px); box-shadow:0 8px 18px -14px rgba(16,185,129,.7); }
+.raci-pill { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:999px; font-size:11px; font-weight:900; border:1px solid transparent; }
+.raci-r { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+.raci-a { background:#dbeafe; color:#1d4ed8; border-color:#bfdbfe; }
+.raci-c { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+.raci-i { background:#f1f5f9; color:#64748b; border-color:#e2e8f0; }
+.atribuicoes-table tr.highlight-role td { background:#f8fafc; }
+.atribuicoes-table td.atribuicoes-role-col { text-align:center; }
+.atribuicoes-table td.atribuicoes-role-match { box-shadow: inset 0 0 0 9999px rgba(16,185,129,.08); }
+.atribuicoes-legend-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px; }
+@media (max-width: 900px) { .atribuicoes-role-grid { grid-template-columns:repeat(1,minmax(0,1fr)); } .atribuicoes-table { min-width:760px; } }
+
 </style>
 </head>
 <body>
@@ -887,6 +914,7 @@
                         <button onclick="switchTab('centralpendencias')" id="tab-centralpendencias" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Central de Pendências</button>
                         <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
                         <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
+                        <button onclick="switchTab('atribuicoes')" id="tab-atribuicoes" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atribuições</button>
                         <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
                         <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
                         <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
@@ -1128,6 +1156,69 @@
                             <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>QTD.</th><th>PGDAS</th><th>DATA ENVIO</th><th>AÇÕES</th></tr></thead>
                             <tbody id="empresasParcelamentosBody"></tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- ATRIBUIÇÕES / MATRIZ RACI -->
+            <div id="view-atribuicoes" class="hidden">
+                <div class="space-y-6">
+                    <div class="atribuicoes-hero">
+                        <div class="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                            <div>
+                                <h2>Matriz de Atribuições</h2>
+                                <p>Consulta visual das categorias de serviços, permissões e responsabilidades da equipe. Esta aba é apenas informativa: não altera tarefas, permissões reais, dados do painel ou regras do sistema.</p>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3 min-w-[320px]">
+                                <div class="atribuicoes-kpi"><strong id="atr-kpi-servicos">0</strong><span>Serviços</span></div>
+                                <div class="atribuicoes-kpi"><strong id="atr-kpi-responsaveis">0</strong><span>Responsável</span></div>
+                                <div class="atribuicoes-kpi"><strong id="atr-kpi-aprovacoes">0</strong><span>Aprovações</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-4 gap-5">
+                        <div class="xl:col-span-3 space-y-5">
+                            <div class="white-card p-5">
+                                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                                    <div>
+                                        <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">Quem pode fazer o quê</h3>
+                                        <p class="text-[10px] text-slate-400 mt-1">Use busca e filtros para encontrar uma atividade ou visualizar um papel específico.</p>
+                                    </div>
+                                    <div id="atribuicoes-counter" class="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full uppercase">0 itens</div>
+                                </div>
+                                <div class="topline-toolbar mb-4">
+                                    <input type="text" id="atribuicoesSearch" oninput="renderAtribuicoes()" placeholder="Buscar serviço, categoria ou sigla R/A/C/I..." class="flex-1 min-w-[260px]">
+                                    <button onclick="setAtribuicoesRoleFilter('todos')" id="atr-filter-todos" class="atribuicoes-filter-btn active">Todos</button>
+                                    <button onclick="setAtribuicoesRoleFilter('Dono (Sócio)')" id="atr-filter-dono" class="atribuicoes-filter-btn">Dono</button>
+                                    <button onclick="setAtribuicoesRoleFilter('Gerente')" id="atr-filter-gerente" class="atribuicoes-filter-btn">Gerente</button>
+                                    <button onclick="setAtribuicoesRoleFilter('Funcionário (Executor)')" id="atr-filter-funcionario" class="atribuicoes-filter-btn">Executor</button>
+                                </div>
+                                <div class="scroll-container" style="max-height:68vh;">
+                                    <table class="w-full text-left atribuicoes-table">
+                                        <thead><tr><th class="col-fixed">Serviço / Categoria</th><th>Dono (Sócio)</th><th>Gerente</th><th>Funcionário (Executor)</th></tr></thead>
+                                        <tbody id="atribuicoesBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-5">
+                            <div class="white-card p-5">
+                                <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider mb-3">Resumo por papel</h3>
+                                <div id="atribuicoesRoleCards" class="atribuicoes-role-grid xl:block xl:space-y-3"></div>
+                            </div>
+                            <div class="white-card p-5">
+                                <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider mb-3">Legenda RACI</h3>
+                                <div class="space-y-3 text-[11px] text-slate-600">
+                                    <div class="atribuicoes-legend-card"><span class="raci-pill raci-r mr-2">R</span><b>Responsável</b><br><span class="text-slate-400">Quem executa o trabalho operacional.</span></div>
+                                    <div class="atribuicoes-legend-card"><span class="raci-pill raci-a mr-2">A</span><b>Autoridade</b><br><span class="text-slate-400">Quem aprova e responde pelo resultado.</span></div>
+                                    <div class="atribuicoes-legend-card"><span class="raci-pill raci-c mr-2">C</span><b>Consultado</b><br><span class="text-slate-400">Quem deve ser ouvido antes ou durante a tarefa.</span></div>
+                                    <div class="atribuicoes-legend-card"><span class="raci-pill raci-i mr-2">I</span><b>Informado</b><br><span class="text-slate-400">Quem deve saber do resultado após a conclusão.</span></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4264,11 +4355,134 @@
         }
 
 
+
+
+        // ============================================
+        // ATRIBUIÇÕES / MATRIZ RACI - somente visual
+        // ============================================
+        const ATRIBUICOES_RACI = [
+            {servico:'Planejamento Estratégico e Metas', dono:'R', gerente:'C', funcionario:'I'},
+            {servico:'Revisão Técnica de Impostos (Fiscos)', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Lançamentos Contábeis Diários', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Fechamento de Balancetes Mensais', dono:'C', gerente:'R', funcionario:'R'},
+            {servico:'Atendimento Consultivo ao Cliente', dono:'A', gerente:'R', funcionario:'C'},
+            {servico:'Gestão de Prazos e Multas', dono:'A', gerente:'R', funcionario:'R'},
+            {servico:'Assinatura de Documentos Legais', dono:'R', gerente:'C', funcionario:'I'},
+            {servico:'Conciliação Bancária', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Emissão de Notas Fiscais', dono:'A', gerente:'R', funcionario:'I'},
+            {servico:'Gestão de Contratos de Honorários', dono:'A', gerente:'R', funcionario:'I'},
+            {servico:'Ata e Estatuto', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Notificações de Vencimento', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Emissão de Certificados Digitais', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Emissão de Certidões', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Viabilidade', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Confirmação de dados', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'WhatsApp (todos), exceto primeiro contato', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Exigência Cartório', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Reuniões', dono:'A', gerente:'R', funcionario:'I'},
+            {servico:'Recepção', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'PGDAS', dono:'I', gerente:'R', funcionario:'C'},
+            {servico:'Análise de Relatório CRCE', dono:'I', gerente:'R', funcionario:'C'},
+            {servico:'Levantamento de débitos', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Certificado CENTS', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Certificado CMDCA', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Certificado CRCE', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Certificado de utilidade pública', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Credenciamento', dono:'I', gerente:'R', funcionario:'C'},
+            {servico:'Acompanhamentos de Processos', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Declarações para os processos', dono:'I', gerente:'A', funcionario:'R'},
+            {servico:'Emendas (envio, plano de trabalho)', dono:'R', gerente:'A', funcionario:'I'}
+        ];
+        let atribuicoesRoleFilter = 'todos';
+        const ATRIBUICOES_ROLES = [
+            {key:'dono', label:'Dono (Sócio)', filterId:'atr-filter-dono'},
+            {key:'gerente', label:'Gerente', filterId:'atr-filter-gerente'},
+            {key:'funcionario', label:'Funcionário (Executor)', filterId:'atr-filter-funcionario'}
+        ];
+        function raciEscape(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]); });
+        }
+        function raciPill(sigla) {
+            const s = String(sigla || '').trim().toUpperCase();
+            const cls = s === 'R' ? 'raci-r' : s === 'A' ? 'raci-a' : s === 'C' ? 'raci-c' : 'raci-i';
+            return `<span class="raci-pill ${cls}" title="${raciEscape(raciLabel(s))}">${raciEscape(s || '-')}</span>`;
+        }
+        function raciLabel(sigla) {
+            const s = String(sigla || '').toUpperCase();
+            if (s === 'R') return 'Responsável';
+            if (s === 'A') return 'Autoridade / Aprovador';
+            if (s === 'C') return 'Consultado';
+            return 'Informado';
+        }
+        function getAtribuicoesFilteredRows() {
+            const q = (document.getElementById('atribuicoesSearch')?.value || '').toLowerCase().trim();
+            return ATRIBUICOES_RACI.filter(row => {
+                const texto = `${row.servico} ${row.dono} ${row.gerente} ${row.funcionario} ${raciLabel(row.dono)} ${raciLabel(row.gerente)} ${raciLabel(row.funcionario)}`.toLowerCase();
+                const matchesSearch = !q || texto.includes(q);
+                if (!matchesSearch) return false;
+                if (atribuicoesRoleFilter === 'todos') return true;
+                const role = ATRIBUICOES_ROLES.find(r => r.label === atribuicoesRoleFilter);
+                return role ? ['R','A','C'].includes(String(row[role.key] || '').toUpperCase()) : true;
+            });
+        }
+        function setAtribuicoesRoleFilter(role) {
+            atribuicoesRoleFilter = role || 'todos';
+            renderAtribuicoes();
+        }
+        function renderAtribuicoes() {
+            const tbody = document.getElementById('atribuicoesBody');
+            if (!tbody) return;
+            const rows = getAtribuicoesFilteredRows();
+            const counter = document.getElementById('atribuicoes-counter');
+            if (counter) counter.innerText = `${rows.length} item${rows.length === 1 ? '' : 's'}`;
+            ['atr-filter-todos','atr-filter-dono','atr-filter-gerente','atr-filter-funcionario'].forEach(id => document.getElementById(id)?.classList.remove('active'));
+            const activeId = atribuicoesRoleFilter === 'todos' ? 'atr-filter-todos' : (ATRIBUICOES_ROLES.find(r => r.label === atribuicoesRoleFilter)?.filterId || 'atr-filter-todos');
+            document.getElementById(activeId)?.classList.add('active');
+            const activeRole = ATRIBUICOES_ROLES.find(r => r.label === atribuicoesRoleFilter);
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-slate-400">Nenhuma atribuição encontrada para este filtro.</td></tr>';
+            } else {
+                tbody.innerHTML = rows.map(row => {
+                    return `<tr class="${activeRole ? 'highlight-role' : ''}">
+                        <td class="col-fixed font-bold text-slate-700">${raciEscape(row.servico)}</td>
+                        <td class="atribuicoes-role-col ${activeRole?.key === 'dono' ? 'atribuicoes-role-match' : ''}">${raciPill(row.dono)}<div class="text-[8px] font-bold text-slate-400 mt-1">${raciEscape(raciLabel(row.dono))}</div></td>
+                        <td class="atribuicoes-role-col ${activeRole?.key === 'gerente' ? 'atribuicoes-role-match' : ''}">${raciPill(row.gerente)}<div class="text-[8px] font-bold text-slate-400 mt-1">${raciEscape(raciLabel(row.gerente))}</div></td>
+                        <td class="atribuicoes-role-col ${activeRole?.key === 'funcionario' ? 'atribuicoes-role-match' : ''}">${raciPill(row.funcionario)}<div class="text-[8px] font-bold text-slate-400 mt-1">${raciEscape(raciLabel(row.funcionario))}</div></td>
+                    </tr>`;
+                }).join('');
+            }
+            renderAtribuicoesResumo();
+        }
+        function renderAtribuicoesResumo() {
+            const cards = document.getElementById('atribuicoesRoleCards');
+            const kpiServ = document.getElementById('atr-kpi-servicos');
+            const kpiResp = document.getElementById('atr-kpi-responsaveis');
+            const kpiAprov = document.getElementById('atr-kpi-aprovacoes');
+            if (kpiServ) kpiServ.innerText = ATRIBUICOES_RACI.length;
+            if (kpiResp) kpiResp.innerText = ATRIBUICOES_RACI.reduce((acc, row) => acc + ['dono','gerente','funcionario'].filter(k => String(row[k]).toUpperCase() === 'R').length, 0);
+            if (kpiAprov) kpiAprov.innerText = ATRIBUICOES_RACI.reduce((acc, row) => acc + ['dono','gerente','funcionario'].filter(k => String(row[k]).toUpperCase() === 'A').length, 0);
+            if (!cards) return;
+            cards.innerHTML = ATRIBUICOES_ROLES.map(role => {
+                const cont = {R:0,A:0,C:0,I:0};
+                ATRIBUICOES_RACI.forEach(row => { const s = String(row[role.key] || 'I').toUpperCase(); cont[s] = (cont[s] || 0) + 1; });
+                const active = atribuicoesRoleFilter === role.label ? 'active' : '';
+                return `<button onclick="setAtribuicoesRoleFilter('${role.label}')" class="atribuicoes-role-card ${active} text-left w-full">
+                    <div class="atribuicoes-role-title mb-3">${raciEscape(role.label)}</div>
+                    <div class="grid grid-cols-4 gap-2 text-center">
+                        <div>${raciPill('R')}<div class="text-[10px] font-black mt-1 text-slate-700">${cont.R || 0}</div></div>
+                        <div>${raciPill('A')}<div class="text-[10px] font-black mt-1 text-slate-700">${cont.A || 0}</div></div>
+                        <div>${raciPill('C')}<div class="text-[10px] font-black mt-1 text-slate-700">${cont.C || 0}</div></div>
+                        <div>${raciPill('I')}<div class="text-[10px] font-black mt-1 text-slate-700">${cont.I || 0}</div></div>
+                    </div>
+                </button>`;
+            }).join('');
+        }
+
         // ============================================
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','centralpendencias','tasks','senhas','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -4290,6 +4504,7 @@
 
             if (tab === 'centralpendencias') centralPendenciasAtualizar();
             if (tab === 'senhas') renderSenhas();
+            if (tab === 'atribuicoes') renderAtribuicoes();
             if (tab === 'dash') atualizarDashboardDesempenho();
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
