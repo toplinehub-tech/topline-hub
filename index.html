@@ -8,31 +8,89 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.05.06.1";
+        window.TOPLINE_APP_VERSION = "2026.05.11.2";
         (function() {
-            try {
-                var key = "toplinehub_app_version";
-                var oldVersion = localStorage.getItem(key);
-                localStorage.setItem(key, window.TOPLINE_APP_VERSION);
+            var key = "toplinehub_app_version";
+            var reloadKey = "toplinehub_last_forced_reload";
 
-                if ("serviceWorker" in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(function(regs) {
-                        regs.forEach(function(reg) { reg.unregister(); });
-                    }).catch(function() {});
+            function limparCachesNavegador() {
+                try {
+                    if ("serviceWorker" in navigator) {
+                        navigator.serviceWorker.getRegistrations().then(function(regs) {
+                            regs.forEach(function(reg) { reg.unregister(); });
+                        }).catch(function() {});
+                    }
+
+                    if (window.caches && caches.keys) {
+                        caches.keys().then(function(names) {
+                            names.forEach(function(name) { caches.delete(name); });
+                        }).catch(function() {});
+                    }
+                } catch (e) {
+                    console.warn("Limpeza de cache não pôde ser aplicada:", e);
                 }
-
-                if (window.caches && caches.keys) {
-                    caches.keys().then(function(names) {
-                        names.forEach(function(name) { caches.delete(name); });
-                    }).catch(function() {});
-                }
-
-                window.addEventListener("pageshow", function(event) {
-                    if (event.persisted) window.location.reload();
-                });
-            } catch (e) {
-                console.warn("Controle de cache não pôde ser aplicado:", e);
             }
+
+            function recarregarComVersaoNova(novaVersao) {
+                try {
+                    var marcador = novaVersao || window.TOPLINE_APP_VERSION;
+                    if (sessionStorage.getItem(reloadKey) === marcador) return;
+                    sessionStorage.setItem(reloadKey, marcador);
+                    localStorage.setItem(key, marcador);
+                    limparCachesNavegador();
+
+                    var url = new URL(window.location.href);
+                    url.searchParams.set("v", marcador);
+                    url.searchParams.set("t", Date.now().toString());
+                    window.location.replace(url.toString());
+                } catch (e) {
+                    window.location.reload();
+                }
+            }
+
+            function aplicarControleInicial() {
+                try {
+                    var oldVersion = localStorage.getItem(key);
+                    localStorage.setItem(key, window.TOPLINE_APP_VERSION);
+                    limparCachesNavegador();
+
+                    if (oldVersion && oldVersion !== window.TOPLINE_APP_VERSION) {
+                        recarregarComVersaoNova(window.TOPLINE_APP_VERSION);
+                    }
+
+                    window.addEventListener("pageshow", function(event) {
+                        if (event.persisted) recarregarComVersaoNova(window.TOPLINE_APP_VERSION);
+                    });
+                } catch (e) {
+                    console.warn("Controle de cache não pôde ser aplicado:", e);
+                }
+            }
+
+            function verificarNovaVersaoPublicada() {
+                try {
+                    if (!window.fetch) return;
+                    var url = new URL(window.location.href);
+                    url.searchParams.set("_check_version", Date.now().toString());
+
+                    fetch(url.toString(), { cache: "no-store", credentials: "same-origin" })
+                        .then(function(resp) { return resp.ok ? resp.text() : ""; })
+                        .then(function(html) {
+                            var match = html.match(/TOPLINE_APP_VERSION\s*=\s*["']([^"']+)["']/);
+                            if (match && match[1] && match[1] !== window.TOPLINE_APP_VERSION) {
+                                recarregarComVersaoNova(match[1]);
+                            }
+                        })
+                        .catch(function() {});
+                } catch (e) {}
+            }
+
+            aplicarControleInicial();
+
+            window.addEventListener("focus", verificarNovaVersaoPublicada);
+            document.addEventListener("visibilitychange", function() {
+                if (!document.hidden) verificarNovaVersaoPublicada();
+            });
+            setInterval(verificarNovaVersaoPublicada, 60000);
         })();
     </script>
 
