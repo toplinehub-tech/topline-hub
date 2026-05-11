@@ -1065,7 +1065,7 @@
                     </div>
 
                     <div class="central-pendencias-grid">
-                        <div class="central-pendencia-card border-l-4 border-red-500"><strong id="central-count-certidoes">0</strong><span>Certidões vencidas</span></div>
+                        <div class="central-pendencia-card border-l-4 border-red-500"><strong id="central-count-certidoes">0</strong><span>Certidões/Certificado vencidos</span></div>
                         <div class="central-pendencia-card border-l-4 border-rose-500"><strong id="central-count-dividas">0</strong><span>Dívidas</span></div>
                         <div class="central-pendencia-card border-l-4 border-amber-500"><strong id="central-count-financeiro">0</strong><span>Financeiro atrasado</span></div>
                         <div class="central-pendencia-card border-l-4 border-sky-500"><strong id="central-count-parcelamentos">0</strong><span>Parcelamentos</span></div>
@@ -1074,7 +1074,7 @@
 
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
                         <div class="white-card p-4">
-                            <div class="central-section-title"><span>Certidões vencidas</span><button onclick="switchTab('dash'); setTimeout(function(){ try { toggleStatusFilter('vencido'); } catch(e) {} }, 50);" class="btn-mini text-red-700 border-red-200 bg-red-50">Ver no painel</button></div>
+                            <div class="central-section-title"><span>Certidões/Certificado vencidos</span><button onclick="switchTab('dash'); setTimeout(function(){ try { toggleStatusFilter('vencido'); } catch(e) {} }, 50);" class="btn-mini text-red-700 border-red-200 bg-red-50">Ver no painel</button></div>
                             <div class="scroll-container central-table-wrap"><table class="w-full text-left"><thead><tr><th>Cliente</th><th>Documento</th><th>Vencimento</th></tr></thead><tbody id="central-certidoes-body"><tr><td colspan="3" class="central-empty">Carregando...</td></tr></tbody></table></div>
                         </div>
                         <div class="white-card p-4">
@@ -2965,7 +2965,7 @@
                 ? ['PARCELAMENTOS', 'PGDAS']
                 : [documentoNorm];
 
-            title.innerText = `Histórico: ${cliente} — ${isHistoricoEmpresasParcelamentos ? 'Parcelamentos / PGDAS' : documentoOriginal}`;
+            title.innerHTML = montarTituloModalComCnpj(cliente, `Histórico: ${isHistoricoEmpresasParcelamentos ? 'Parcelamentos / PGDAS' : documentoOriginal}`);
             content.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Carregando...</p>';
             modal.classList.remove('hidden');
 
@@ -3206,13 +3206,33 @@
             });
         }
 
+
+        function getCnpjByClienteModal(cliente) {
+            try {
+                const alvo = normalizarTexto ? normalizarTexto(cliente || '') : String(cliente || '').toLowerCase().trim();
+                const row = (rawData || []).find(function(item) {
+                    const nome = normalizarTexto ? normalizarTexto(item.CLIENTE || item.nome || item.cliente || '') : String(item.CLIENTE || item.nome || item.cliente || '').toLowerCase().trim();
+                    return nome && (nome === alvo || nome.includes(alvo) || alvo.includes(nome));
+                });
+                return row ? (row.CNPJ || row.cnpj || '') : '';
+            } catch (e) { return ''; }
+        }
+
+        function montarTituloModalComCnpj(cliente, tituloExtra) {
+            const cnpj = getCnpjByClienteModal(cliente);
+            const nome = escapeHtml ? escapeHtml(cliente || '-') : (cliente || '-');
+            const extra = tituloExtra ? ` - ${escapeHtml ? escapeHtml(tituloExtra) : tituloExtra}` : '';
+            const cnpjHtml = cnpj ? `<div class="text-[9px] text-slate-400 font-bold mt-1 normal-case">CNPJ: ${escapeHtml ? escapeHtml(cnpj) : cnpj}</div>` : `<div class="text-[9px] text-slate-400 font-bold mt-1 normal-case">CNPJ: não informado</div>`;
+            return `<div>${nome}${extra}</div>${cnpjHtml}`;
+        }
+
         function openEditCell(r, c) {
             if (c === 'CLIENTE') return;
             currentEditTarget = { r, c };
             selectedOption = null;
             const valorAtual = rawData[r][c];
             let valorExibicao = valorAtual instanceof Date ? valorAtual.toLocaleDateString('pt-BR') : (valorAtual ? String(valorAtual) : '<span class="text-slate-300 italic">vazio</span>');
-            document.getElementById('modalTitle').innerHTML = `${rawData[r].CLIENTE} - ${c}`;
+            document.getElementById('modalTitle').innerHTML = montarTituloModalComCnpj(rawData[r].CLIENTE, c);
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-2">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Valor atual</label>
@@ -4421,7 +4441,7 @@
                 return `<option value="${n}" ${quantidadeAtual === n ? 'selected' : ''}>${n}</option>`;
             }).join('');
 
-            document.getElementById('modalTitle').innerHTML = `${escapeHtml(cliente)} - Informações de Parcelamento`;
+            document.getElementById('modalTitle').innerHTML = montarTituloModalComCnpj(cliente, 'Informações de Parcelamento');
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-2">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Valor atual no Sheets</label>
@@ -4872,8 +4892,8 @@
             if (!item) return;
             const modal = document.getElementById('pontualModal');
             document.getElementById('pontual-modal-id').value = item.id;
-            document.getElementById('pontual-modal-title').textContent = `${item.documento || 'Documento'} - ${item.nome || ''}`;
-            document.getElementById('pontual-modal-subtitle').textContent = `${item.cnpj || 'Sem CNPJ'} | Cadastro: ${formatDateBR(item.data_cadastro) || '-'} | Vencimento: ${formatDateBR(item.vencimento) || '-'}`;
+            document.getElementById('pontual-modal-title').innerHTML = `<div>${escapeHtml(item.documento || 'Documento')} - ${escapeHtml(item.nome || '')}</div><div class="text-[9px] text-slate-400 font-bold mt-1 normal-case">CNPJ: ${escapeHtml(item.cnpj || 'não informado')}</div>`;
+            document.getElementById('pontual-modal-subtitle').textContent = `Cadastro: ${formatDateBR(item.data_cadastro) || '-'} | Vencimento: ${formatDateBR(item.vencimento) || '-'}`;
             document.getElementById('pontual-modal-observacao').value = item.observacao || '';
             document.getElementById('pontual-modal-data').value = item.data_status || new Date().toISOString().slice(0,10);
             selecionarStatusPontual(item.status === 'concluido' ? 'concluido' : (item.status || 'andamento'));
@@ -6855,7 +6875,7 @@ async function abrirHistoricoModal(cliente, documento) {
     const docNorm = normalizarBuscaPatch(documentoOriginal);
     const modoParcelamentos = docNorm.includes('parcelamento') || docNorm.includes('pgdas') || docNorm.includes('empresas');
 
-    title.innerText = `Histórico: ${cliente || '-'} — ${modoParcelamentos ? 'Parcelamentos / PGDAS' : documentoOriginal}`;
+    title.innerHTML = montarTituloModalComCnpj(cliente || '-', `Histórico: ${modoParcelamentos ? 'Parcelamentos / PGDAS' : documentoOriginal}`);
     content.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Carregando histórico...</p>';
     modal.classList.remove('hidden');
 
