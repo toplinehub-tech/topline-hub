@@ -7145,6 +7145,307 @@ async function abrirHistoricoModal(cliente, documento) {
     };
 })();
 
+// ============================================
+// HOTFIX 2026-05-12 - MONITOR, LOGS E HISTORICO
+// Mantem a aba Logs exibindo somente login/logout, sem impedir os registros internos usados pelo Monitor.
+// ============================================
+(function aplicarHotfixMonitorLogsHistorico(){
+    const COLABORADORES_MONITOR = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'];
+    const COLABORADORES_CARDS = ['Jordan', 'Sirlene', 'Ingrid'];
+    const CORES_MONITOR = { Jordan: '#3b82f6', Sirlene: '#a855f7', Ingrid: '#ec4899', Nikolas: '#334155' };
+    const CORES_LIGHT_MONITOR = { Jordan: '#eff6ff', Sirlene: '#faf5ff', Ingrid: '#fdf2f8', Nikolas: '#f8fafc' };
+
+    function sb() { return window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null); }
+    function usuarioAtualSeguro() { return window.currentUser || (typeof currentUser !== 'undefined' ? currentUser : '') || localStorage.getItem('topline_user') || 'Sistema'; }
+    function escHotfix(valor) {
+        if (typeof escapeHtml === 'function') return escapeHtml(valor == null ? '' : String(valor));
+        return String(valor == null ? '' : valor).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+    function normalizarHotfix(valor) {
+        return String(valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    }
+    function logAcessoHotfix(log) {
+        const texto = normalizarHotfix([(log && log.acao) || '', (log && log.detalhes) || ''].join(' '));
+        return texto.includes('login') || texto.includes('logout') || texto.includes('acessou o sistema') || texto.includes('saiu do sistema') || texto.includes('entrada') || texto.includes('saida');
+    }
+    function tipoAcessoHotfix(log) {
+        const texto = normalizarHotfix([(log && log.acao) || '', (log && log.detalhes) || ''].join(' '));
+        return (texto.includes('logout') || texto.includes('saiu do sistema') || texto.includes('saida')) ? 'Saida / Logout' : 'Entrada / Login';
+    }
+    function periodoInicioMonitorHotfix() {
+        const hoje = new Date();
+        const periodo = (typeof monitorPeriodoAtual !== 'undefined' ? monitorPeriodoAtual : 'diario');
+        if (periodo === 'diario') return hoje.toISOString().slice(0, 10);
+        const d = new Date(hoje);
+        d.setDate(d.getDate() - (periodo === 'semanal' ? 6 : 29));
+        return d.toISOString().slice(0, 10);
+    }
+    function labelPeriodoMonitorHotfix() {
+        const periodo = (typeof monitorPeriodoAtual !== 'undefined' ? monitorPeriodoAtual : 'diario');
+        return { diario: 'Hoje', semanal: 'Ultimos 7 dias', mensal: 'Ultimos 30 dias' }[periodo] || 'Hoje';
+    }
+    function pendentesColaboradorHotfix(colab) {
+        try { if (typeof getTarefasPendentesColaborador === 'function') return getTarefasPendentesColaborador(colab) || []; } catch(e) {}
+        return [];
+    }
+    function destruirGraficosMonitorHotfix() {
+        try { if (typeof monitorBarChart !== 'undefined' && monitorBarChart) monitorBarChart.destroy(); } catch(e) {}
+        try { if (typeof monitorPieChart !== 'undefined' && monitorPieChart) monitorPieChart.destroy(); } catch(e) {}
+    }
+
+    window.filtrarSomenteLoginLogoutLogs = function(lista) { return (lista || []).filter(logAcessoHotfix); };
+
+    window.carregarLogs = carregarLogs = async function() {
+        const tbody = document.getElementById('logsBody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando logs de login e logout...</td></tr>';
+        try {
+            const supa = sb();
+            if (!supa) throw new Error('Supabase nao inicializado.');
+            const { data, error } = await supa.from('logs_sistema').select('*').order('created_at', { ascending: false }).limit(1500);
+            if (error) throw error;
+            logsData = window.filtrarSomenteLoginLogoutLogs(data || []);
+            window.renderizarLogs(logsData);
+        } catch(e) {
+            console.error('Erro ao carregar logs de acesso:', e);
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400 font-bold">Erro ao carregar logs de acesso: ${escHotfix(e.message || 'desconhecido')}</td></tr>`;
+        }
+    };
+
+    window.renderizarLogs = renderizarLogs = function(dados) {
+        const tbody = document.getElementById('logsBody');
+        if (!tbody) return;
+        const lista = window.filtrarSomenteLoginLogoutLogs(dados || []);
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum log de entrada ou saida encontrado.</td></tr>';
+            return;
+        }
+        const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600', Brenda: 'text-orange-600', Dev: 'text-red-600' };
+        tbody.innerHTML = lista.map(log => {
+            const dt = log.created_at ? new Date(log.created_at) : new Date();
+            const dataStr = isNaN(dt) ? '-' : dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const tipo = tipoAcessoHotfix(log);
+            const saida = normalizarHotfix(tipo).includes('logout') || normalizarHotfix(tipo).includes('saida');
+            const detalhe = (typeof formatarDetalheLog === 'function') ? formatarDetalheLog(log) : (log.detalhes || log.acao || '-');
+            return `<tr class="${saida ? 'log-row-error' : 'log-row-success'}">
+                <td class="font-mono text-[10px] text-slate-500">${escHotfix(dataStr)}</td>
+                <td class="font-bold ${coresUsuario[log.usuario] || 'text-slate-600'}">${escHotfix(log.usuario || '-')}</td>
+                <td class="text-xs font-black ${saida ? 'text-red-600' : 'text-emerald-600'}">${escHotfix(tipo)}</td>
+                <td class="text-xs text-slate-600">-</td>
+                <td class="text-xs text-emerald-600 font-bold">ACESSO</td>
+                <td class="text-[10px] text-slate-500">${escHotfix(detalhe || '-')}</td>
+            </tr>`;
+        }).join('');
+    };
+
+    window.filtrarLogs = filtrarLogs = function() {
+        const q = normalizarHotfix(document.getElementById('searchLogs')?.value || '');
+        const usuarioFiltro = document.getElementById('filtroUsuarioLog')?.value || '';
+        const filtrado = window.filtrarSomenteLoginLogoutLogs(logsData || []).filter(log => {
+            const texto = normalizarHotfix([log.usuario, log.acao, log.detalhes].join(' '));
+            return (!q || texto.includes(q)) && (!usuarioFiltro || log.usuario === usuarioFiltro);
+        });
+        window.renderizarLogs(filtrado);
+    };
+
+    window.salvarObservacao = salvarObservacao = async function(cliente, documento, observacao, statusNovo) {
+        try {
+            const supa = sb();
+            if (!supa) throw new Error('Supabase nao inicializado.');
+            const obsText = String(observacao || '').trim() || `Alterado para ${statusNovo || 'sem status'}`;
+            const payload = {
+                cliente: cliente || 'N/A',
+                documento: documento || 'N/A',
+                observacao: obsText,
+                status_novo: statusNovo || null,
+                usuario: usuarioAtualSeguro(),
+                created_at: new Date().toISOString()
+            };
+            const { data, error } = await supa.from('historico_observacoes').insert([payload]).select();
+            if (error) throw error;
+            const salvo = (data && data[0]) ? data[0] : payload;
+            if (Array.isArray(historicoData)) historicoData.unshift(salvo);
+            return salvo;
+        } catch(e) {
+            console.error('Erro ao salvar observacao no historico:', e);
+            if (typeof showNotification === 'function') showNotification('Historico nao salvo. Verifique a tabela historico_observacoes no Supabase.', true);
+            throw e;
+        }
+    };
+
+    window.carregarHistorico = carregarHistorico = async function() {
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando historico...</td></tr>';
+        try {
+            const supa = sb();
+            if (!supa) throw new Error('Supabase nao inicializado.');
+            const { data, error } = await supa.from('historico_observacoes').select('*').order('created_at', { ascending: false }).limit(800);
+            if (error) throw error;
+            historicoData = data || [];
+            window.renderizarHistorico(historicoData);
+            if (typeof atualizarResumoHistorico === 'function') atualizarResumoHistorico(historicoData);
+        } catch(e) {
+            console.error('Erro ao carregar historico:', e);
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar historico: ${escHotfix(e.message || 'desconhecido')}</td></tr>`;
+        }
+    };
+
+    window.renderizarHistorico = renderizarHistorico = function(dados) {
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+        const lista = dados || [];
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma observacao registrada ainda.</td></tr>';
+            return;
+        }
+        const coresUsuario = { Nikolas: 'text-slate-700', Ingrid: 'text-pink-600', Jordan: 'text-blue-600', Patricia: 'text-emerald-600', Sirlene: 'text-purple-600', Brenda: 'text-indigo-600', Dev: 'text-red-600' };
+        tbody.innerHTML = lista.map(h => {
+            const dt = h.created_at ? new Date(h.created_at) : new Date();
+            const dataStr = isNaN(dt) ? '-' : dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const id = escHotfix(h.id || '');
+            const botaoObs = h.id ? `<button type="button" onclick="abrirModalEditarObservacaoHistorico('${id}')" class="w-full text-left px-2 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition" title="Clique para editar apenas o texto da observacao">${escHotfix(h.observacao || '-')}</button>` : escHotfix(h.observacao || '-');
+            return `<tr>
+                <td class="font-mono text-[10px] text-slate-500">${escHotfix(dataStr)}</td>
+                <td class="font-bold ${coresUsuario[h.usuario] || 'text-slate-600'}">${escHotfix(h.usuario || '-')}</td>
+                <td class="font-bold text-slate-700 col-fixed">${escHotfix(h.cliente || '-')}</td>
+                <td class="text-xs text-emerald-600 font-bold">${escHotfix(h.documento || '-')}</td>
+                <td class="text-xs text-slate-600 max-w-xs">${botaoObs}</td>
+            </tr>`;
+        }).join('');
+    };
+
+    window.filtrarHistorico = filtrarHistorico = function() {
+        const termo = normalizarHotfix(document.getElementById('searchHistorico')?.value || '');
+        const doc = document.getElementById('filtroDocumento')?.value || '';
+        const usuario = document.getElementById('filtroUsuarioHistorico')?.value || '';
+        const ini = document.getElementById('filtroDataInicio')?.value || '';
+        const fim = document.getElementById('filtroDataFim')?.value || '';
+        const filtrado = (historicoData || []).filter(h => {
+            const texto = normalizarHotfix([h.cliente, h.documento, h.observacao, h.usuario, h.status_novo].join(' '));
+            const data = String(h.created_at || '').slice(0, 10);
+            return (!termo || texto.includes(termo)) && (!doc || h.documento === doc) && (!usuario || h.usuario === usuario) && (!ini || data >= ini) && (!fim || data <= fim);
+        });
+        window.renderizarHistorico(filtrado);
+        if (typeof atualizarResumoHistorico === 'function') atualizarResumoHistorico(filtrado);
+    };
+
+    window.carregarMonitor = carregarMonitor = async function() {
+        const cards = document.getElementById('monitor-cards');
+        const tbody = document.getElementById('monitor-historico-body');
+        if (!cards || !tbody) return;
+        const dataInicio = periodoInicioMonitorHotfix();
+        const periodoLabel = labelPeriodoMonitorHotfix();
+        const title = document.getElementById('monitor-chart-title');
+        const info = document.getElementById('monitor-historico-info');
+        if (title) title.textContent = 'Tarefas Concluidas - ' + periodoLabel;
+        if (info) info.textContent = periodoLabel;
+        cards.innerHTML = '<div class="col-span-3 text-center py-8 text-slate-400 text-xs font-bold">Carregando monitor...</div>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando registros...</td></tr>';
+
+        try {
+            const supa = sb();
+            if (!supa) throw new Error('Supabase nao inicializado.');
+            const [{ data: registros, error: errReg }, { data: logsMonitor, error: errLogs }] = await Promise.all([
+                supa.from('monitor_desempenho').select('*').gte('data', dataInicio).order('data', { ascending: false }),
+                supa.from('logs_sistema').select('*').in('acao', ['Tarefa contabilizada no monitor', 'Tarefa do sorteio realizada']).gte('created_at', dataInicio + 'T00:00:00').order('created_at', { ascending: false })
+            ]);
+            if (errReg) console.warn('Monitor: tabela monitor_desempenho indisponivel ou com erro:', errReg);
+            if (errLogs) console.warn('Monitor: logs de tarefas indisponiveis:', errLogs);
+
+            const agrupado = {};
+            COLABORADORES_MONITOR.forEach(c => agrupado[c] = { total: 0, concluidas: 0, registros: 0 });
+
+            if ((typeof monitorPeriodoAtual === 'undefined' ? 'diario' : monitorPeriodoAtual) === 'diario') {
+                COLABORADORES_MONITOR.forEach(c => {
+                    agrupado[c].total = pendentesColaboradorHotfix(c).length;
+                    agrupado[c].registros = 1;
+                });
+            } else {
+                (registros || []).forEach(r => {
+                    const c = r.colaborador;
+                    if (!agrupado[c]) agrupado[c] = { total: 0, concluidas: 0, registros: 0 };
+                    agrupado[c].total += Number(r.total_tarefas || 0);
+                    agrupado[c].concluidas += Number(r.concluidas || 0);
+                    agrupado[c].registros += 1;
+                });
+            }
+
+            const chaves = {};
+            COLABORADORES_MONITOR.forEach(c => chaves[c] = new Set());
+            (logsMonitor || []).forEach(log => {
+                const detalhes = String(log.detalhes || '');
+                let responsavel = log.usuario || '';
+                const matchSorteio = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Nikolas)/i) || detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Nikolas)/i);
+                if (matchSorteio) responsavel = matchSorteio[1];
+                if (!agrupado[responsavel]) agrupado[responsavel] = { total: 0, concluidas: 0, registros: 0 };
+                if (!chaves[responsavel]) chaves[responsavel] = new Set();
+                const chave = [String(log.cliente || '').trim(), String(log.documento || '').trim(), String(log.created_at || '').slice(0, 10), responsavel].join('||');
+                chaves[responsavel].add(chave);
+            });
+            Object.keys(chaves).forEach(c => {
+                const concluidas = chaves[c].size;
+                agrupado[c].concluidas += concluidas;
+                if ((typeof monitorPeriodoAtual === 'undefined' ? 'diario' : monitorPeriodoAtual) === 'diario') agrupado[c].total += concluidas;
+            });
+
+            cards.innerHTML = COLABORADORES_CARDS.map(c => {
+                const d = agrupado[c] || { total: 0, concluidas: 0, registros: 0 };
+                const pct = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
+                return `<div class="colab-card" style="border-top: 6px solid ${CORES_MONITOR[c]}; background: ${CORES_LIGHT_MONITOR[c]};">
+                    <div class="flex justify-between items-start mb-3"><div><h3 class="text-[10px] font-black uppercase tracking-wider" style="color:${CORES_MONITOR[c]}">${escHotfix(c)}</h3><p class="text-[9px] text-slate-400">${escHotfix(periodoLabel)}</p></div><div class="text-2xl font-black" style="color:${CORES_MONITOR[c]}">${pct}%</div></div>
+                    <div class="progress-bar rounded-full overflow-hidden" style="background:#e2e8f0"><div class="progress-bar" style="width:${Math.min(100, pct)}%;background:${CORES_MONITOR[c]}"></div></div>
+                    <div class="flex justify-between mt-2 text-[9px] text-slate-500"><span>Concluidas: <strong>${d.concluidas}</strong></span><span>Total: <strong>${d.total}</strong></span><span>Dias: <strong>${d.registros}</strong></span></div>
+                </div>`;
+            }).join('');
+
+            destruirGraficosMonitorHotfix();
+            const labels = COLABORADORES_MONITOR;
+            const dataBar = labels.map(c => (agrupado[c] || {}).concluidas || 0);
+            const dataPie = labels.map(c => (agrupado[c] || {}).total || 0);
+            const bg = labels.map(c => CORES_MONITOR[c] || '#64748b');
+            const ctxBar = document.getElementById('monitor-bar-chart')?.getContext('2d');
+            if (ctxBar && typeof Chart !== 'undefined') {
+                monitorBarChart = new Chart(ctxBar, { type: 'bar', data: { labels, datasets: [{ label: 'Tarefas Concluidas', data: dataBar, backgroundColor: bg, borderRadius: 8, borderSkipped: false }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+            }
+            const ctxPie = document.getElementById('monitor-pie-chart')?.getContext('2d');
+            if (ctxPie && typeof Chart !== 'undefined') {
+                monitorPieChart = new Chart(ctxPie, { type: 'doughnut', data: { labels, datasets: [{ data: dataPie, backgroundColor: bg, borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 }, padding: 5 } } }, cutout: '60%' } });
+            }
+
+            let html = '';
+            const hojeStr = new Date().toISOString().slice(0, 10);
+            if ((typeof monitorPeriodoAtual === 'undefined' ? 'diario' : monitorPeriodoAtual) === 'diario') {
+                html += COLABORADORES_MONITOR.map(c => {
+                    const d = agrupado[c] || { total: 0, concluidas: 0 };
+                    const pct = d.total > 0 ? Math.round((d.concluidas / d.total) * 100) : 0;
+                    return `<tr><td class="font-mono text-xs">${new Date(hojeStr + 'T12:00:00').toLocaleDateString('pt-BR')}</td><td class="font-bold">${escHotfix(c)}</td><td>${d.total}</td><td class="text-emerald-600 font-bold">${d.concluidas}</td><td><div class="flex items-center gap-2"><div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${Math.min(100,pct)}%"></div></div><span class="text-xs font-bold">${pct}%</span></div></td></tr>`;
+                }).join('');
+            }
+            html += (registros || []).map(r => {
+                const total = Number(r.total_tarefas || 0);
+                const concl = Number(r.concluidas || 0);
+                const pct = total > 0 ? Math.round((concl / total) * 100) : 0;
+                return `<tr><td class="font-mono text-xs">${escHotfix(r.data ? new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR') : '-')}</td><td class="font-bold">${escHotfix(r.colaborador || '-')}</td><td>${total}</td><td class="text-emerald-600 font-bold">${concl}</td><td><div class="flex items-center gap-2"><div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${Math.min(100,pct)}%"></div></div><span class="text-xs font-bold">${pct}%</span></div></td></tr>`;
+            }).join('');
+            tbody.innerHTML = html || '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum registro encontrado neste periodo.</td></tr>';
+
+            if (typeof carregarTarefasMonitorGeral === 'function') await carregarTarefasMonitorGeral();
+        } catch(e) {
+            console.error('Erro ao carregar monitor:', e);
+            cards.innerHTML = '<div class="col-span-3 text-center py-8 text-red-400 text-xs font-bold">Erro ao carregar monitor.</div>';
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar dados do monitor: ${escHotfix(e.message || 'desconhecido')}</td></tr>`;
+        }
+    };
+
+    window.setMonitorPeriodo = setMonitorPeriodo = function(periodo) {
+        monitorPeriodoAtual = periodo || 'diario';
+        ['diario','semanal','mensal'].forEach(p => document.getElementById('monitor-btn-' + p)?.classList.remove('monitor-tab-active'));
+        document.getElementById('monitor-btn-' + monitorPeriodoAtual)?.classList.add('monitor-tab-active');
+        window.carregarMonitor();
+    };
+})();
+
 </script>
 
 </html>
