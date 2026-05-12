@@ -2153,6 +2153,7 @@
         const SHEET_SENHAS_NOME = "SENHAS";
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window.supabaseClient = supabaseClient;
         
         const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYP4-YzYEM_345_PWgfqmlD9id6viNFT91g6BhLVEnQ1kOfwQxO5THy6Z_IpiPec5Xc2FGuAcPz6mE/pub?output=csv";
         const URL_DADOS_PRINCIPAIS = BASE_URL + "&gid=0";
@@ -7460,7 +7461,11 @@ async function abrirHistoricoModal(cliente, documento) {
     if (window.__TOPLINE_HOTFIX_MONITOR_HISTORICO_FINAL__) return;
     window.__TOPLINE_HOTFIX_MONITOR_HISTORICO_FINAL__ = true;
 
-    function supaFinal(){ return window.supabaseClient || window.supabase || null; }
+    function supaFinal(){
+        try { if (window.supabaseClient && typeof window.supabaseClient.from === 'function') return window.supabaseClient; } catch(e) {}
+        try { if (typeof supabaseClient !== 'undefined' && supabaseClient && typeof supabaseClient.from === 'function') return supabaseClient; } catch(e) {}
+        return null;
+    }
     function escFinal(v){
         return String(v ?? '').replace(/[&<>'"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]; });
     }
