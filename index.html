@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.05.11.2";
+        window.TOPLINE_APP_VERSION = "2026.05.11.3";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -2177,6 +2177,13 @@
         const PERFIS_MONITOR = ['Nikolas', 'Ingrid', 'Dev'];
         // Perfis que podem realizar sorteios
         const PERFIS_SORTEIO = ['Ingrid', 'Dev'];
+        function usuarioTemPermissao(listaPerfis, usuario) {
+            const nome = String(usuario || currentUser || usuarioSelecionado || localStorage.getItem("topline_user") || '').trim().toLowerCase();
+            return (listaPerfis || []).some(perfil => String(perfil || '').trim().toLowerCase() === nome);
+        }
+        function usuarioPodeSortear() {
+            return usuarioTemPermissao(PERFIS_SORTEIO);
+        }
         // Perfis com acesso a Financeiro
         const PERFIS_FINANCEIRO = ['Nikolas', 'Brenda', 'Dev'];
 
@@ -2600,7 +2607,8 @@
         }
 
         function login(userName, isAuto = false) {
-            const usuarioLogin = userName || usuarioSelecionado || currentUser || 'Sistema';
+            const usuarioEntrada = userName || usuarioSelecionado || currentUser || 'Sistema';
+            const usuarioLogin = Object.keys(USUARIOS_SENHAS).find(u => String(u).trim().toLowerCase() === String(usuarioEntrada).trim().toLowerCase()) || String(usuarioEntrada).trim();
             localStorage.setItem("topline_user", usuarioLogin);
             currentUser = usuarioLogin;
             window.currentUser = currentUser;
@@ -2665,7 +2673,7 @@
         }
         
         function atualizarBotoesSorteio() {
-            const podeSort = PERFIS_SORTEIO.includes(currentUser);
+            const podeSort = usuarioPodeSortear();
             const containerTasks = document.getElementById('botoesSorteioTasks');
             const avisoRestricao = document.getElementById('avisoRestricao');
             const resetContainer = document.getElementById('resetButtonContainer');
@@ -3166,7 +3174,7 @@
         }
 
         async function resetarDistribuicao() {
-            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas Ingrid ou Dev podem resetar a distribuição!', true); return; }
+            if (!usuarioPodeSortear()) { showNotification('❌ Apenas Ingrid ou Dev podem resetar a distribuição!', true); return; }
             if (!confirm('⚠️ ATENÇÃO! Isso irá remover TODAS as tarefas atribuídas. Deseja continuar?')) return;
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
@@ -5439,7 +5447,7 @@
         // SORTEIO
         // ============================================
         async function distribuirTarefas(statusAlvo) {
-            if (!PERFIS_SORTEIO.includes(currentUser)) { showNotification('❌ Apenas Ingrid ou Dev podem realizar sorteios!', true); return; }
+            if (!usuarioPodeSortear()) { showNotification('❌ Apenas Ingrid ou Dev podem realizar sorteios!', true); return; }
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
             try {
@@ -5499,7 +5507,7 @@
         // SORTEIO DE DÍVIDAS
         // ============================================
         async function distribuirTarefasDividas() {
-            if (!PERFIS_SORTEIO.includes(currentUser)) {
+            if (!usuarioPodeSortear()) {
                 showNotification('❌ Apenas Ingrid ou Dev podem realizar sorteios!', true);
                 return;
             }
