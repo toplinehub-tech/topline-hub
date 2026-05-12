@@ -7446,6 +7446,280 @@ async function abrirHistoricoModal(cliente, documento) {
     };
 })();
 
+
+
+/* =========================================================
+   HOTFIX FINAL - MONITOR + HISTORICO DE ATIVIDADES
+   Mantem a aba Logs exibindo somente login/logout.
+   Faz Historico e Monitor lerem atividades reais a partir de:
+   - historico_observacoes
+   - logs_sistema, exceto login/logout
+   - financeiro_logs, quando existir
+   ========================================================= */
+(function(){
+    if (window.__TOPLINE_HOTFIX_MONITOR_HISTORICO_FINAL__) return;
+    window.__TOPLINE_HOTFIX_MONITOR_HISTORICO_FINAL__ = true;
+
+    function supaFinal(){ return window.supabaseClient || window.supabase || null; }
+    function escFinal(v){
+        return String(v ?? '').replace(/[&<>'"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]; });
+    }
+    function normFinal(v){
+        return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    function usuarioFinal(){
+        return window.currentUser || window.usuarioSelecionado || localStorage.getItem('topline_user') || 'Sistema';
+    }
+    function isLoginLogoutFinal(item){
+        const t = normFinal([item?.acao, item?.detalhes, item?.observacao].join(' '));
+        return t.includes('login') || t.includes('logout') || t.includes('acessou o sistema') || t.includes('saiu do sistema') || t.includes('entrada') || t.includes('saida');
+    }
+    function isAtividadeFinal(item){
+        if (!item) return false;
+        if (isLoginLogoutFinal(item)) return false;
+        const t = normFinal([item.acao, item.detalhes, item.observacao, item.documento].join(' '));
+        if (!t.trim()) return false;
+        if (t.includes('sorteio realizado')) return false;
+        if (t.includes('resetar distribuicao')) return false;
+        return true;
+    }
+    function periodoInicioFinal(){
+        const hoje = new Date();
+        const periodo = window.monitorPeriodoAtual || 'diario';
+        if (periodo === 'diario') return hoje.toISOString().slice(0,10);
+        const d = new Date(hoje);
+        d.setDate(d.getDate() - (periodo === 'semanal' ? 6 : 29));
+        return d.toISOString().slice(0,10);
+    }
+    function periodoLabelFinal(){
+        return { diario:'Hoje', semanal:'Ultimos 7 dias', mensal:'Ultimos 30 dias' }[window.monitorPeriodoAtual || 'diario'] || 'Hoje';
+    }
+    function dataHoraFinal(v){
+        const d = v ? new Date(v) : new Date();
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    }
+    function colaboradorDoRegistroFinal(item){
+        const detalhes = String(item?.detalhes || item?.observacao || '');
+        const m = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia|Brenda|Dev)/i) || detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia|Brenda|Dev)/i);
+        return m ? m[1] : (item?.usuario || usuarioFinal() || 'Sistema');
+    }
+    function normalizarAtividadeFinal(item, origem){
+        return {
+            id: (origem || 'origem') + '_' + (item?.id || item?.created_at || Math.random()),
+            created_at: item?.created_at || item?.data || item?.atualizado_em || new Date().toISOString(),
+            usuario: item?.usuario || item?.atualizado_por || usuarioFinal(),
+            cliente: item?.cliente || item?.CLIENTE || '-',
+            documento: item?.documento || item?.acao || origem || '-',
+            acao: item?.acao || item?.status_novo || origem || 'Atividade registrada',
+            observacao: item?.observacao || item?.detalhes || item?.acao || '-',
+            detalhes: item?.detalhes || item?.observacao || '-',
+            status_novo: item?.status_novo || '',
+            origem: origem || 'Sistema'
+        };
+    }
+    async function buscarAtividadesFinal(dataInicio){
+        const sb = supaFinal();
+        if (!sb) throw new Error('Supabase nao inicializado.');
+        const consultas = [
+            sb.from('historico_observacoes').select('*').gte('created_at', dataInicio + 'T00:00:00').order('created_at', { ascending:false }).limit(1200),
+            sb.from('logs_sistema').select('*').gte('created_at', dataInicio + 'T00:00:00').order('created_at', { ascending:false }).limit(1200),
+            sb.from('financeiro_logs').select('*').gte('created_at', dataInicio + 'T00:00:00').order('created_at', { ascending:false }).limit(500)
+        ];
+        const res = await Promise.allSettled(consultas);
+        const lista = [];
+        const nomes = ['historico_observacoes','logs_sistema','financeiro_logs'];
+        res.forEach((r, idx) => {
+            if (r.status !== 'fulfilled') return;
+            if (r.value && r.value.error) { console.warn('Fonte de atividade indisponivel:', nomes[idx], r.value.error); return; }
+            (r.value?.data || []).forEach(x => {
+                if (isAtividadeFinal(x)) lista.push(normalizarAtividadeFinal(x, nomes[idx]));
+            });
+        });
+        const vistos = new Set();
+        return lista.filter(a => {
+            const chave = [String(a.created_at).slice(0,16), a.usuario, a.cliente, a.documento, a.acao, a.observacao].join('|');
+            if (vistos.has(chave)) return false;
+            vistos.add(chave);
+            return true;
+        }).sort((a,b) => String(b.created_at).localeCompare(String(a.created_at)));
+    }
+
+    const registrarLogBaseFinal = window.registrarLog;
+    window.registrarLog = registrarLog = async function(acao, cliente, documento, detalhes, valorAnterior, valorNovo, usuarioOverride){
+        let retorno;
+        if (typeof registrarLogBaseFinal === 'function') {
+            retorno = await registrarLogBaseFinal.apply(this, arguments);
+        }
+        try {
+            const item = { acao, detalhes, documento, observacao: detalhes };
+            if (isAtividadeFinal(item)) {
+                const sb = supaFinal();
+                if (sb) {
+                    await sb.from('historico_observacoes').insert([{
+                        cliente: cliente || 'N/A',
+                        documento: documento || acao || 'Atividade',
+                        observacao: detalhes || acao || 'Atividade registrada',
+                        status_novo: valorNovo || null,
+                        usuario: usuarioOverride || usuarioFinal(),
+                        created_at: new Date().toISOString()
+                    }]);
+                }
+            }
+        } catch(e) { console.warn('Historico espelho do log nao salvo:', e); }
+        return retorno;
+    };
+
+    window.carregarHistorico = carregarHistorico = async function(){
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades...</td></tr>';
+        try {
+            const lista = await buscarAtividadesFinal('2000-01-01');
+            window.historicoData = lista;
+            window.renderizarHistorico(lista);
+            if (typeof atualizarResumoHistorico === 'function') atualizarResumoHistorico(lista);
+        } catch(e) {
+            console.error('Erro ao carregar historico de atividades:', e);
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar historico: ' + escFinal(e.message || 'desconhecido') + '</td></tr>';
+        }
+    };
+
+    window.renderizarHistorico = renderizarHistorico = function(dados){
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+        const lista = dados || [];
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade registrada ainda.</td></tr>';
+            return;
+        }
+        const cores = { Nikolas:'text-slate-700', Ingrid:'text-pink-600', Jordan:'text-blue-600', Patricia:'text-emerald-600', Sirlene:'text-purple-600', Brenda:'text-indigo-600', Dev:'text-red-600' };
+        tbody.innerHTML = lista.map(h => {
+            const obs = h.observacao || h.detalhes || '-';
+            const fonte = h.origem ? '<span class="ml-2 text-[8px] text-slate-400 uppercase">' + escFinal(h.origem) + '</span>' : '';
+            return '<tr>' +
+                '<td class="font-mono text-[10px] text-slate-500">' + escFinal(dataHoraFinal(h.created_at)) + '</td>' +
+                '<td class="font-bold ' + (cores[h.usuario] || 'text-slate-600') + '">' + escFinal(h.usuario || '-') + '</td>' +
+                '<td class="font-bold text-slate-700 col-fixed">' + escFinal(h.cliente || '-') + '</td>' +
+                '<td class="text-xs text-emerald-600 font-bold">' + escFinal(h.documento || '-') + '</td>' +
+                '<td class="text-xs text-slate-600 max-w-xs">' + escFinal(obs) + fonte + '</td>' +
+            '</tr>';
+        }).join('');
+    };
+
+    window.filtrarHistorico = filtrarHistorico = function(){
+        const termo = normFinal(document.getElementById('searchHistorico')?.value || '');
+        const doc = document.getElementById('filtroDocumento')?.value || '';
+        const usuario = document.getElementById('filtroUsuarioHistorico')?.value || '';
+        const ini = document.getElementById('filtroDataInicio')?.value || '';
+        const fim = document.getElementById('filtroDataFim')?.value || '';
+        const filtrado = (window.historicoData || []).filter(h => {
+            const texto = normFinal([h.cliente, h.documento, h.observacao, h.detalhes, h.usuario, h.acao, h.origem].join(' '));
+            const data = String(h.created_at || '').slice(0,10);
+            return (!termo || texto.includes(termo)) && (!doc || h.documento === doc) && (!usuario || h.usuario === usuario) && (!ini || data >= ini) && (!fim || data <= fim);
+        });
+        window.renderizarHistorico(filtrado);
+        if (typeof atualizarResumoHistorico === 'function') atualizarResumoHistorico(filtrado);
+    };
+
+    window.carregarTarefasMonitorGeral = carregarTarefasMonitorGeral = async function(){
+        const body = document.getElementById('monitor-extra-body');
+        const cards = document.getElementById('monitor-extra-cards');
+        if (!body || !cards) return;
+        const dataInicio = periodoInicioFinal();
+        body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades...</td></tr>';
+        try {
+            const atividades = await buscarAtividadesFinal(dataInicio);
+            const porUsuario = {};
+            atividades.forEach(a => {
+                const u = colaboradorDoRegistroFinal(a);
+                if (!porUsuario[u]) porUsuario[u] = { total:0, fora:0, sorteio:0 };
+                porUsuario[u].total++;
+                if (normFinal(a.detalhes || a.observacao).includes('sorteio')) porUsuario[u].sorteio++; else porUsuario[u].fora++;
+            });
+            const nomes = ['Jordan','Sirlene','Ingrid','Patricia','Nikolas','Brenda','Dev'];
+            cards.innerHTML = nomes.map(n => {
+                const d = porUsuario[n] || { total:0, fora:0, sorteio:0 };
+                return '<div class="mini-kpi"><strong>' + escFinal(n) + '</strong><span>' + d.total + ' realizadas<br>' + d.fora + ' fora • ' + d.sorteio + ' sorteio</span></div>';
+            }).join('');
+            if (!atividades.length) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade encontrada no periodo.</td></tr>';
+                return;
+            }
+            body.innerHTML = atividades.slice(0,100).map(a => {
+                const origem = normFinal(a.detalhes || a.observacao).includes('sorteio') ? 'Sorteio' : 'Fora do sorteio';
+                const cls = origem === 'Sorteio' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200';
+                return '<tr>' +
+                    '<td class="font-mono text-[10px] text-slate-500">' + escFinal(dataHoraFinal(a.created_at)) + '</td>' +
+                    '<td class="font-bold text-slate-700">' + escFinal(colaboradorDoRegistroFinal(a)) + '</td>' +
+                    '<td class="font-bold text-slate-700">' + escFinal(a.cliente || '-') + '</td>' +
+                    '<td class="text-xs text-emerald-600 font-bold">' + escFinal(a.documento || '-') + '</td>' +
+                    '<td><span class="px-2 py-1 rounded-full border text-[8px] font-black uppercase ' + cls + '">' + origem + '</span></td>' +
+                '</tr>';
+            }).join('');
+        } catch(e) {
+            console.error('Erro ao carregar atividades do monitor:', e);
+            body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar atividades: ' + escFinal(e.message || 'desconhecido') + '</td></tr>';
+        }
+    };
+
+    window.carregarMonitor = carregarMonitor = async function(){
+        const cards = document.getElementById('monitor-cards');
+        const tbody = document.getElementById('monitor-historico-body');
+        if (!cards || !tbody) return;
+        const dataInicio = periodoInicioFinal();
+        const label = periodoLabelFinal();
+        const title = document.getElementById('monitor-chart-title');
+        const info = document.getElementById('monitor-historico-info');
+        if (title) title.textContent = 'Atividades realizadas - ' + label;
+        if (info) info.textContent = label;
+        cards.innerHTML = '<div class="col-span-3 text-center py-8 text-slate-400 text-xs font-bold">Carregando monitor...</div>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando registros...</td></tr>';
+        try {
+            const atividades = await buscarAtividadesFinal(dataInicio);
+            const cols = ['Jordan','Sirlene','Ingrid','Patricia','Nikolas','Brenda','Dev'];
+            const agrupado = {};
+            cols.forEach(c => agrupado[c] = { total:0, concluidas:0, registros:0 });
+            atividades.forEach(a => {
+                const c = colaboradorDoRegistroFinal(a);
+                if (!agrupado[c]) agrupado[c] = { total:0, concluidas:0, registros:0 };
+                agrupado[c].concluidas++;
+                agrupado[c].total++;
+                agrupado[c].registros = 1;
+            });
+            cards.innerHTML = cols.slice(0,4).map(c => {
+                const d = agrupado[c] || { total:0, concluidas:0 };
+                return '<div class="colab-card">' +
+                    '<div class="flex justify-between items-start mb-3"><div><h3 class="text-[10px] font-black uppercase tracking-wider text-slate-700">' + escFinal(c) + '</h3><p class="text-[9px] text-slate-400">' + escFinal(label) + '</p></div><div class="text-2xl font-black text-emerald-600">' + d.concluidas + '</div></div>' +
+                    '<div class="text-[9px] text-slate-500"><span>Atividades realizadas: <strong>' + d.concluidas + '</strong></span></div>' +
+                '</div>';
+            }).join('');
+            if (typeof destruirGraficosMonitorHotfix === 'function') destruirGraficosMonitorHotfix();
+            const labels = cols;
+            const values = labels.map(c => (agrupado[c] || {}).concluidas || 0);
+            const ctxBar = document.getElementById('monitor-bar-chart')?.getContext('2d');
+            if (ctxBar && typeof Chart !== 'undefined') window.monitorBarChart = new Chart(ctxBar, { type:'bar', data:{ labels, datasets:[{ label:'Atividades', data:values, borderRadius:8, borderSkipped:false }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } } });
+            const ctxPie = document.getElementById('monitor-pie-chart')?.getContext('2d');
+            if (ctxPie && typeof Chart !== 'undefined') window.monitorPieChart = new Chart(ctxPie, { type:'doughnut', data:{ labels, datasets:[{ data:values, borderWidth:1 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, font:{ size:8 }, padding:5 } } }, cutout:'60%' } });
+            tbody.innerHTML = Object.keys(agrupado).filter(c => agrupado[c].concluidas > 0).map(c => {
+                const d = agrupado[c];
+                return '<tr><td class="font-mono text-xs">' + escFinal(label) + '</td><td class="font-bold">' + escFinal(c) + '</td><td>' + d.total + '</td><td class="text-emerald-600 font-bold">' + d.concluidas + '</td><td><span class="text-xs font-bold">' + d.concluidas + ' atividade(s)</span></td></tr>';
+            }).join('') || '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade encontrada neste periodo.</td></tr>';
+            await window.carregarTarefasMonitorGeral();
+        } catch(e) {
+            console.error('Erro ao carregar monitor final:', e);
+            cards.innerHTML = '<div class="col-span-3 text-center py-8 text-red-400 text-xs font-bold">Erro ao carregar monitor.</div>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar monitor: ' + escFinal(e.message || 'desconhecido') + '</td></tr>';
+        }
+    };
+
+    window.setMonitorPeriodo = setMonitorPeriodo = function(periodo){
+        window.monitorPeriodoAtual = periodo || 'diario';
+        ['diario','semanal','mensal'].forEach(p => document.getElementById('monitor-btn-' + p)?.classList.remove('monitor-tab-active'));
+        document.getElementById('monitor-btn-' + window.monitorPeriodoAtual)?.classList.add('monitor-tab-active');
+        window.carregarMonitor();
+    };
+})();
 </script>
 
 </html>
