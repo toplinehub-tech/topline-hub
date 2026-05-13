@@ -92,7 +92,38 @@
             });
             setInterval(verificarNovaVersaoPublicada, 60000);
         })();
-    </script>
+    
+// ==========================
+// HISTÓRICO - OBSERVAÇÃO
+// ==========================
+
+function montarTextoHistorico(item) {
+
+    const statusAnterior =
+        item.statusAnterior ||
+        item.status_anterior ||
+        item.de ||
+        '';
+
+    const statusNovo =
+        item.statusNovo ||
+        item.status_novo ||
+        item.para ||
+        item.status ||
+        '';
+
+    if (statusAnterior && statusNovo) {
+        return `${statusAnterior} → ${statusNovo}`;
+    }
+
+    if (statusNovo) {
+        return statusNovo;
+    }
+
+    return '-';
+}
+
+</script>
 
 
     <!-- Performance: conexoes antecipadas para imagens e CDNs usados na tela inicial -->
