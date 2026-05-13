@@ -1085,6 +1085,34 @@ function montarTextoHistorico(item) {
     background:#ffffff;
 }
 
+
+.historico-dia-btn {
+    min-width: 34px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid #dbe4ee;
+    background: #ffffff;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 900;
+    transition: all .18s ease;
+}
+.historico-dia-btn:hover,
+.historico-dia-btn.active {
+    background: #10b981;
+    border-color: #059669;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(16,185,129,.16);
+    transform: translateY(-1px);
+}
+.historico-dia-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
 </style>
 </head>
 <body>
@@ -2271,132 +2299,317 @@ function montarTextoHistorico(item) {
 
 
 
+
 <script>
 // ==========================
-// HISTÓRICO - AJUSTE DIRECIONADO EMPRESAS/PARCELAMENTOS
-// Só simplifica a observação quando for alteração real de PGDAS/parcelamento
-// de "Não enviado" para "Enviado". As demais tarefas continuam normais.
+// HISTÓRICO RÁPIDO POR DIA
+// Carrega por padrão somente as atividades do dia atual.
+// Cria botões numerados para navegar entre dias com serviços executados.
 // ==========================
 
 (function(){
-    function texto(el){
-        return String(el && el.innerText ? el.innerText : '').trim();
+    window.historicoDiaSelecionado = window.historicoDiaSelecionado || null;
+    window.historicoDiasDisponiveis = window.historicoDiasDisponiveis || [];
+
+    function historicoDataLocalISO(data) {
+        const d = data ? new Date(data) : new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
     }
 
-    function ehHistoricoVisivel(){
-        var view = document.getElementById('view-historico');
-        if (!view) return false;
-        return !view.classList.contains('hidden') && view.offsetParent !== null;
+    function historicoRangeDiaISO(dateStr) {
+        const partes = String(dateStr || historicoDataLocalISO()).split('-').map(Number);
+        const inicio = new Date(partes[0], partes[1] - 1, partes[2], 0, 0, 0, 0);
+        const fim = new Date(partes[0], partes[1] - 1, partes[2] + 1, 0, 0, 0, 0);
+        return { inicio: inicio.toISOString(), fim: fim.toISOString() };
     }
 
-    function ehParcelamentos(docTexto, obsTexto){
-        var d = String(docTexto || '').toLowerCase();
-        var o = String(obsTexto || '').toLowerCase();
-        return d.includes('parcelamento') || o.includes('empresas/parcelamentos') || o.includes('parcelamentos');
+    function historicoFormatarDataBR(dateStr) {
+        const partes = String(dateStr || '').split('-');
+        if (partes.length !== 3) return dateStr || '';
+        return `${partes[2]}/${partes[1]}`;
     }
 
-    function mudouNaoEnviadoParaEnviado(obsTexto){
-        var o = String(obsTexto || '').toLowerCase();
-        var temNaoEnviado = o.includes('não enviado') || o.includes('nao enviado');
-        var temParaEnviado =
-            o.includes('para "enviado"') ||
-            o.includes("para 'enviado'") ||
-            o.includes('para enviado') ||
-            o.includes('→ enviado') ||
-            o.includes('-> enviado');
+    function historicoGarantirBotoesDias() {
+        const view = document.getElementById('view-historico');
+        if (!view) return null;
 
+        let wrap = document.getElementById('historicoDiasServicoWrap');
+        if (wrap) return wrap;
+
+        const filtros = view.querySelector('.grid.grid-cols-6');
+        wrap = document.createElement('div');
+        wrap.id = 'historicoDiasServicoWrap';
+        wrap.className = 'soft-card mb-4 flex flex-wrap items-center gap-2';
+        wrap.innerHTML = `
+            <span class="historico-dia-label mr-1">Dias com serviços:</span>
+            <div id="historicoDiasServicoBotoes" class="flex flex-wrap gap-2"></div>
+        `;
+
+        if (filtros && filtros.parentNode) {
+            filtros.parentNode.insertBefore(wrap, filtros.nextSibling);
+        }
+
+        return wrap;
+    }
+
+    function historicoRenderizarBotoesDias() {
+        historicoGarantirBotoesDias();
+
+        const box = document.getElementById('historicoDiasServicoBotoes');
+        if (!box) return;
+
+        const dias = window.historicoDiasDisponiveis || [];
+        if (!dias.length) {
+            box.innerHTML = '<span class="text-[10px] text-slate-400 font-bold">Nenhum dia encontrado.</span>';
+            return;
+        }
+
+        box.innerHTML = dias.slice(0, 20).map(function(dia, idx){
+            const ativo = dia === window.historicoDiaSelecionado ? 'active' : '';
+            const label = idx === 0 && dia === historicoDataLocalISO() ? 'Hoje' : historicoFormatarDataBR(dia);
+            return `<button type="button" class="historico-dia-btn ${ativo}" onclick="carregarHistoricoDia('${dia}')">${idx + 1}</button><span class="historico-dia-label">${label}</span>`;
+        }).join('');
+    }
+
+    async function historicoCarregarDiasDisponiveis() {
+        try {
+            if (!window.supabaseClient) return;
+
+            const { data, error } = await supabaseClient
+                .from('historico_observacoes')
+                .select('created_at')
+                .order('created_at', { ascending: false })
+                .limit(1200);
+
+            if (error) throw error;
+
+            const dias = [];
+            (data || []).forEach(function(r){
+                const dia = historicoDataLocalISO(r.created_at);
+                if (dia && !dias.includes(dia)) dias.push(dia);
+            });
+
+            const hoje = historicoDataLocalISO();
+            if (!dias.includes(hoje)) dias.unshift(hoje);
+
+            window.historicoDiasDisponiveis = dias;
+            historicoRenderizarBotoesDias();
+        } catch(e) {
+            console.error('Erro ao carregar dias do histórico:', e);
+        }
+    }
+
+    function historicoAtualizarCards(dados) {
+        dados = dados || [];
+
+        const totalEl = document.getElementById('hist-total');
+        const hojeEl = document.getElementById('hist-hoje');
+        const topEl = document.getElementById('hist-top-user');
+
+        if (totalEl) totalEl.innerText = String(dados.length);
+        if (hojeEl) hojeEl.innerText = String(dados.length);
+
+        const porUsuario = {};
+        dados.forEach(function(h){
+            const u = h.usuario || 'Sistema';
+            porUsuario[u] = (porUsuario[u] || 0) + 1;
+        });
+
+        let top = '-';
+        let max = 0;
+        Object.keys(porUsuario).forEach(function(u){
+            if (porUsuario[u] > max) {
+                max = porUsuario[u];
+                top = u;
+            }
+        });
+
+        if (topEl) topEl.innerText = top;
+    }
+
+    function historicoEhParcelamentos(h) {
+        const doc = String(h && h.documento ? h.documento : '').toLowerCase();
+        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
+        return doc.includes('parcelamento') || obs.includes('empresas/parcelamentos') || obs.includes('parcelamentos');
+    }
+
+    function historicoMudouNaoEnviadoParaEnviado(h) {
+        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
+        const temNaoEnviado = obs.includes('não enviado') || obs.includes('nao enviado');
+        const temParaEnviado =
+            obs.includes('para "enviado"') ||
+            obs.includes("para 'enviado'") ||
+            obs.includes('para enviado') ||
+            obs.includes('→ enviado') ||
+            obs.includes('-> enviado');
         return temNaoEnviado && temParaEnviado;
     }
 
-    window.aplicarHistoricoParcelamentosObservacao = function(){
-        if (!ehHistoricoVisivel()) return;
-
-        var view = document.getElementById('view-historico');
-        var linhas = view.querySelectorAll('tbody tr');
-
-        linhas.forEach(function(tr){
-            var tds = tr.querySelectorAll('td');
-            if (tds.length < 5) return;
-
-            // Ordem vista na tela: Data/Hora, Colaborador, Cliente, Documento, Observação
-            var tdDocumento = tds[3];
-            var tdObs = tds[4];
-
-            if (!tdObs) return;
-
-            if (!tdObs.dataset.originalObservacao) {
-                tdObs.dataset.originalObservacao = texto(tdObs);
-            }
-
-            var original = tdObs.dataset.originalObservacao;
-            var doc = texto(tdDocumento);
-
-            if (ehParcelamentos(doc, original) && mudouNaoEnviadoParaEnviado(original)) {
-                tdObs.innerText = 'Não enviado → Enviado';
-            } else {
-                // Mantém as demais tarefas exatamente como o sistema já renderizou.
-                tdObs.innerText = original;
-            }
-
-            // Mantém possibilidade de ajuste manual ao clicar na observação.
-            tdObs.contentEditable = true;
-            tdObs.classList.add('historico-observacao-editavel');
-
-            tdObs.onblur = async function(){
-                var novoTexto = tdObs.innerText.trim();
-
-                // Atualiza o valor exibido nesta sessão para não voltar sozinho após re-render.
-                tdObs.dataset.originalObservacao = novoTexto;
-
-                try {
-                    var id =
-                        tr.dataset.id ||
-                        tr.getAttribute('data-id') ||
-                        tdObs.dataset.id ||
-                        '';
-
-                    if (!id) return;
-
-                    var payload = {
-                        observacao_editada: novoTexto,
-                        editado_em: new Date().toISOString()
-                    };
-
-                    if (window.supabaseClient && window.supabaseClient.from) {
-                        await window.supabaseClient.from('historico_observacoes').update(payload).eq('id', id);
-                        return;
-                    }
-
-                    if (window.db && db.collection) {
-                        await db.collection('historico').doc(String(id)).update(payload);
-                        return;
-                    }
-
-                    if (window.supabase && window.supabase.from) {
-                        await window.supabase.from('historico_observacoes').update(payload).eq('id', id);
-                    }
-                } catch(e) {
-                    console.error('Erro ao salvar edição da observação do histórico:', e);
-                }
-            };
-        });
-    };
-
-    var originalSwitchTab = window.switchTab;
-    if (typeof originalSwitchTab === 'function' && !window.__historicoParcelamentosSwitchPatch) {
-        window.__historicoParcelamentosSwitchPatch = true;
-        window.switchTab = function(tab){
-            var r = originalSwitchTab.apply(this, arguments);
-            if (tab === 'historico') {
-                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 300);
-                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 1200);
-            }
-            return r;
-        };
+    function historicoObservacaoExibida(h) {
+        if (historicoEhParcelamentos(h) && historicoMudouNaoEnviadoParaEnviado(h)) {
+            return 'Não enviado → Enviado';
+        }
+        return (h && h.observacao) ? h.observacao : '-';
     }
 
-    setTimeout(window.aplicarHistoricoParcelamentosObservacao, 800);
-    setInterval(window.aplicarHistoricoParcelamentosObservacao, 4000);
+    window.renderizarHistorico = function(dados) {
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+
+        dados = dados || [];
+        historicoAtualizarCards(dados);
+
+        if (!dados.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade registrada neste dia.</td></tr>';
+            return;
+        }
+
+        const coresUsuario = {
+            Nikolas: 'text-slate-700',
+            Ingrid: 'text-pink-600',
+            Jordan: 'text-blue-600',
+            Patricia: 'text-emerald-600',
+            Sirlene: 'text-purple-600',
+            Brenda: 'text-indigo-600',
+            Dev: 'text-red-600'
+        };
+
+        tbody.innerHTML = dados.map(function(h){
+            const dt = new Date(h.created_at);
+            const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const corUser = coresUsuario[h.usuario] || 'text-slate-600';
+            const obs = historicoObservacaoExibida(h);
+            return `<tr>
+                <td class="font-mono text-[10px] text-slate-500">${dataStr}</td>
+                <td class="font-bold ${corUser}">${h.usuario || '-'}</td>
+                <td class="font-bold text-slate-700 col-fixed">${h.cliente || '-'}</td>
+                <td class="text-xs text-emerald-600 font-bold">${h.documento || '-'}</td>
+                <td class="text-xs text-slate-600 max-w-xs">
+                    <button type="button"
+                        onclick="abrirModalEditarObservacaoHistorico('${h.id}')"
+                        class="w-full text-left px-2 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition"
+                        title="Clique para editar apenas o texto da observação">
+                        ${obs}
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    };
+
+    window.carregarHistoricoDia = async function(dateStr) {
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+
+        const dia = dateStr || window.historicoDiaSelecionado || historicoDataLocalISO();
+        window.historicoDiaSelecionado = dia;
+
+        const dataInicio = document.getElementById('filtroDataInicio');
+        const dataFim = document.getElementById('filtroDataFim');
+        if (dataInicio) dataInicio.value = dia;
+        if (dataFim) dataFim.value = dia;
+
+        historicoRenderizarBotoesDias();
+
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades do dia...</td></tr>';
+
+        try {
+            const range = historicoRangeDiaISO(dia);
+
+            const { data, error } = await supabaseClient
+                .from('historico_observacoes')
+                .select('*')
+                .gte('created_at', range.inicio)
+                .lt('created_at', range.fim)
+                .order('created_at', { ascending: false })
+                .limit(500);
+
+            if (error) throw error;
+
+            window.historicoData = data || [];
+            renderizarHistorico(window.historicoData);
+        } catch(e) {
+            console.error('Erro ao carregar histórico do dia:', e);
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
+        }
+    };
+
+    window.carregarHistorico = async function() {
+        historicoGarantirBotoesDias();
+
+        const hoje = historicoDataLocalISO();
+        if (!window.historicoDiaSelecionado) window.historicoDiaSelecionado = hoje;
+
+        await historicoCarregarDiasDisponiveis();
+        await carregarHistoricoDia(window.historicoDiaSelecionado || hoje);
+    };
+
+    window.filtrarHistorico = function() {
+        const q = (document.getElementById('searchHistorico')?.value || '').toLowerCase();
+        const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+        const dataFim = document.getElementById('filtroDataFim')?.value || '';
+        const usuarioFiltro = document.getElementById('filtroUsuarioHistorico')?.value || '';
+        const documentoFiltro = document.getElementById('filtroDocumento')?.value || '';
+
+        // Se o usuário escolher um dia manualmente, carrega apenas esse dia do banco.
+        if (dataInicio && dataFim && dataInicio === dataFim && dataInicio !== window.historicoDiaSelecionado) {
+            carregarHistoricoDia(dataInicio);
+            return;
+        }
+
+        const base = window.historicoData || [];
+        const filtrado = base.filter(function(h){
+            const matchTexto = !q ||
+                (h.cliente || '').toLowerCase().includes(q) ||
+                (h.observacao || '').toLowerCase().includes(q) ||
+                (h.usuario || '').toLowerCase().includes(q) ||
+                (h.documento || '').toLowerCase().includes(q);
+
+            let matchData = true;
+            if (dataInicio || dataFim) {
+                const dataH = historicoDataLocalISO(h.created_at);
+                if (dataInicio && dataH < dataInicio) matchData = false;
+                if (dataFim && dataH > dataFim) matchData = false;
+            }
+
+            const matchUsuario = !usuarioFiltro || h.usuario === usuarioFiltro;
+            const matchDocumento = !documentoFiltro || h.documento === documentoFiltro;
+
+            return matchTexto && matchData && matchUsuario && matchDocumento;
+        });
+
+        renderizarHistorico(filtrado);
+    };
+
+    window.limparFiltrosHistorico = function() {
+        ['searchHistorico','filtroUsuarioHistorico','filtroDocumento'].forEach(function(id){
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
+        const dia = window.historicoDiaSelecionado || historicoDataLocalISO();
+
+        const dataInicio = document.getElementById('filtroDataInicio');
+        const dataFim = document.getElementById('filtroDataFim');
+        if (dataInicio) dataInicio.value = dia;
+        if (dataFim) dataFim.value = dia;
+
+        renderizarHistorico(window.historicoData || []);
+    };
+
+    const originalSwitchTabHistoricoRapido = window.switchTab;
+    if (typeof originalSwitchTabHistoricoRapido === 'function' && !window.__historicoRapidoSwitchPatch) {
+        window.__historicoRapidoSwitchPatch = true;
+        window.switchTab = function(tab) {
+            const result = originalSwitchTabHistoricoRapido.apply(this, arguments);
+            if (tab === 'historico') {
+                setTimeout(function(){ carregarHistorico(); }, 150);
+            }
+            return result;
+        };
+    }
 })();
 </script>
 
@@ -7192,6 +7405,320 @@ setInterval(aplicarHistoricoObservacao, 3000);
 
     setTimeout(window.aplicarHistoricoParcelamentosObservacao, 800);
     setInterval(window.aplicarHistoricoParcelamentosObservacao, 4000);
+})();
+</script>
+
+
+<script>
+// ==========================
+// HISTÓRICO RÁPIDO POR DIA
+// Carrega por padrão somente as atividades do dia atual.
+// Cria botões numerados para navegar entre dias com serviços executados.
+// ==========================
+
+(function(){
+    window.historicoDiaSelecionado = window.historicoDiaSelecionado || null;
+    window.historicoDiasDisponiveis = window.historicoDiasDisponiveis || [];
+
+    function historicoDataLocalISO(data) {
+        const d = data ? new Date(data) : new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function historicoRangeDiaISO(dateStr) {
+        const partes = String(dateStr || historicoDataLocalISO()).split('-').map(Number);
+        const inicio = new Date(partes[0], partes[1] - 1, partes[2], 0, 0, 0, 0);
+        const fim = new Date(partes[0], partes[1] - 1, partes[2] + 1, 0, 0, 0, 0);
+        return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+    }
+
+    function historicoFormatarDataBR(dateStr) {
+        const partes = String(dateStr || '').split('-');
+        if (partes.length !== 3) return dateStr || '';
+        return `${partes[2]}/${partes[1]}`;
+    }
+
+    function historicoGarantirBotoesDias() {
+        const view = document.getElementById('view-historico');
+        if (!view) return null;
+
+        let wrap = document.getElementById('historicoDiasServicoWrap');
+        if (wrap) return wrap;
+
+        const filtros = view.querySelector('.grid.grid-cols-6');
+        wrap = document.createElement('div');
+        wrap.id = 'historicoDiasServicoWrap';
+        wrap.className = 'soft-card mb-4 flex flex-wrap items-center gap-2';
+        wrap.innerHTML = `
+            <span class="historico-dia-label mr-1">Dias com serviços:</span>
+            <div id="historicoDiasServicoBotoes" class="flex flex-wrap gap-2"></div>
+        `;
+
+        if (filtros && filtros.parentNode) {
+            filtros.parentNode.insertBefore(wrap, filtros.nextSibling);
+        }
+
+        return wrap;
+    }
+
+    function historicoRenderizarBotoesDias() {
+        historicoGarantirBotoesDias();
+
+        const box = document.getElementById('historicoDiasServicoBotoes');
+        if (!box) return;
+
+        const dias = window.historicoDiasDisponiveis || [];
+        if (!dias.length) {
+            box.innerHTML = '<span class="text-[10px] text-slate-400 font-bold">Nenhum dia encontrado.</span>';
+            return;
+        }
+
+        box.innerHTML = dias.slice(0, 20).map(function(dia, idx){
+            const ativo = dia === window.historicoDiaSelecionado ? 'active' : '';
+            const label = idx === 0 && dia === historicoDataLocalISO() ? 'Hoje' : historicoFormatarDataBR(dia);
+            return `<button type="button" class="historico-dia-btn ${ativo}" onclick="carregarHistoricoDia('${dia}')">${idx + 1}</button><span class="historico-dia-label">${label}</span>`;
+        }).join('');
+    }
+
+    async function historicoCarregarDiasDisponiveis() {
+        try {
+            if (!window.supabaseClient) return;
+
+            const { data, error } = await supabaseClient
+                .from('historico_observacoes')
+                .select('created_at')
+                .order('created_at', { ascending: false })
+                .limit(1200);
+
+            if (error) throw error;
+
+            const dias = [];
+            (data || []).forEach(function(r){
+                const dia = historicoDataLocalISO(r.created_at);
+                if (dia && !dias.includes(dia)) dias.push(dia);
+            });
+
+            const hoje = historicoDataLocalISO();
+            if (!dias.includes(hoje)) dias.unshift(hoje);
+
+            window.historicoDiasDisponiveis = dias;
+            historicoRenderizarBotoesDias();
+        } catch(e) {
+            console.error('Erro ao carregar dias do histórico:', e);
+        }
+    }
+
+    function historicoAtualizarCards(dados) {
+        dados = dados || [];
+
+        const totalEl = document.getElementById('hist-total');
+        const hojeEl = document.getElementById('hist-hoje');
+        const topEl = document.getElementById('hist-top-user');
+
+        if (totalEl) totalEl.innerText = String(dados.length);
+        if (hojeEl) hojeEl.innerText = String(dados.length);
+
+        const porUsuario = {};
+        dados.forEach(function(h){
+            const u = h.usuario || 'Sistema';
+            porUsuario[u] = (porUsuario[u] || 0) + 1;
+        });
+
+        let top = '-';
+        let max = 0;
+        Object.keys(porUsuario).forEach(function(u){
+            if (porUsuario[u] > max) {
+                max = porUsuario[u];
+                top = u;
+            }
+        });
+
+        if (topEl) topEl.innerText = top;
+    }
+
+    function historicoEhParcelamentos(h) {
+        const doc = String(h && h.documento ? h.documento : '').toLowerCase();
+        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
+        return doc.includes('parcelamento') || obs.includes('empresas/parcelamentos') || obs.includes('parcelamentos');
+    }
+
+    function historicoMudouNaoEnviadoParaEnviado(h) {
+        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
+        const temNaoEnviado = obs.includes('não enviado') || obs.includes('nao enviado');
+        const temParaEnviado =
+            obs.includes('para "enviado"') ||
+            obs.includes("para 'enviado'") ||
+            obs.includes('para enviado') ||
+            obs.includes('→ enviado') ||
+            obs.includes('-> enviado');
+        return temNaoEnviado && temParaEnviado;
+    }
+
+    function historicoObservacaoExibida(h) {
+        if (historicoEhParcelamentos(h) && historicoMudouNaoEnviadoParaEnviado(h)) {
+            return 'Não enviado → Enviado';
+        }
+        return (h && h.observacao) ? h.observacao : '-';
+    }
+
+    window.renderizarHistorico = function(dados) {
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+
+        dados = dados || [];
+        historicoAtualizarCards(dados);
+
+        if (!dados.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade registrada neste dia.</td></tr>';
+            return;
+        }
+
+        const coresUsuario = {
+            Nikolas: 'text-slate-700',
+            Ingrid: 'text-pink-600',
+            Jordan: 'text-blue-600',
+            Patricia: 'text-emerald-600',
+            Sirlene: 'text-purple-600',
+            Brenda: 'text-indigo-600',
+            Dev: 'text-red-600'
+        };
+
+        tbody.innerHTML = dados.map(function(h){
+            const dt = new Date(h.created_at);
+            const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const corUser = coresUsuario[h.usuario] || 'text-slate-600';
+            const obs = historicoObservacaoExibida(h);
+            return `<tr>
+                <td class="font-mono text-[10px] text-slate-500">${dataStr}</td>
+                <td class="font-bold ${corUser}">${h.usuario || '-'}</td>
+                <td class="font-bold text-slate-700 col-fixed">${h.cliente || '-'}</td>
+                <td class="text-xs text-emerald-600 font-bold">${h.documento || '-'}</td>
+                <td class="text-xs text-slate-600 max-w-xs">
+                    <button type="button"
+                        onclick="abrirModalEditarObservacaoHistorico('${h.id}')"
+                        class="w-full text-left px-2 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition"
+                        title="Clique para editar apenas o texto da observação">
+                        ${obs}
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    };
+
+    window.carregarHistoricoDia = async function(dateStr) {
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+
+        const dia = dateStr || window.historicoDiaSelecionado || historicoDataLocalISO();
+        window.historicoDiaSelecionado = dia;
+
+        const dataInicio = document.getElementById('filtroDataInicio');
+        const dataFim = document.getElementById('filtroDataFim');
+        if (dataInicio) dataInicio.value = dia;
+        if (dataFim) dataFim.value = dia;
+
+        historicoRenderizarBotoesDias();
+
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades do dia...</td></tr>';
+
+        try {
+            const range = historicoRangeDiaISO(dia);
+
+            const { data, error } = await supabaseClient
+                .from('historico_observacoes')
+                .select('*')
+                .gte('created_at', range.inicio)
+                .lt('created_at', range.fim)
+                .order('created_at', { ascending: false })
+                .limit(500);
+
+            if (error) throw error;
+
+            window.historicoData = data || [];
+            renderizarHistorico(window.historicoData);
+        } catch(e) {
+            console.error('Erro ao carregar histórico do dia:', e);
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
+        }
+    };
+
+    window.carregarHistorico = async function() {
+        historicoGarantirBotoesDias();
+
+        const hoje = historicoDataLocalISO();
+        if (!window.historicoDiaSelecionado) window.historicoDiaSelecionado = hoje;
+
+        await historicoCarregarDiasDisponiveis();
+        await carregarHistoricoDia(window.historicoDiaSelecionado || hoje);
+    };
+
+    window.filtrarHistorico = function() {
+        const q = (document.getElementById('searchHistorico')?.value || '').toLowerCase();
+        const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+        const dataFim = document.getElementById('filtroDataFim')?.value || '';
+        const usuarioFiltro = document.getElementById('filtroUsuarioHistorico')?.value || '';
+        const documentoFiltro = document.getElementById('filtroDocumento')?.value || '';
+
+        // Se o usuário escolher um dia manualmente, carrega apenas esse dia do banco.
+        if (dataInicio && dataFim && dataInicio === dataFim && dataInicio !== window.historicoDiaSelecionado) {
+            carregarHistoricoDia(dataInicio);
+            return;
+        }
+
+        const base = window.historicoData || [];
+        const filtrado = base.filter(function(h){
+            const matchTexto = !q ||
+                (h.cliente || '').toLowerCase().includes(q) ||
+                (h.observacao || '').toLowerCase().includes(q) ||
+                (h.usuario || '').toLowerCase().includes(q) ||
+                (h.documento || '').toLowerCase().includes(q);
+
+            let matchData = true;
+            if (dataInicio || dataFim) {
+                const dataH = historicoDataLocalISO(h.created_at);
+                if (dataInicio && dataH < dataInicio) matchData = false;
+                if (dataFim && dataH > dataFim) matchData = false;
+            }
+
+            const matchUsuario = !usuarioFiltro || h.usuario === usuarioFiltro;
+            const matchDocumento = !documentoFiltro || h.documento === documentoFiltro;
+
+            return matchTexto && matchData && matchUsuario && matchDocumento;
+        });
+
+        renderizarHistorico(filtrado);
+    };
+
+    window.limparFiltrosHistorico = function() {
+        ['searchHistorico','filtroUsuarioHistorico','filtroDocumento'].forEach(function(id){
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
+        const dia = window.historicoDiaSelecionado || historicoDataLocalISO();
+
+        const dataInicio = document.getElementById('filtroDataInicio');
+        const dataFim = document.getElementById('filtroDataFim');
+        if (dataInicio) dataInicio.value = dia;
+        if (dataFim) dataFim.value = dia;
+
+        renderizarHistorico(window.historicoData || []);
+    };
+
+    const originalSwitchTabHistoricoRapido = window.switchTab;
+    if (typeof originalSwitchTabHistoricoRapido === 'function' && !window.__historicoRapidoSwitchPatch) {
+        window.__historicoRapidoSwitchPatch = true;
+        window.switchTab = function(tab) {
+            const result = originalSwitchTabHistoricoRapido.apply(this, arguments);
+            if (tab === 'historico') {
+                setTimeout(function(){ carregarHistorico(); }, 150);
+            }
+            return result;
+        };
+    }
 })();
 </script>
 
