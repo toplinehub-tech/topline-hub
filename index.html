@@ -1076,13 +1076,13 @@ function montarTextoHistorico(item) {
 @media (max-width: 640px) { .pontuais-form-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
 
 
+
 .historico-observacao-editavel{
     cursor:text;
-    min-width:220px;
 }
 .historico-observacao-editavel:focus{
     outline:2px solid #22c55e;
-    background:#fff;
+    background:#ffffff;
 }
 
 </style>
@@ -2270,100 +2270,134 @@ function montarTextoHistorico(item) {
 </script>
 
 
+
 <script>
 // ==========================
-// OVERRIDE FINAL - HISTÓRICO OBSERVAÇÃO
+// HISTÓRICO - AJUSTE DIRECIONADO EMPRESAS/PARCELAMENTOS
+// Só simplifica a observação quando for alteração real de PGDAS/parcelamento
+// de "Não enviado" para "Enviado". As demais tarefas continuam normais.
 // ==========================
 
-function extrairStatusHistorico(texto) {
-    texto = String(texto || '').toLowerCase();
-
-    if ((texto.includes('não enviado') || texto.includes('nao enviado')) && texto.includes('enviado')) {
-        return 'Não enviado → Enviado';
+(function(){
+    function texto(el){
+        return String(el && el.innerText ? el.innerText : '').trim();
     }
 
-    const lista = [
-        ['analise','Análise'],
-        ['análise','Análise'],
-        ['andamento','Andamento'],
-        ['concluido','Concluído'],
-        ['concluído','Concluído'],
-        ['finalizado','Finalizado'],
-        ['ativo','Ativo'],
-        ['inativo','Inativo'],
-        ['pendente','Pendente'],
-        ['cancelado','Cancelado']
-    ];
-
-    let encontrados = [];
-
-    lista.forEach(function(item){
-        if(texto.includes(item[0]) && !encontrados.includes(item[1])){
-            encontrados.push(item[1]);
-        }
-    });
-
-    if(encontrados.length >= 2){
-        return encontrados[0] + ' → ' + encontrados[1];
+    function ehHistoricoVisivel(){
+        var view = document.getElementById('view-historico');
+        if (!view) return false;
+        return !view.classList.contains('hidden') && view.offsetParent !== null;
     }
 
-    return '-';
-}
+    function ehParcelamentos(docTexto, obsTexto){
+        var d = String(docTexto || '').toLowerCase();
+        var o = String(obsTexto || '').toLowerCase();
+        return d.includes('parcelamento') || o.includes('empresas/parcelamentos') || o.includes('parcelamentos');
+    }
 
-function aplicarHistoricoObservacao() {
+    function mudouNaoEnviadoParaEnviado(obsTexto){
+        var o = String(obsTexto || '').toLowerCase();
+        var temNaoEnviado = o.includes('não enviado') || o.includes('nao enviado');
+        var temParaEnviado =
+            o.includes('para "enviado"') ||
+            o.includes("para 'enviado'") ||
+            o.includes('para enviado') ||
+            o.includes('→ enviado') ||
+            o.includes('-> enviado');
 
-    const tabela = document.querySelectorAll('table tbody tr');
+        return temNaoEnviado && temParaEnviado;
+    }
 
-    tabela.forEach(function(tr){
+    window.aplicarHistoricoParcelamentosObservacao = function(){
+        if (!ehHistoricoVisivel()) return;
 
-        const tds = tr.querySelectorAll('td');
+        var view = document.getElementById('view-historico');
+        var linhas = view.querySelectorAll('tbody tr');
 
-        if(tds.length < 5) return;
+        linhas.forEach(function(tr){
+            var tds = tr.querySelectorAll('td');
+            if (tds.length < 5) return;
 
-        const tdObs = tds[4];
+            // Ordem vista na tela: Data/Hora, Colaborador, Cliente, Documento, Observação
+            var tdDocumento = tds[3];
+            var tdObs = tds[4];
 
-        if(!tdObs) return;
+            if (!tdObs) return;
 
-        const original = tdObs.getAttribute('data-original-observacao') || tdObs.innerText || '';
-
-        tdObs.setAttribute('data-original-observacao', original);
-
-        const textoLimpo = extrairStatusHistorico(original);
-
-        tdObs.innerText = textoLimpo;
-
-        tdObs.contentEditable = true;
-
-        tdObs.classList.add('historico-observacao-editavel');
-
-        tdObs.onblur = async function(){
-
-            const novo = tdObs.innerText.trim();
-
-            try{
-
-                const linhaId =
-                    tr.dataset.id ||
-                    tr.getAttribute('data-id') ||
-                    tdObs.dataset.id ||
-                    '';
-
-                if(window.db && linhaId){
-                    await db.collection('historico').doc(String(linhaId)).update({
-                        observacao_editada: novo
-                    });
-                }
-
-            }catch(e){
-                console.error(e);
+            if (!tdObs.dataset.originalObservacao) {
+                tdObs.dataset.originalObservacao = texto(tdObs);
             }
+
+            var original = tdObs.dataset.originalObservacao;
+            var doc = texto(tdDocumento);
+
+            if (ehParcelamentos(doc, original) && mudouNaoEnviadoParaEnviado(original)) {
+                tdObs.innerText = 'Não enviado → Enviado';
+            } else {
+                // Mantém as demais tarefas exatamente como o sistema já renderizou.
+                tdObs.innerText = original;
+            }
+
+            // Mantém possibilidade de ajuste manual ao clicar na observação.
+            tdObs.contentEditable = true;
+            tdObs.classList.add('historico-observacao-editavel');
+
+            tdObs.onblur = async function(){
+                var novoTexto = tdObs.innerText.trim();
+
+                // Atualiza o valor exibido nesta sessão para não voltar sozinho após re-render.
+                tdObs.dataset.originalObservacao = novoTexto;
+
+                try {
+                    var id =
+                        tr.dataset.id ||
+                        tr.getAttribute('data-id') ||
+                        tdObs.dataset.id ||
+                        '';
+
+                    if (!id) return;
+
+                    var payload = {
+                        observacao_editada: novoTexto,
+                        editado_em: new Date().toISOString()
+                    };
+
+                    if (window.supabaseClient && window.supabaseClient.from) {
+                        await window.supabaseClient.from('historico_observacoes').update(payload).eq('id', id);
+                        return;
+                    }
+
+                    if (window.db && db.collection) {
+                        await db.collection('historico').doc(String(id)).update(payload);
+                        return;
+                    }
+
+                    if (window.supabase && window.supabase.from) {
+                        await window.supabase.from('historico_observacoes').update(payload).eq('id', id);
+                    }
+                } catch(e) {
+                    console.error('Erro ao salvar edição da observação do histórico:', e);
+                }
+            };
+        });
+    };
+
+    var originalSwitchTab = window.switchTab;
+    if (typeof originalSwitchTab === 'function' && !window.__historicoParcelamentosSwitchPatch) {
+        window.__historicoParcelamentosSwitchPatch = true;
+        window.switchTab = function(tab){
+            var r = originalSwitchTab.apply(this, arguments);
+            if (tab === 'historico') {
+                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 300);
+                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 1200);
+            }
+            return r;
         };
+    }
 
-    });
-}
-
-setTimeout(aplicarHistoricoObservacao, 1000);
-setInterval(aplicarHistoricoObservacao, 3000);
+    setTimeout(window.aplicarHistoricoParcelamentosObservacao, 800);
+    setInterval(window.aplicarHistoricoParcelamentosObservacao, 4000);
+})();
 </script>
 
 </body>
@@ -7029,6 +7063,136 @@ function aplicarHistoricoObservacao() {
 
 setTimeout(aplicarHistoricoObservacao, 1000);
 setInterval(aplicarHistoricoObservacao, 3000);
+</script>
+
+
+<script>
+// ==========================
+// HISTÓRICO - AJUSTE DIRECIONADO EMPRESAS/PARCELAMENTOS
+// Só simplifica a observação quando for alteração real de PGDAS/parcelamento
+// de "Não enviado" para "Enviado". As demais tarefas continuam normais.
+// ==========================
+
+(function(){
+    function texto(el){
+        return String(el && el.innerText ? el.innerText : '').trim();
+    }
+
+    function ehHistoricoVisivel(){
+        var view = document.getElementById('view-historico');
+        if (!view) return false;
+        return !view.classList.contains('hidden') && view.offsetParent !== null;
+    }
+
+    function ehParcelamentos(docTexto, obsTexto){
+        var d = String(docTexto || '').toLowerCase();
+        var o = String(obsTexto || '').toLowerCase();
+        return d.includes('parcelamento') || o.includes('empresas/parcelamentos') || o.includes('parcelamentos');
+    }
+
+    function mudouNaoEnviadoParaEnviado(obsTexto){
+        var o = String(obsTexto || '').toLowerCase();
+        var temNaoEnviado = o.includes('não enviado') || o.includes('nao enviado');
+        var temParaEnviado =
+            o.includes('para "enviado"') ||
+            o.includes("para 'enviado'") ||
+            o.includes('para enviado') ||
+            o.includes('→ enviado') ||
+            o.includes('-> enviado');
+
+        return temNaoEnviado && temParaEnviado;
+    }
+
+    window.aplicarHistoricoParcelamentosObservacao = function(){
+        if (!ehHistoricoVisivel()) return;
+
+        var view = document.getElementById('view-historico');
+        var linhas = view.querySelectorAll('tbody tr');
+
+        linhas.forEach(function(tr){
+            var tds = tr.querySelectorAll('td');
+            if (tds.length < 5) return;
+
+            // Ordem vista na tela: Data/Hora, Colaborador, Cliente, Documento, Observação
+            var tdDocumento = tds[3];
+            var tdObs = tds[4];
+
+            if (!tdObs) return;
+
+            if (!tdObs.dataset.originalObservacao) {
+                tdObs.dataset.originalObservacao = texto(tdObs);
+            }
+
+            var original = tdObs.dataset.originalObservacao;
+            var doc = texto(tdDocumento);
+
+            if (ehParcelamentos(doc, original) && mudouNaoEnviadoParaEnviado(original)) {
+                tdObs.innerText = 'Não enviado → Enviado';
+            } else {
+                // Mantém as demais tarefas exatamente como o sistema já renderizou.
+                tdObs.innerText = original;
+            }
+
+            // Mantém possibilidade de ajuste manual ao clicar na observação.
+            tdObs.contentEditable = true;
+            tdObs.classList.add('historico-observacao-editavel');
+
+            tdObs.onblur = async function(){
+                var novoTexto = tdObs.innerText.trim();
+
+                // Atualiza o valor exibido nesta sessão para não voltar sozinho após re-render.
+                tdObs.dataset.originalObservacao = novoTexto;
+
+                try {
+                    var id =
+                        tr.dataset.id ||
+                        tr.getAttribute('data-id') ||
+                        tdObs.dataset.id ||
+                        '';
+
+                    if (!id) return;
+
+                    var payload = {
+                        observacao_editada: novoTexto,
+                        editado_em: new Date().toISOString()
+                    };
+
+                    if (window.supabaseClient && window.supabaseClient.from) {
+                        await window.supabaseClient.from('historico_observacoes').update(payload).eq('id', id);
+                        return;
+                    }
+
+                    if (window.db && db.collection) {
+                        await db.collection('historico').doc(String(id)).update(payload);
+                        return;
+                    }
+
+                    if (window.supabase && window.supabase.from) {
+                        await window.supabase.from('historico_observacoes').update(payload).eq('id', id);
+                    }
+                } catch(e) {
+                    console.error('Erro ao salvar edição da observação do histórico:', e);
+                }
+            };
+        });
+    };
+
+    var originalSwitchTab = window.switchTab;
+    if (typeof originalSwitchTab === 'function' && !window.__historicoParcelamentosSwitchPatch) {
+        window.__historicoParcelamentosSwitchPatch = true;
+        window.switchTab = function(tab){
+            var r = originalSwitchTab.apply(this, arguments);
+            if (tab === 'historico') {
+                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 300);
+                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 1200);
+            }
+            return r;
+        };
+    }
+
+    setTimeout(window.aplicarHistoricoParcelamentosObservacao, 800);
+    setInterval(window.aplicarHistoricoParcelamentosObservacao, 4000);
+})();
 </script>
 
 </body>
