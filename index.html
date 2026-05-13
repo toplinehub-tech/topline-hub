@@ -1113,6 +1113,33 @@ function montarTextoHistorico(item) {
     text-transform: uppercase;
 }
 
+
+.historico-page-btn {
+    min-width: 34px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid #dbe4ee;
+    background: #ffffff;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 900;
+    transition: all .18s ease;
+}
+.historico-page-btn:hover,
+.historico-page-btn.active {
+    background: #10b981;
+    border-color: #059669;
+    color: #ffffff;
+}
+.historico-observacao-editavel{
+    cursor:text;
+}
+.historico-observacao-editavel:focus{
+    outline:2px solid #22c55e;
+    background:#fff;
+}
+
 </style>
 </head>
 <body>
@@ -2333,124 +2360,120 @@ function montarTextoHistorico(item) {
 
 
 
+
 <script>
 // ==========================
-// HISTÓRICO RÁPIDO POR DIA
-// Carrega por padrão somente as atividades do dia atual.
-// Cria botões numerados para navegar entre dias com serviços executados.
+// HISTÓRICO FINAL - 20 POR PÁGINA SEM TRAVAR
+// Busca somente 20 registros por vez no banco.
+// Não carrega histórico inteiro.
 // ==========================
 
 (function(){
-    window.historicoDiaSelecionado = window.historicoDiaSelecionado || null;
-    
-window.historicoPaginaAtual = 1;
-window.historicoItensPorPagina = 20;
+    window.historicoPaginaAtual = 1;
+    window.historicoItensPorPagina = 20;
+    window.historicoTotalAtual = 0;
+    window.historicoCarregando = false;
 
-    window.historicoDiasDisponiveis = window.historicoDiasDisponiveis || [];
-
-    function historicoDataLocalISO(data) {
-        const d = data ? new Date(data) : new Date();
+    function hojeISO(){
+        const d = new Date();
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
+        const dia = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dia}`;
     }
 
-    function historicoRangeDiaISO(dateStr) {
-        const partes = String(dateStr || historicoDataLocalISO()).split('-').map(Number);
-        const inicio = new Date(partes[0], partes[1] - 1, partes[2], 0, 0, 0, 0);
-        const fim = new Date(partes[0], partes[1] - 1, partes[2] + 1, 0, 0, 0, 0);
-        return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+    function rangeDia(dateStr){
+        const p = String(dateStr || hojeISO()).split('-').map(Number);
+        const ini = new Date(p[0], p[1] - 1, p[2], 0, 0, 0, 0);
+        const fim = new Date(p[0], p[1] - 1, p[2] + 1, 0, 0, 0, 0);
+        return { ini: ini.toISOString(), fim: fim.toISOString() };
     }
 
-    function historicoFormatarDataBR(dateStr) {
-        const partes = String(dateStr || '').split('-');
-        if (partes.length !== 3) return dateStr || '';
-        return `${partes[2]}/${partes[1]}`;
+    function getDiaSelecionado(){
+        const ini = document.getElementById('filtroDataInicio');
+        if (ini && ini.value) return ini.value;
+        return hojeISO();
     }
 
-    function historicoGarantirBotoesDias() {
-        const view = document.getElementById('view-historico');
-        if (!view) return null;
-
-        let wrap = document.getElementById('historicoDiasServicoWrap');
-        if (wrap) return wrap;
-
-        const filtros = view.querySelector('.grid.grid-cols-6');
-        wrap = document.createElement('div');
-        wrap.id = 'historicoDiasServicoWrap';
-        wrap.className = 'soft-card mb-4 flex flex-wrap items-center gap-2';
-        wrap.innerHTML = `
-            <span class="historico-dia-label mr-1">Dias com serviços:</span>
-            <div id="historicoDiasServicoBotoes" class="flex flex-wrap gap-2"></div>
-        `;
-
-        if (filtros && filtros.parentNode) {
-            filtros.parentNode.insertBefore(wrap, filtros.nextSibling);
-        }
-
-        return wrap;
+    function setDatasHojeSeVazio(){
+        const hoje = hojeISO();
+        const ini = document.getElementById('filtroDataInicio');
+        const fim = document.getElementById('filtroDataFim');
+        if (ini && !ini.value) ini.value = hoje;
+        if (fim && !fim.value) fim.value = hoje;
     }
 
-    function historicoRenderizarBotoesDias() {
-        historicoGarantirBotoesDias();
-
-        const box = document.getElementById('historicoDiasServicoBotoes');
-        if (!box) return;
-
-        const dias = window.historicoDiasDisponiveis || [];
-        if (!dias.length) {
-            box.innerHTML = '<span class="text-[10px] text-slate-400 font-bold">Nenhum dia encontrado.</span>';
-            return;
-        }
-
-        box.innerHTML = dias.slice(0, 20).map(function(dia, idx){
-            const ativo = dia === window.historicoDiaSelecionado ? 'active' : '';
-            const label = idx === 0 && dia === historicoDataLocalISO() ? 'Hoje' : historicoFormatarDataBR(dia);
-            return `<button type="button" class="historico-dia-btn ${ativo}" onclick="carregarHistoricoDia('${dia}')">${idx + 1}</button><span class="historico-dia-label">${label}</span>`;
-        }).join('');
+    function escaparHTML(v){
+        return String(v ?? '').replace(/[&<>"']/g, function(c){
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
     }
 
-    async function historicoCarregarDiasDisponiveis() {
-        try {
-            if (!window.supabaseClient) return;
+    function obsHistorico(h){
+        const doc = String(h.documento || '').toLowerCase();
+        const obs = String(h.observacao || '');
+        const o = obs.toLowerCase();
 
-            const { data, error } = await supabaseClient
-                .from('historico_observacoes')
-                .select('created_at')
-                .order('created_at', { ascending: false })
-                .limit(120);
+        const ehParcelamentos =
+            doc.includes('parcelamento') ||
+            o.includes('empresas/parcelamentos') ||
+            o.includes('parcelamentos');
 
-            if (error) throw error;
+        const mudouNaoEnviado =
+            (o.includes('não enviado') || o.includes('nao enviado')) &&
+            (
+                o.includes('para "enviado"') ||
+                o.includes("para 'enviado'") ||
+                o.includes('para enviado') ||
+                o.includes('→ enviado') ||
+                o.includes('-> enviado')
+            );
 
-            const dias = [];
-            (data || []).forEach(function(r){
-                const dia = historicoDataLocalISO(r.created_at);
-                if (dia && !dias.includes(dia)) dias.push(dia);
-            });
+        if (ehParcelamentos && mudouNaoEnviado) return 'Não enviado → Enviado';
 
-            const hoje = historicoDataLocalISO();
-            if (!dias.includes(hoje)) dias.unshift(hoje);
-
-            window.historicoDiasDisponiveis = dias;
-            historicoRenderizarBotoesDias();
-        } catch(e) {
-            console.error('Erro ao carregar dias do histórico:', e);
-        }
+        return h.observacao_editada || h.observacao || '-';
     }
 
-    function historicoAtualizarCards(dados) {
-        dados = dados || [];
+    function montarQueryHistorico(contagem){
+        let q = supabaseClient
+            .from('historico_observacoes')
+            .select('*', contagem ? { count: 'exact', head: false } : undefined);
 
+        const diaIni = document.getElementById('filtroDataInicio')?.value || hojeISO();
+        const diaFim = document.getElementById('filtroDataFim')?.value || diaIni;
+
+        const rIni = rangeDia(diaIni);
+        const rFim = rangeDia(diaFim);
+
+        q = q.gte('created_at', rIni.ini).lt('created_at', rFim.fim);
+
+        const usuario = document.getElementById('filtroUsuarioHistorico')?.value || '';
+        const documento = document.getElementById('filtroDocumento')?.value || '';
+        const busca = (document.getElementById('searchHistorico')?.value || '').trim();
+
+        if (usuario) q = q.eq('usuario', usuario);
+        if (documento) q = q.eq('documento', documento);
+
+        // Busca textual simples. Mantemos sem filtro remoto complexo para evitar erro em colunas diferentes.
+        // A busca será aplicada nos 20 itens carregados.
+        q = q.order('created_at', { ascending: false });
+
+        const from = (window.historicoPaginaAtual - 1) * window.historicoItensPorPagina;
+        const to = from + window.historicoItensPorPagina - 1;
+
+        return q.range(from, to);
+    }
+
+    function atualizarCardsHistorico(dados, total){
         const totalEl = document.getElementById('hist-total');
         const hojeEl = document.getElementById('hist-hoje');
         const topEl = document.getElementById('hist-top-user');
 
-        if (totalEl) totalEl.innerText = String(dados.length);
-        if (hojeEl) hojeEl.innerText = String(dados.length);
+        if (totalEl) totalEl.innerText = String(total || 0);
+        if (hojeEl) hojeEl.innerText = String(total || 0);
 
         const porUsuario = {};
-        dados.forEach(function(h){
+        (dados || []).forEach(function(h){
             const u = h.usuario || 'Sistema';
             porUsuario[u] = (porUsuario[u] || 0) + 1;
         });
@@ -2459,201 +2482,177 @@ window.historicoItensPorPagina = 20;
         let max = 0;
         Object.keys(porUsuario).forEach(function(u){
             if (porUsuario[u] > max) {
-                max = porUsuario[u];
                 top = u;
+                max = porUsuario[u];
             }
         });
 
         if (topEl) topEl.innerText = top;
     }
 
-    function historicoEhParcelamentos(h) {
-        const doc = String(h && h.documento ? h.documento : '').toLowerCase();
-        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
-        return doc.includes('parcelamento') || obs.includes('empresas/parcelamentos') || obs.includes('parcelamentos');
-    }
-
-    function historicoMudouNaoEnviadoParaEnviado(h) {
-        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
-        const temNaoEnviado = obs.includes('não enviado') || obs.includes('nao enviado');
-        const temParaEnviado =
-            obs.includes('para "enviado"') ||
-            obs.includes("para 'enviado'") ||
-            obs.includes('para enviado') ||
-            obs.includes('→ enviado') ||
-            obs.includes('-> enviado');
-        return temNaoEnviado && temParaEnviado;
-    }
-
-    function historicoObservacaoExibida(h) {
-        if (historicoEhParcelamentos(h) && historicoMudouNaoEnviadoParaEnviado(h)) {
-            return 'Não enviado → Enviado';
-        }
-        return (h && h.observacao) ? h.observacao : '-';
-    }
-
-    window.renderizarHistorico = function(dados) {
+    function renderHistoricoTabela(dados, total){
         const tbody = document.getElementById('historicoBody');
         if (!tbody) return;
 
-        dados = dados || [];
-        historicoAtualizarCards(dados);
+        const busca = (document.getElementById('searchHistorico')?.value || '').trim().toLowerCase();
 
-        if (!dados.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade registrada neste dia.</td></tr>';
-            return;
+        let lista = dados || [];
+        if (busca) {
+            lista = lista.filter(function(h){
+                return String(h.cliente || '').toLowerCase().includes(busca) ||
+                       String(h.usuario || '').toLowerCase().includes(busca) ||
+                       String(h.documento || '').toLowerCase().includes(busca) ||
+                       String(h.observacao || '').toLowerCase().includes(busca);
+            });
         }
 
-        const coresUsuario = {
-            Nikolas: 'text-slate-700',
-            Ingrid: 'text-pink-600',
-            Jordan: 'text-blue-600',
-            Patricia: 'text-emerald-600',
-            Sirlene: 'text-purple-600',
-            Brenda: 'text-indigo-600',
-            Dev: 'text-red-600'
-        };
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade encontrada nesta página.</td></tr>';
+        } else {
+            tbody.innerHTML = lista.map(function(h){
+                const dt = new Date(h.created_at);
+                const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                const obs = obsHistorico(h);
+                return `<tr data-id="${escaparHTML(h.id || '')}">
+                    <td class="font-mono text-[10px] text-slate-500">${escaparHTML(dataStr)}</td>
+                    <td class="font-bold text-pink-600">${escaparHTML(h.usuario || '-')}</td>
+                    <td class="font-bold text-slate-700 col-fixed">${escaparHTML(h.cliente || '-')}</td>
+                    <td class="text-xs text-emerald-600 font-bold">${escaparHTML(h.documento || '-')}</td>
+                    <td class="text-xs text-slate-600 historico-observacao-editavel"
+                        contenteditable="true"
+                        onblur="salvarObservacaoHistoricoRapido(this, '${escaparHTML(h.id || '')}')">${escaparHTML(obs)}</td>
+                </tr>`;
+            }).join('');
+        }
 
-        
-const inicioPagina = (window.historicoPaginaAtual - 1) * window.historicoItensPorPagina;
-const fimPagina = inicioPagina + window.historicoItensPorPagina;
-const dadosPagina = dados.slice(inicioPagina, fimPagina);
+        renderHistoricoPaginacao(total || 0);
+    }
 
-tbody.innerHTML = dadosPagina.map(function(h){
-
-            const dt = new Date(h.created_at);
-            const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const corUser = coresUsuario[h.usuario] || 'text-slate-600';
-            const obs = historicoObservacaoExibida(h);
-            return `<tr>
-                <td class="font-mono text-[10px] text-slate-500">${dataStr}</td>
-                <td class="font-bold ${corUser}">${h.usuario || '-'}</td>
-                <td class="font-bold text-slate-700 col-fixed">${h.cliente || '-'}</td>
-                <td class="text-xs text-emerald-600 font-bold">${h.documento || '-'}</td>
-                <td class="text-xs text-slate-600 max-w-xs">
-                    <button type="button"
-                        onclick="abrirModalEditarObservacaoHistorico('${h.id}')"
-                        class="w-full text-left px-2 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition"
-                        title="Clique para editar apenas o texto da observação">
-                        ${obs}
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
-    };
-
-    window.carregarHistoricoDia = async function(dateStr) {
+    function renderHistoricoPaginacao(total){
         const tbody = document.getElementById('historicoBody');
         if (!tbody) return;
 
-        const dia = dateStr || window.historicoDiaSelecionado || historicoDataLocalISO();
-        window.historicoDiaSelecionado = dia;
+        let pag = document.getElementById('historicoPaginacaoFinal');
+        if (!pag) {
+            pag = document.createElement('div');
+            pag.id = 'historicoPaginacaoFinal';
+            pag.className = 'flex gap-2 flex-wrap justify-center py-4 bg-white border-t border-slate-100';
+            const container = tbody.closest('.scroll-container') || tbody.parentNode;
+            container.parentNode.insertBefore(pag, container.nextSibling);
+        }
 
-        const dataInicio = document.getElementById('filtroDataInicio');
-        const dataFim = document.getElementById('filtroDataFim');
-        if (dataInicio) dataInicio.value = dia;
-        if (dataFim) dataFim.value = dia;
+        const totalPaginas = Math.max(1, Math.ceil(total / window.historicoItensPorPagina));
+        const atual = window.historicoPaginaAtual;
 
-        historicoRenderizarBotoesDias();
+        let inicio = Math.max(1, atual - 3);
+        let fim = Math.min(totalPaginas, atual + 3);
 
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades do dia...</td></tr>';
+        let html = '';
+
+        html += `<button class="historico-page-btn" ${atual <= 1 ? 'disabled' : ''} onclick="carregarHistoricoPagina(${atual - 1})">‹</button>`;
+
+        for (let i = inicio; i <= fim; i++) {
+            html += `<button class="historico-page-btn ${i === atual ? 'active' : ''}" onclick="carregarHistoricoPagina(${i})">${i}</button>`;
+        }
+
+        html += `<button class="historico-page-btn" ${atual >= totalPaginas ? 'disabled' : ''} onclick="carregarHistoricoPagina(${atual + 1})">›</button>`;
+        html += `<span class="text-[10px] font-bold text-slate-400 flex items-center ml-2">20 por página • ${total} no período</span>`;
+
+        pag.innerHTML = html;
+    }
+
+    window.carregarHistoricoPagina = async function(pagina){
+        if (window.historicoCarregando) return;
+
+        window.historicoPaginaAtual = Math.max(1, Number(pagina || 1));
+        window.historicoCarregando = true;
+
+        const tbody = document.getElementById('historicoBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando somente 20 atividades...</td></tr>';
+        }
 
         try {
-            const range = historicoRangeDiaISO(dia);
+            setDatasHojeSeVazio();
 
-            const { data, error } = await supabaseClient
-                .from('historico_observacoes')
-                .select('*')
-                .gte('created_at', range.inicio)
-                .lt('created_at', range.fim)
-                .order('created_at', { ascending: false })
-                .limit(20);
+            const query = montarQueryHistorico(true);
+            const { data, error, count } = await query;
 
             if (error) throw error;
 
-            window.historicoPaginaAtual = 1;
             window.historicoData = data || [];
-            renderizarHistorico(window.historicoData);
+            window.historicoTotalAtual = count || (data ? data.length : 0);
+
+            atualizarCardsHistorico(window.historicoData, window.historicoTotalAtual);
+            renderHistoricoTabela(window.historicoData, window.historicoTotalAtual);
         } catch(e) {
-            console.error('Erro ao carregar histórico do dia:', e);
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
-        }
-    };
-
-    window.carregarHistorico = async function() {
-        historicoGarantirBotoesDias();
-
-        const hoje = historicoDataLocalISO();
-        if (!window.historicoDiaSelecionado) window.historicoDiaSelecionado = hoje;
-
-        await historicoCarregarDiasDisponiveis();
-        await carregarHistoricoDia(window.historicoDiaSelecionado || hoje);
-    };
-
-    window.filtrarHistorico = function() {
-        const q = (document.getElementById('searchHistorico')?.value || '').toLowerCase();
-        const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
-        const dataFim = document.getElementById('filtroDataFim')?.value || '';
-        const usuarioFiltro = document.getElementById('filtroUsuarioHistorico')?.value || '';
-        const documentoFiltro = document.getElementById('filtroDocumento')?.value || '';
-
-        // Se o usuário escolher um dia manualmente, carrega apenas esse dia do banco.
-        if (dataInicio && dataFim && dataInicio === dataFim && dataInicio !== window.historicoDiaSelecionado) {
-            carregarHistoricoDia(dataInicio);
-            return;
-        }
-
-        const base = window.historicoData || [];
-        const filtrado = base.filter(function(h){
-            const matchTexto = !q ||
-                (h.cliente || '').toLowerCase().includes(q) ||
-                (h.observacao || '').toLowerCase().includes(q) ||
-                (h.usuario || '').toLowerCase().includes(q) ||
-                (h.documento || '').toLowerCase().includes(q);
-
-            let matchData = true;
-            if (dataInicio || dataFim) {
-                const dataH = historicoDataLocalISO(h.created_at);
-                if (dataInicio && dataH < dataInicio) matchData = false;
-                if (dataFim && dataH > dataFim) matchData = false;
+            console.error('Erro ao carregar histórico paginado:', e);
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro ao carregar histórico: ${escaparHTML(e.message || e)}</td></tr>`;
             }
-
-            const matchUsuario = !usuarioFiltro || h.usuario === usuarioFiltro;
-            const matchDocumento = !documentoFiltro || h.documento === documentoFiltro;
-
-            return matchTexto && matchData && matchUsuario && matchDocumento;
-        });
-
-        renderizarHistorico(filtrado);
+        } finally {
+            window.historicoCarregando = false;
+        }
     };
 
-    window.limparFiltrosHistorico = function() {
-        ['searchHistorico','filtroUsuarioHistorico','filtroDocumento'].forEach(function(id){
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-
-        const dia = window.historicoDiaSelecionado || historicoDataLocalISO();
-
-        const dataInicio = document.getElementById('filtroDataInicio');
-        const dataFim = document.getElementById('filtroDataFim');
-        if (dataInicio) dataInicio.value = dia;
-        if (dataFim) dataFim.value = dia;
-
-        renderizarHistorico(window.historicoData || []);
+    window.carregarHistorico = async function(){
+        setDatasHojeSeVazio();
+        window.historicoPaginaAtual = 1;
+        await window.carregarHistoricoPagina(1);
     };
 
-    const originalSwitchTabHistoricoRapido = window.switchTab;
-    if (typeof originalSwitchTabHistoricoRapido === 'function' && !window.__historicoRapidoSwitchPatch) {
-        window.__historicoRapidoSwitchPatch = true;
-        window.switchTab = function(tab) {
-            const result = originalSwitchTabHistoricoRapido.apply(this, arguments);
+    window.filtrarHistorico = function(){
+        window.historicoPaginaAtual = 1;
+        window.carregarHistoricoPagina(1);
+    };
+
+    window.limparFiltrosHistorico = function(){
+        const busca = document.getElementById('searchHistorico');
+        const usuario = document.getElementById('filtroUsuarioHistorico');
+        const documento = document.getElementById('filtroDocumento');
+        const ini = document.getElementById('filtroDataInicio');
+        const fim = document.getElementById('filtroDataFim');
+
+        if (busca) busca.value = '';
+        if (usuario) usuario.value = '';
+        if (documento) documento.value = '';
+        if (ini) ini.value = hojeISO();
+        if (fim) fim.value = hojeISO();
+
+        window.historicoPaginaAtual = 1;
+        window.carregarHistoricoPagina(1);
+    };
+
+    window.salvarObservacaoHistoricoRapido = async function(el, id){
+        if (!id) return;
+
+        try {
+            const novoTexto = el.innerText.trim();
+
+            await supabaseClient
+                .from('historico_observacoes')
+                .update({
+                    observacao_editada: novoTexto,
+                    editado_em: new Date().toISOString()
+                })
+                .eq('id', id);
+        } catch(e) {
+            console.error('Erro ao salvar observação do histórico:', e);
+        }
+    };
+
+    const switchOriginalHistorico20 = window.switchTab;
+    if (typeof switchOriginalHistorico20 === 'function' && !window.__historico20SwitchPatchFinal) {
+        window.__historico20SwitchPatchFinal = true;
+        window.switchTab = function(tab){
+            const r = switchOriginalHistorico20.apply(this, arguments);
             if (tab === 'historico') {
-                setTimeout(function(){ carregarHistorico(); }, 150);
+                setTimeout(function(){ window.carregarHistorico(); }, 120);
             }
-            return result;
+            return r;
         };
     }
+
 })();
 </script>
 
@@ -7226,351 +7225,120 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 </script>
 
 
-<script>
-// ==========================
-// OVERRIDE FINAL - HISTÓRICO OBSERVAÇÃO
-// ==========================
-
-function extrairStatusHistorico(texto) {
-    texto = String(texto || '').toLowerCase();
-
-    if ((texto.includes('não enviado') || texto.includes('nao enviado')) && texto.includes('enviado')) {
-        return 'Não enviado → Enviado';
-    }
-
-    const lista = [
-        ['analise','Análise'],
-        ['análise','Análise'],
-        ['andamento','Andamento'],
-        ['concluido','Concluído'],
-        ['concluído','Concluído'],
-        ['finalizado','Finalizado'],
-        ['ativo','Ativo'],
-        ['inativo','Inativo'],
-        ['pendente','Pendente'],
-        ['cancelado','Cancelado']
-    ];
-
-    let encontrados = [];
-
-    lista.forEach(function(item){
-        if(texto.includes(item[0]) && !encontrados.includes(item[1])){
-            encontrados.push(item[1]);
-        }
-    });
-
-    if(encontrados.length >= 2){
-        return encontrados[0] + ' → ' + encontrados[1];
-    }
-
-    return '-';
-}
-
-function aplicarHistoricoObservacao() {
-
-    const tabela = document.querySelectorAll('table tbody tr');
-
-    tabela.forEach(function(tr){
-
-        const tds = tr.querySelectorAll('td');
-
-        if(tds.length < 5) return;
-
-        const tdObs = tds[4];
-
-        if(!tdObs) return;
-
-        const original = tdObs.getAttribute('data-original-observacao') || tdObs.innerText || '';
-
-        tdObs.setAttribute('data-original-observacao', original);
-
-        const textoLimpo = extrairStatusHistorico(original);
-
-        tdObs.innerText = textoLimpo;
-
-        tdObs.contentEditable = true;
-
-        tdObs.classList.add('historico-observacao-editavel');
-
-        tdObs.onblur = async function(){
-
-            const novo = tdObs.innerText.trim();
-
-            try{
-
-                const linhaId =
-                    tr.dataset.id ||
-                    tr.getAttribute('data-id') ||
-                    tdObs.dataset.id ||
-                    '';
-
-                if(window.db && linhaId){
-                    await db.collection('historico').doc(String(linhaId)).update({
-                        observacao_editada: novo
-                    });
-                }
-
-            }catch(e){
-                console.error(e);
-            }
-        };
-
-    });
-}
-
-setTimeout(aplicarHistoricoObservacao, 1000);
-setInterval(aplicarHistoricoObservacao, 3000);
-</script>
-
 
 <script>
 // ==========================
-// HISTÓRICO - AJUSTE DIRECIONADO EMPRESAS/PARCELAMENTOS
-// Só simplifica a observação quando for alteração real de PGDAS/parcelamento
-// de "Não enviado" para "Enviado". As demais tarefas continuam normais.
+// HISTÓRICO FINAL - 20 POR PÁGINA SEM TRAVAR
+// Busca somente 20 registros por vez no banco.
+// Não carrega histórico inteiro.
 // ==========================
 
 (function(){
-    function texto(el){
-        return String(el && el.innerText ? el.innerText : '').trim();
-    }
+    window.historicoPaginaAtual = 1;
+    window.historicoItensPorPagina = 20;
+    window.historicoTotalAtual = 0;
+    window.historicoCarregando = false;
 
-    function ehHistoricoVisivel(){
-        var view = document.getElementById('view-historico');
-        if (!view) return false;
-        return !view.classList.contains('hidden') && view.offsetParent !== null;
-    }
-
-    function ehParcelamentos(docTexto, obsTexto){
-        var d = String(docTexto || '').toLowerCase();
-        var o = String(obsTexto || '').toLowerCase();
-        return d.includes('parcelamento') || o.includes('empresas/parcelamentos') || o.includes('parcelamentos');
-    }
-
-    function mudouNaoEnviadoParaEnviado(obsTexto){
-        var o = String(obsTexto || '').toLowerCase();
-        var temNaoEnviado = o.includes('não enviado') || o.includes('nao enviado');
-        var temParaEnviado =
-            o.includes('para "enviado"') ||
-            o.includes("para 'enviado'") ||
-            o.includes('para enviado') ||
-            o.includes('→ enviado') ||
-            o.includes('-> enviado');
-
-        return temNaoEnviado && temParaEnviado;
-    }
-
-    window.aplicarHistoricoParcelamentosObservacao = function(){
-        if (!ehHistoricoVisivel()) return;
-
-        var view = document.getElementById('view-historico');
-        var linhas = view.querySelectorAll('tbody tr');
-
-        linhas.forEach(function(tr){
-            var tds = tr.querySelectorAll('td');
-            if (tds.length < 5) return;
-
-            // Ordem vista na tela: Data/Hora, Colaborador, Cliente, Documento, Observação
-            var tdDocumento = tds[3];
-            var tdObs = tds[4];
-
-            if (!tdObs) return;
-
-            if (!tdObs.dataset.originalObservacao) {
-                tdObs.dataset.originalObservacao = texto(tdObs);
-            }
-
-            var original = tdObs.dataset.originalObservacao;
-            var doc = texto(tdDocumento);
-
-            if (ehParcelamentos(doc, original) && mudouNaoEnviadoParaEnviado(original)) {
-                tdObs.innerText = 'Não enviado → Enviado';
-            } else {
-                // Mantém as demais tarefas exatamente como o sistema já renderizou.
-                tdObs.innerText = original;
-            }
-
-            // Mantém possibilidade de ajuste manual ao clicar na observação.
-            tdObs.contentEditable = true;
-            tdObs.classList.add('historico-observacao-editavel');
-
-            tdObs.onblur = async function(){
-                var novoTexto = tdObs.innerText.trim();
-
-                // Atualiza o valor exibido nesta sessão para não voltar sozinho após re-render.
-                tdObs.dataset.originalObservacao = novoTexto;
-
-                try {
-                    var id =
-                        tr.dataset.id ||
-                        tr.getAttribute('data-id') ||
-                        tdObs.dataset.id ||
-                        '';
-
-                    if (!id) return;
-
-                    var payload = {
-                        observacao_editada: novoTexto,
-                        editado_em: new Date().toISOString()
-                    };
-
-                    if (window.supabaseClient && window.supabaseClient.from) {
-                        await window.supabaseClient.from('historico_observacoes').update(payload).eq('id', id);
-                        return;
-                    }
-
-                    if (window.db && db.collection) {
-                        await db.collection('historico').doc(String(id)).update(payload);
-                        return;
-                    }
-
-                    if (window.supabase && window.supabase.from) {
-                        await window.supabase.from('historico_observacoes').update(payload).eq('id', id);
-                    }
-                } catch(e) {
-                    console.error('Erro ao salvar edição da observação do histórico:', e);
-                }
-            };
-        });
-    };
-
-    var originalSwitchTab = window.switchTab;
-    if (typeof originalSwitchTab === 'function' && !window.__historicoParcelamentosSwitchPatch) {
-        window.__historicoParcelamentosSwitchPatch = true;
-        window.switchTab = function(tab){
-            var r = originalSwitchTab.apply(this, arguments);
-            if (tab === 'historico') {
-                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 300);
-                setTimeout(window.aplicarHistoricoParcelamentosObservacao, 1200);
-            }
-            return r;
-        };
-    }
-
-    setTimeout(window.aplicarHistoricoParcelamentosObservacao, 800);
-    setInterval(window.aplicarHistoricoParcelamentosObservacao, 4000);
-})();
-</script>
-
-
-<script>
-// ==========================
-// HISTÓRICO RÁPIDO POR DIA
-// Carrega por padrão somente as atividades do dia atual.
-// Cria botões numerados para navegar entre dias com serviços executados.
-// ==========================
-
-(function(){
-    window.historicoDiaSelecionado = window.historicoDiaSelecionado || null;
-    
-window.historicoPaginaAtual = 1;
-window.historicoItensPorPagina = 20;
-
-    window.historicoDiasDisponiveis = window.historicoDiasDisponiveis || [];
-
-    function historicoDataLocalISO(data) {
-        const d = data ? new Date(data) : new Date();
+    function hojeISO(){
+        const d = new Date();
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
+        const dia = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dia}`;
     }
 
-    function historicoRangeDiaISO(dateStr) {
-        const partes = String(dateStr || historicoDataLocalISO()).split('-').map(Number);
-        const inicio = new Date(partes[0], partes[1] - 1, partes[2], 0, 0, 0, 0);
-        const fim = new Date(partes[0], partes[1] - 1, partes[2] + 1, 0, 0, 0, 0);
-        return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+    function rangeDia(dateStr){
+        const p = String(dateStr || hojeISO()).split('-').map(Number);
+        const ini = new Date(p[0], p[1] - 1, p[2], 0, 0, 0, 0);
+        const fim = new Date(p[0], p[1] - 1, p[2] + 1, 0, 0, 0, 0);
+        return { ini: ini.toISOString(), fim: fim.toISOString() };
     }
 
-    function historicoFormatarDataBR(dateStr) {
-        const partes = String(dateStr || '').split('-');
-        if (partes.length !== 3) return dateStr || '';
-        return `${partes[2]}/${partes[1]}`;
+    function getDiaSelecionado(){
+        const ini = document.getElementById('filtroDataInicio');
+        if (ini && ini.value) return ini.value;
+        return hojeISO();
     }
 
-    function historicoGarantirBotoesDias() {
-        const view = document.getElementById('view-historico');
-        if (!view) return null;
-
-        let wrap = document.getElementById('historicoDiasServicoWrap');
-        if (wrap) return wrap;
-
-        const filtros = view.querySelector('.grid.grid-cols-6');
-        wrap = document.createElement('div');
-        wrap.id = 'historicoDiasServicoWrap';
-        wrap.className = 'soft-card mb-4 flex flex-wrap items-center gap-2';
-        wrap.innerHTML = `
-            <span class="historico-dia-label mr-1">Dias com serviços:</span>
-            <div id="historicoDiasServicoBotoes" class="flex flex-wrap gap-2"></div>
-        `;
-
-        if (filtros && filtros.parentNode) {
-            filtros.parentNode.insertBefore(wrap, filtros.nextSibling);
-        }
-
-        return wrap;
+    function setDatasHojeSeVazio(){
+        const hoje = hojeISO();
+        const ini = document.getElementById('filtroDataInicio');
+        const fim = document.getElementById('filtroDataFim');
+        if (ini && !ini.value) ini.value = hoje;
+        if (fim && !fim.value) fim.value = hoje;
     }
 
-    function historicoRenderizarBotoesDias() {
-        historicoGarantirBotoesDias();
-
-        const box = document.getElementById('historicoDiasServicoBotoes');
-        if (!box) return;
-
-        const dias = window.historicoDiasDisponiveis || [];
-        if (!dias.length) {
-            box.innerHTML = '<span class="text-[10px] text-slate-400 font-bold">Nenhum dia encontrado.</span>';
-            return;
-        }
-
-        box.innerHTML = dias.slice(0, 20).map(function(dia, idx){
-            const ativo = dia === window.historicoDiaSelecionado ? 'active' : '';
-            const label = idx === 0 && dia === historicoDataLocalISO() ? 'Hoje' : historicoFormatarDataBR(dia);
-            return `<button type="button" class="historico-dia-btn ${ativo}" onclick="carregarHistoricoDia('${dia}')">${idx + 1}</button><span class="historico-dia-label">${label}</span>`;
-        }).join('');
+    function escaparHTML(v){
+        return String(v ?? '').replace(/[&<>"']/g, function(c){
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
     }
 
-    async function historicoCarregarDiasDisponiveis() {
-        try {
-            if (!window.supabaseClient) return;
+    function obsHistorico(h){
+        const doc = String(h.documento || '').toLowerCase();
+        const obs = String(h.observacao || '');
+        const o = obs.toLowerCase();
 
-            const { data, error } = await supabaseClient
-                .from('historico_observacoes')
-                .select('created_at')
-                .order('created_at', { ascending: false })
-                .limit(120);
+        const ehParcelamentos =
+            doc.includes('parcelamento') ||
+            o.includes('empresas/parcelamentos') ||
+            o.includes('parcelamentos');
 
-            if (error) throw error;
+        const mudouNaoEnviado =
+            (o.includes('não enviado') || o.includes('nao enviado')) &&
+            (
+                o.includes('para "enviado"') ||
+                o.includes("para 'enviado'") ||
+                o.includes('para enviado') ||
+                o.includes('→ enviado') ||
+                o.includes('-> enviado')
+            );
 
-            const dias = [];
-            (data || []).forEach(function(r){
-                const dia = historicoDataLocalISO(r.created_at);
-                if (dia && !dias.includes(dia)) dias.push(dia);
-            });
+        if (ehParcelamentos && mudouNaoEnviado) return 'Não enviado → Enviado';
 
-            const hoje = historicoDataLocalISO();
-            if (!dias.includes(hoje)) dias.unshift(hoje);
-
-            window.historicoDiasDisponiveis = dias;
-            historicoRenderizarBotoesDias();
-        } catch(e) {
-            console.error('Erro ao carregar dias do histórico:', e);
-        }
+        return h.observacao_editada || h.observacao || '-';
     }
 
-    function historicoAtualizarCards(dados) {
-        dados = dados || [];
+    function montarQueryHistorico(contagem){
+        let q = supabaseClient
+            .from('historico_observacoes')
+            .select('*', contagem ? { count: 'exact', head: false } : undefined);
 
+        const diaIni = document.getElementById('filtroDataInicio')?.value || hojeISO();
+        const diaFim = document.getElementById('filtroDataFim')?.value || diaIni;
+
+        const rIni = rangeDia(diaIni);
+        const rFim = rangeDia(diaFim);
+
+        q = q.gte('created_at', rIni.ini).lt('created_at', rFim.fim);
+
+        const usuario = document.getElementById('filtroUsuarioHistorico')?.value || '';
+        const documento = document.getElementById('filtroDocumento')?.value || '';
+        const busca = (document.getElementById('searchHistorico')?.value || '').trim();
+
+        if (usuario) q = q.eq('usuario', usuario);
+        if (documento) q = q.eq('documento', documento);
+
+        // Busca textual simples. Mantemos sem filtro remoto complexo para evitar erro em colunas diferentes.
+        // A busca será aplicada nos 20 itens carregados.
+        q = q.order('created_at', { ascending: false });
+
+        const from = (window.historicoPaginaAtual - 1) * window.historicoItensPorPagina;
+        const to = from + window.historicoItensPorPagina - 1;
+
+        return q.range(from, to);
+    }
+
+    function atualizarCardsHistorico(dados, total){
         const totalEl = document.getElementById('hist-total');
         const hojeEl = document.getElementById('hist-hoje');
         const topEl = document.getElementById('hist-top-user');
 
-        if (totalEl) totalEl.innerText = String(dados.length);
-        if (hojeEl) hojeEl.innerText = String(dados.length);
+        if (totalEl) totalEl.innerText = String(total || 0);
+        if (hojeEl) hojeEl.innerText = String(total || 0);
 
         const porUsuario = {};
-        dados.forEach(function(h){
+        (dados || []).forEach(function(h){
             const u = h.usuario || 'Sistema';
             porUsuario[u] = (porUsuario[u] || 0) + 1;
         });
@@ -7579,201 +7347,177 @@ window.historicoItensPorPagina = 20;
         let max = 0;
         Object.keys(porUsuario).forEach(function(u){
             if (porUsuario[u] > max) {
-                max = porUsuario[u];
                 top = u;
+                max = porUsuario[u];
             }
         });
 
         if (topEl) topEl.innerText = top;
     }
 
-    function historicoEhParcelamentos(h) {
-        const doc = String(h && h.documento ? h.documento : '').toLowerCase();
-        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
-        return doc.includes('parcelamento') || obs.includes('empresas/parcelamentos') || obs.includes('parcelamentos');
-    }
-
-    function historicoMudouNaoEnviadoParaEnviado(h) {
-        const obs = String(h && h.observacao ? h.observacao : '').toLowerCase();
-        const temNaoEnviado = obs.includes('não enviado') || obs.includes('nao enviado');
-        const temParaEnviado =
-            obs.includes('para "enviado"') ||
-            obs.includes("para 'enviado'") ||
-            obs.includes('para enviado') ||
-            obs.includes('→ enviado') ||
-            obs.includes('-> enviado');
-        return temNaoEnviado && temParaEnviado;
-    }
-
-    function historicoObservacaoExibida(h) {
-        if (historicoEhParcelamentos(h) && historicoMudouNaoEnviadoParaEnviado(h)) {
-            return 'Não enviado → Enviado';
-        }
-        return (h && h.observacao) ? h.observacao : '-';
-    }
-
-    window.renderizarHistorico = function(dados) {
+    function renderHistoricoTabela(dados, total){
         const tbody = document.getElementById('historicoBody');
         if (!tbody) return;
 
-        dados = dados || [];
-        historicoAtualizarCards(dados);
+        const busca = (document.getElementById('searchHistorico')?.value || '').trim().toLowerCase();
 
-        if (!dados.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade registrada neste dia.</td></tr>';
-            return;
+        let lista = dados || [];
+        if (busca) {
+            lista = lista.filter(function(h){
+                return String(h.cliente || '').toLowerCase().includes(busca) ||
+                       String(h.usuario || '').toLowerCase().includes(busca) ||
+                       String(h.documento || '').toLowerCase().includes(busca) ||
+                       String(h.observacao || '').toLowerCase().includes(busca);
+            });
         }
 
-        const coresUsuario = {
-            Nikolas: 'text-slate-700',
-            Ingrid: 'text-pink-600',
-            Jordan: 'text-blue-600',
-            Patricia: 'text-emerald-600',
-            Sirlene: 'text-purple-600',
-            Brenda: 'text-indigo-600',
-            Dev: 'text-red-600'
-        };
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade encontrada nesta página.</td></tr>';
+        } else {
+            tbody.innerHTML = lista.map(function(h){
+                const dt = new Date(h.created_at);
+                const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                const obs = obsHistorico(h);
+                return `<tr data-id="${escaparHTML(h.id || '')}">
+                    <td class="font-mono text-[10px] text-slate-500">${escaparHTML(dataStr)}</td>
+                    <td class="font-bold text-pink-600">${escaparHTML(h.usuario || '-')}</td>
+                    <td class="font-bold text-slate-700 col-fixed">${escaparHTML(h.cliente || '-')}</td>
+                    <td class="text-xs text-emerald-600 font-bold">${escaparHTML(h.documento || '-')}</td>
+                    <td class="text-xs text-slate-600 historico-observacao-editavel"
+                        contenteditable="true"
+                        onblur="salvarObservacaoHistoricoRapido(this, '${escaparHTML(h.id || '')}')">${escaparHTML(obs)}</td>
+                </tr>`;
+            }).join('');
+        }
 
-        
-const inicioPagina = (window.historicoPaginaAtual - 1) * window.historicoItensPorPagina;
-const fimPagina = inicioPagina + window.historicoItensPorPagina;
-const dadosPagina = dados.slice(inicioPagina, fimPagina);
+        renderHistoricoPaginacao(total || 0);
+    }
 
-tbody.innerHTML = dadosPagina.map(function(h){
-
-            const dt = new Date(h.created_at);
-            const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const corUser = coresUsuario[h.usuario] || 'text-slate-600';
-            const obs = historicoObservacaoExibida(h);
-            return `<tr>
-                <td class="font-mono text-[10px] text-slate-500">${dataStr}</td>
-                <td class="font-bold ${corUser}">${h.usuario || '-'}</td>
-                <td class="font-bold text-slate-700 col-fixed">${h.cliente || '-'}</td>
-                <td class="text-xs text-emerald-600 font-bold">${h.documento || '-'}</td>
-                <td class="text-xs text-slate-600 max-w-xs">
-                    <button type="button"
-                        onclick="abrirModalEditarObservacaoHistorico('${h.id}')"
-                        class="w-full text-left px-2 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition"
-                        title="Clique para editar apenas o texto da observação">
-                        ${obs}
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
-    };
-
-    window.carregarHistoricoDia = async function(dateStr) {
+    function renderHistoricoPaginacao(total){
         const tbody = document.getElementById('historicoBody');
         if (!tbody) return;
 
-        const dia = dateStr || window.historicoDiaSelecionado || historicoDataLocalISO();
-        window.historicoDiaSelecionado = dia;
+        let pag = document.getElementById('historicoPaginacaoFinal');
+        if (!pag) {
+            pag = document.createElement('div');
+            pag.id = 'historicoPaginacaoFinal';
+            pag.className = 'flex gap-2 flex-wrap justify-center py-4 bg-white border-t border-slate-100';
+            const container = tbody.closest('.scroll-container') || tbody.parentNode;
+            container.parentNode.insertBefore(pag, container.nextSibling);
+        }
 
-        const dataInicio = document.getElementById('filtroDataInicio');
-        const dataFim = document.getElementById('filtroDataFim');
-        if (dataInicio) dataInicio.value = dia;
-        if (dataFim) dataFim.value = dia;
+        const totalPaginas = Math.max(1, Math.ceil(total / window.historicoItensPorPagina));
+        const atual = window.historicoPaginaAtual;
 
-        historicoRenderizarBotoesDias();
+        let inicio = Math.max(1, atual - 3);
+        let fim = Math.min(totalPaginas, atual + 3);
 
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades do dia...</td></tr>';
+        let html = '';
+
+        html += `<button class="historico-page-btn" ${atual <= 1 ? 'disabled' : ''} onclick="carregarHistoricoPagina(${atual - 1})">‹</button>`;
+
+        for (let i = inicio; i <= fim; i++) {
+            html += `<button class="historico-page-btn ${i === atual ? 'active' : ''}" onclick="carregarHistoricoPagina(${i})">${i}</button>`;
+        }
+
+        html += `<button class="historico-page-btn" ${atual >= totalPaginas ? 'disabled' : ''} onclick="carregarHistoricoPagina(${atual + 1})">›</button>`;
+        html += `<span class="text-[10px] font-bold text-slate-400 flex items-center ml-2">20 por página • ${total} no período</span>`;
+
+        pag.innerHTML = html;
+    }
+
+    window.carregarHistoricoPagina = async function(pagina){
+        if (window.historicoCarregando) return;
+
+        window.historicoPaginaAtual = Math.max(1, Number(pagina || 1));
+        window.historicoCarregando = true;
+
+        const tbody = document.getElementById('historicoBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando somente 20 atividades...</td></tr>';
+        }
 
         try {
-            const range = historicoRangeDiaISO(dia);
+            setDatasHojeSeVazio();
 
-            const { data, error } = await supabaseClient
-                .from('historico_observacoes')
-                .select('*')
-                .gte('created_at', range.inicio)
-                .lt('created_at', range.fim)
-                .order('created_at', { ascending: false })
-                .limit(20);
+            const query = montarQueryHistorico(true);
+            const { data, error, count } = await query;
 
             if (error) throw error;
 
-            window.historicoPaginaAtual = 1;
             window.historicoData = data || [];
-            renderizarHistorico(window.historicoData);
+            window.historicoTotalAtual = count || (data ? data.length : 0);
+
+            atualizarCardsHistorico(window.historicoData, window.historicoTotalAtual);
+            renderHistoricoTabela(window.historicoData, window.historicoTotalAtual);
         } catch(e) {
-            console.error('Erro ao carregar histórico do dia:', e);
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro: ${e.message || 'Desconhecido'}</td></tr>`;
-        }
-    };
-
-    window.carregarHistorico = async function() {
-        historicoGarantirBotoesDias();
-
-        const hoje = historicoDataLocalISO();
-        if (!window.historicoDiaSelecionado) window.historicoDiaSelecionado = hoje;
-
-        await historicoCarregarDiasDisponiveis();
-        await carregarHistoricoDia(window.historicoDiaSelecionado || hoje);
-    };
-
-    window.filtrarHistorico = function() {
-        const q = (document.getElementById('searchHistorico')?.value || '').toLowerCase();
-        const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
-        const dataFim = document.getElementById('filtroDataFim')?.value || '';
-        const usuarioFiltro = document.getElementById('filtroUsuarioHistorico')?.value || '';
-        const documentoFiltro = document.getElementById('filtroDocumento')?.value || '';
-
-        // Se o usuário escolher um dia manualmente, carrega apenas esse dia do banco.
-        if (dataInicio && dataFim && dataInicio === dataFim && dataInicio !== window.historicoDiaSelecionado) {
-            carregarHistoricoDia(dataInicio);
-            return;
-        }
-
-        const base = window.historicoData || [];
-        const filtrado = base.filter(function(h){
-            const matchTexto = !q ||
-                (h.cliente || '').toLowerCase().includes(q) ||
-                (h.observacao || '').toLowerCase().includes(q) ||
-                (h.usuario || '').toLowerCase().includes(q) ||
-                (h.documento || '').toLowerCase().includes(q);
-
-            let matchData = true;
-            if (dataInicio || dataFim) {
-                const dataH = historicoDataLocalISO(h.created_at);
-                if (dataInicio && dataH < dataInicio) matchData = false;
-                if (dataFim && dataH > dataFim) matchData = false;
+            console.error('Erro ao carregar histórico paginado:', e);
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Erro ao carregar histórico: ${escaparHTML(e.message || e)}</td></tr>`;
             }
-
-            const matchUsuario = !usuarioFiltro || h.usuario === usuarioFiltro;
-            const matchDocumento = !documentoFiltro || h.documento === documentoFiltro;
-
-            return matchTexto && matchData && matchUsuario && matchDocumento;
-        });
-
-        renderizarHistorico(filtrado);
+        } finally {
+            window.historicoCarregando = false;
+        }
     };
 
-    window.limparFiltrosHistorico = function() {
-        ['searchHistorico','filtroUsuarioHistorico','filtroDocumento'].forEach(function(id){
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-
-        const dia = window.historicoDiaSelecionado || historicoDataLocalISO();
-
-        const dataInicio = document.getElementById('filtroDataInicio');
-        const dataFim = document.getElementById('filtroDataFim');
-        if (dataInicio) dataInicio.value = dia;
-        if (dataFim) dataFim.value = dia;
-
-        renderizarHistorico(window.historicoData || []);
+    window.carregarHistorico = async function(){
+        setDatasHojeSeVazio();
+        window.historicoPaginaAtual = 1;
+        await window.carregarHistoricoPagina(1);
     };
 
-    const originalSwitchTabHistoricoRapido = window.switchTab;
-    if (typeof originalSwitchTabHistoricoRapido === 'function' && !window.__historicoRapidoSwitchPatch) {
-        window.__historicoRapidoSwitchPatch = true;
-        window.switchTab = function(tab) {
-            const result = originalSwitchTabHistoricoRapido.apply(this, arguments);
+    window.filtrarHistorico = function(){
+        window.historicoPaginaAtual = 1;
+        window.carregarHistoricoPagina(1);
+    };
+
+    window.limparFiltrosHistorico = function(){
+        const busca = document.getElementById('searchHistorico');
+        const usuario = document.getElementById('filtroUsuarioHistorico');
+        const documento = document.getElementById('filtroDocumento');
+        const ini = document.getElementById('filtroDataInicio');
+        const fim = document.getElementById('filtroDataFim');
+
+        if (busca) busca.value = '';
+        if (usuario) usuario.value = '';
+        if (documento) documento.value = '';
+        if (ini) ini.value = hojeISO();
+        if (fim) fim.value = hojeISO();
+
+        window.historicoPaginaAtual = 1;
+        window.carregarHistoricoPagina(1);
+    };
+
+    window.salvarObservacaoHistoricoRapido = async function(el, id){
+        if (!id) return;
+
+        try {
+            const novoTexto = el.innerText.trim();
+
+            await supabaseClient
+                .from('historico_observacoes')
+                .update({
+                    observacao_editada: novoTexto,
+                    editado_em: new Date().toISOString()
+                })
+                .eq('id', id);
+        } catch(e) {
+            console.error('Erro ao salvar observação do histórico:', e);
+        }
+    };
+
+    const switchOriginalHistorico20 = window.switchTab;
+    if (typeof switchOriginalHistorico20 === 'function' && !window.__historico20SwitchPatchFinal) {
+        window.__historico20SwitchPatchFinal = true;
+        window.switchTab = function(tab){
+            const r = switchOriginalHistorico20.apply(this, arguments);
             if (tab === 'historico') {
-                setTimeout(function(){ carregarHistorico(); }, 150);
+                setTimeout(function(){ window.carregarHistorico(); }, 120);
             }
-            return result;
+            return r;
         };
     }
+
 })();
 </script>
 
