@@ -9513,3 +9513,371 @@ function montarCelulaObservacaoHistorico(item) {
 
 </html>
         
+
+
+<script>
+// =========================================================
+// CORREÇÃO FINAL DEFINITIVA
+// 1) Histórico: carrega somente 20 registros por página direto do banco.
+// 2) Histórico: paginação com setas e total de páginas.
+// 3) Histórico: Empresas/Parcelamentos mostra "Não enviado → Enviado" apenas quando essa alteração existir.
+// 4) Empresas/Parcelamentos: enviados em PGDAS/PARCELAMENTO ficam sempre primeiro.
+// =========================================================
+(function(){
+    window.__TOPLINE_HISTORICO_20_FINAL__ = true;
+    window.histPaginaFinal = 1;
+    window.histPorPaginaFinal = 20;
+    window.histTotalFinal = 0;
+    window.histCarregandoFinal = false;
+
+    function esc(v){
+        return String(v ?? '').replace(/[&<>"']/g, function(c){
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+        });
+    }
+
+    function obsHistoricoFinal(h){
+        const documento = String(h?.documento || '').toLowerCase();
+        const original = String(h?.observacao || h?.detalhes || '');
+        const o = original.toLowerCase();
+
+        const ehParcelamentos =
+            documento.includes('parcelamento') ||
+            o.includes('empresas/parcelamentos') ||
+            o.includes('parcelamentos');
+
+        const mudouNaoEnviadoParaEnviado =
+            (o.includes('não enviado') || o.includes('nao enviado')) &&
+            (
+                o.includes('para "enviado"') ||
+                o.includes("para 'enviado'") ||
+                o.includes('para enviado') ||
+                o.includes('→ enviado') ||
+                o.includes('-> enviado')
+            );
+
+        if (ehParcelamentos && mudouNaoEnviadoParaEnviado) {
+            return 'Não enviado → Enviado';
+        }
+
+        return h?.observacao_editada || h?.observacao || h?.detalhes || '-';
+    }
+
+    function dataHora(v){
+        const d = new Date(v || Date.now());
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    }
+
+    function queryHistoricoFinal(){
+        let q = supabaseClient
+            .from('historico_observacoes')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false });
+
+        const busca = (document.getElementById('searchHistorico')?.value || '').trim();
+        const usuario = document.getElementById('filtroUsuarioHistorico')?.value || '';
+        const documento = document.getElementById('filtroDocumento')?.value || '';
+        const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+        const dataFim = document.getElementById('filtroDataFim')?.value || '';
+
+        if (usuario) q = q.eq('usuario', usuario);
+        if (documento) q = q.eq('documento', documento);
+
+        if (dataInicio) q = q.gte('created_at', dataInicio + 'T00:00:00');
+        if (dataFim) q = q.lte('created_at', dataFim + 'T23:59:59');
+
+        // Busca leve no banco apenas quando digitada.
+        // Evita carregar tudo no navegador.
+        if (busca) {
+            const b = busca.replace(/[%_,]/g, ' ');
+            q = q.or('cliente.ilike.%' + b + '%,observacao.ilike.%' + b + '%,documento.ilike.%' + b + '%,usuario.ilike.%' + b + '%');
+        }
+
+        const de = (window.histPaginaFinal - 1) * window.histPorPaginaFinal;
+        const ate = de + window.histPorPaginaFinal - 1;
+        return q.range(de, ate);
+    }
+
+    function atualizarCardsFinal(lista, total){
+        const totalEl = document.getElementById('hist-total');
+        const hojeEl = document.getElementById('hist-hoje');
+        const topEl = document.getElementById('hist-top-user');
+
+        if (totalEl) totalEl.innerText = String(total || 0);
+
+        const hoje = new Date().toISOString().slice(0,10);
+        const hojeNaPagina = (lista || []).filter(h => String(h.created_at || '').slice(0,10) === hoje).length;
+        if (hojeEl) hojeEl.innerText = String(hojeNaPagina);
+
+        const porUser = {};
+        (lista || []).forEach(h => {
+            const u = h.usuario || 'Sistema';
+            porUser[u] = (porUser[u] || 0) + 1;
+        });
+
+        let top = '-';
+        let maior = 0;
+        Object.keys(porUser).forEach(u => {
+            if (porUser[u] > maior) {
+                maior = porUser[u];
+                top = u;
+            }
+        });
+
+        if (topEl) topEl.innerText = top;
+    }
+
+    function renderPaginacaoFinal(){
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+
+        let pag = document.getElementById('historicoPaginacaoFinal20');
+        if (!pag) {
+            pag = document.createElement('div');
+            pag.id = 'historicoPaginacaoFinal20';
+            pag.className = 'flex items-center justify-center gap-2 flex-wrap p-4 bg-white border-t border-slate-100';
+            const wrap = tbody.closest('.scroll-container') || tbody.parentNode;
+            if (wrap && wrap.parentNode) {
+                wrap.parentNode.insertBefore(pag, wrap.nextSibling);
+            }
+        }
+
+        const totalPaginas = Math.max(1, Math.ceil((window.histTotalFinal || 0) / window.histPorPaginaFinal));
+        const atual = window.histPaginaFinal;
+
+        const inicio = Math.max(1, atual - 3);
+        const fim = Math.min(totalPaginas, atual + 3);
+
+        let html = '';
+        html += '<button class="historico-page-btn" ' + (atual <= 1 ? 'disabled' : '') + ' onclick="carregarHistoricoFinal20(' + (atual - 1) + ')">← Anterior</button>';
+
+        for (let i = inicio; i <= fim; i++) {
+            html += '<button class="historico-page-btn ' + (i === atual ? 'active' : '') + '" onclick="carregarHistoricoFinal20(' + i + ')">' + i + '</button>';
+        }
+
+        html += '<button class="historico-page-btn" ' + (atual >= totalPaginas ? 'disabled' : '') + ' onclick="carregarHistoricoFinal20(' + (atual + 1) + ')">Próxima →</button>';
+        html += '<span class="text-[10px] font-bold text-slate-400 ml-2">Página ' + atual + ' de ' + totalPaginas + ' • 20 por página</span>';
+
+        pag.innerHTML = html;
+    }
+
+    function renderTabelaFinal(lista){
+        const tbody = document.getElementById('historicoBody');
+        if (!tbody) return;
+
+        if (!lista || !lista.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade encontrada.</td></tr>';
+            renderPaginacaoFinal();
+            return;
+        }
+
+        const cores = {
+            Nikolas:'text-slate-700',
+            Ingrid:'text-pink-600',
+            Jordan:'text-blue-600',
+            Patricia:'text-emerald-600',
+            Sirlene:'text-purple-600',
+            Brenda:'text-indigo-600',
+            Dev:'text-red-600'
+        };
+
+        tbody.innerHTML = lista.map(function(h){
+            const obs = obsHistoricoFinal(h);
+            return '<tr data-id="' + esc(h.id || '') + '">' +
+                '<td class="font-mono text-[10px] text-slate-500">' + esc(dataHora(h.created_at)) + '</td>' +
+                '<td class="font-bold ' + (cores[h.usuario] || 'text-slate-600') + '">' + esc(h.usuario || '-') + '</td>' +
+                '<td class="font-bold text-slate-700 col-fixed">' + esc(h.cliente || '-') + '</td>' +
+                '<td class="text-xs text-emerald-600 font-bold">' + esc(h.documento || '-') + '</td>' +
+                '<td class="text-xs text-slate-600 historico-observacao-editavel" contenteditable="true" onblur="salvarObservacaoHistoricoFinal20(this, \'' + esc(h.id || '') + '\')">' + esc(obs) + '</td>' +
+            '</tr>';
+        }).join('');
+
+        renderPaginacaoFinal();
+    }
+
+    window.carregarHistoricoFinal20 = async function(pagina){
+        if (window.histCarregandoFinal) return;
+
+        window.histPaginaFinal = Math.max(1, Number(pagina || 1));
+        window.histCarregandoFinal = true;
+
+        const tbody = document.getElementById('historicoBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando somente 20 atividades...</td></tr>';
+        }
+
+        try {
+            const { data, error, count } = await queryHistoricoFinal();
+            if (error) throw error;
+
+            window.historicoData = data || [];
+            window.histTotalFinal = count || 0;
+
+            atualizarCardsFinal(window.historicoData, window.histTotalFinal);
+            renderTabelaFinal(window.historicoData);
+        } catch(e) {
+            console.error('Erro no histórico 20 por página:', e);
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-500 font-bold">Erro ao carregar histórico: ' + esc(e.message || e) + '</td></tr>';
+            }
+        } finally {
+            window.histCarregandoFinal = false;
+        }
+    };
+
+    window.carregarHistorico = function(){
+        window.histPaginaFinal = 1;
+        return window.carregarHistoricoFinal20(1);
+    };
+
+    window.filtrarHistorico = function(){
+        window.histPaginaFinal = 1;
+        return window.carregarHistoricoFinal20(1);
+    };
+
+    window.renderizarHistorico = function(lista){
+        // Proteção: mesmo se algum hotfix antigo tentar renderizar 1000 itens,
+        // só permite exibir 20 na tela.
+        lista = Array.isArray(lista) ? lista.slice(0, 20) : [];
+        window.histTotalFinal = Math.max(window.histTotalFinal || 0, lista.length);
+        atualizarCardsFinal(lista, window.histTotalFinal);
+        renderTabelaFinal(lista);
+    };
+
+    window.limparFiltrosHistorico = function(){
+        ['searchHistorico','filtroUsuarioHistorico','filtroDocumento'].forEach(function(id){
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const ini = document.getElementById('filtroDataInicio');
+        const fim = document.getElementById('filtroDataFim');
+        if (ini) ini.value = '';
+        if (fim) fim.value = '';
+
+        window.histPaginaFinal = 1;
+        return window.carregarHistoricoFinal20(1);
+    };
+
+    window.salvarObservacaoHistoricoFinal20 = async function(el, id){
+        if (!id || !window.supabaseClient) return;
+        try {
+            await supabaseClient
+                .from('historico_observacoes')
+                .update({
+                    observacao_editada: el.innerText.trim(),
+                    editado_em: new Date().toISOString()
+                })
+                .eq('id', id);
+        } catch(e) {
+            console.error('Erro ao salvar observação editada:', e);
+        }
+    };
+
+    // Substitui eventos antigos da aba histórico e garante que ela carregue só 20.
+    const oldSwitchTabFinal20 = window.switchTab;
+    if (typeof oldSwitchTabFinal20 === 'function' && !window.__SWITCH_HIST_FINAL20__) {
+        window.__SWITCH_HIST_FINAL20__ = true;
+        window.switchTab = function(tab){
+            const r = oldSwitchTabFinal20.apply(this, arguments);
+            if (tab === 'historico') {
+                setTimeout(function(){
+                    const tbody = document.getElementById('historicoBody');
+                    if (tbody) tbody.innerHTML = '';
+                    window.carregarHistoricoFinal20(1);
+                }, 50);
+            }
+            return r;
+        };
+    }
+
+    // Ordenação final da aba Empresas/Parcelamentos:
+    // PGDAS enviado ou Parcelamento enviado sempre no topo.
+    const renderEmpOriginalFinal20 = window.renderEmpresasParcelamentos;
+    window.renderEmpresasParcelamentos = function(){
+        try {
+            if (typeof pgdasStatusCarregado !== 'undefined' && !pgdasStatusCarregado && typeof carregarPGDASMensalSilencioso === 'function') {
+                carregarPGDASMensalSilencioso();
+            }
+
+            const tbody = document.getElementById('empresasParcelamentosBody');
+            const counter = document.getElementById('empresasParcelamentosCounter');
+            if (!tbody || typeof getParcelamentosBase !== 'function') {
+                if (typeof renderEmpOriginalFinal20 === 'function') return renderEmpOriginalFinal20.apply(this, arguments);
+                return;
+            }
+
+            if (typeof updateEmpresasParcelamentosButtons === 'function') updateEmpresasParcelamentosButtons();
+            if (typeof atualizarResumoParcelamentos === 'function') atualizarResumoParcelamentos();
+
+            const q = (document.getElementById('searchEmpresasParcelamentos')?.value || '').toLowerCase();
+
+            let linhas = getParcelamentosBase()
+                .filter(item => (typeof empresasParcelamentosFiltro === 'undefined' || empresasParcelamentosFiltro === 'todos') ? true : item.status === empresasParcelamentosFiltro)
+                .filter(item => (typeof empresasParcelamentosQuantidadeFiltro === 'undefined' || !empresasParcelamentosQuantidadeFiltro) ? true : item.qtd === empresasParcelamentosQuantidadeFiltro)
+                .filter(item => (typeof empresasParcelamentosSetorFiltro === 'undefined' || !empresasParcelamentosSetorFiltro) ? true : item.setor === empresasParcelamentosSetorFiltro)
+                .filter(item => {
+                    const row = item.row || {};
+                    const ultimaObs = typeof getUltimaObservacaoParcelamento === 'function' ? getUltimaObservacaoParcelamento(row.CLIENTE) : null;
+                    const texto = `${row.CLIENTE || ''} ${row.CNPJ || ''} ${row.SETOR || ''} ${typeof getSetorParcelamentosLabel === 'function' ? getSetorParcelamentosLabel(row.SETOR) : ''} ${row.PARCELAMENTOS || ''} ${item.qtd || ''} ${typeof getPGDASStatus === 'function' ? getPGDASStatus(row) : ''} ${typeof getParcelamentoEnvioStatus === 'function' ? getParcelamentoEnvioStatus(row) : ''} ${ultimaObs?.observacao || ''}`.toLowerCase();
+                    return !q || texto.includes(q);
+                });
+
+            linhas.sort(function(a,b){
+                const ar = a.row || {};
+                const br = b.row || {};
+                const aPgdas = (typeof getPGDASStatus === 'function' && getPGDASStatus(ar) === 'enviado') ? 1 : 0;
+                const bPgdas = (typeof getPGDASStatus === 'function' && getPGDASStatus(br) === 'enviado') ? 1 : 0;
+                const aParc = (typeof getParcelamentoEnvioStatus === 'function' && getParcelamentoEnvioStatus(ar) === 'enviado') ? 1 : 0;
+                const bParc = (typeof getParcelamentoEnvioStatus === 'function' && getParcelamentoEnvioStatus(br) === 'enviado') ? 1 : 0;
+                const aRank = aPgdas + aParc;
+                const bRank = bPgdas + bParc;
+                if (bRank !== aRank) return bRank - aRank;
+                if (bPgdas !== aPgdas) return bPgdas - aPgdas;
+                if (bParc !== aParc) return bParc - aParc;
+                return String(ar.CLIENTE || '').localeCompare(String(br.CLIENTE || ''), 'pt-BR');
+            });
+
+            if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
+
+            if (!linhas.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = linhas.map(item => {
+                const row = item.row || {};
+                const qtd = item.qtd ? `${item.qtd}/${30}` : '-';
+                return `<tr class="empresas-row" onclick="openParcelamentoInfoModal(${item.index})">
+                    <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
+                    <td class="cnpj-cell" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
+                    <td><span class="parcelamento-status-pill sem-status">${escapeHtml(getSetorParcelamentosLabel(row.SETOR))}</span></td>
+                    <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
+                    <td>${renderPGDASStatusPill(row)}</td>
+                    <td>${renderParcelamentoEnvioStatusPill(row)}</td>
+                    <td class="font-bold text-slate-600">${escapeHtml(formatarDataEnvioPGDAS(getPGDASDataEnvio(row)))}</td>
+                    <td><button onclick="event.stopPropagation(); openParcelamentoInfoModal(${item.index})" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Informações</button></td>
+                </tr>`;
+            }).join('');
+        } catch(e) {
+            console.error('Erro na ordenação final Empresas/Parcelamentos:', e);
+            if (typeof renderEmpOriginalFinal20 === 'function') return renderEmpOriginalFinal20.apply(this, arguments);
+        }
+    };
+
+    // CSS mínimo, caso não exista.
+    if (!document.getElementById('historicoFinal20Css')) {
+        const style = document.createElement('style');
+        style.id = 'historicoFinal20Css';
+        style.textContent = `
+            .historico-page-btn{min-width:34px;height:30px;padding:0 10px;border-radius:10px;border:1px solid #dbe4ee;background:#fff;color:#475569;font-size:10px;font-weight:900}
+            .historico-page-btn.active,.historico-page-btn:hover{background:#10b981;border-color:#059669;color:#fff}
+            .historico-page-btn:disabled{opacity:.45;cursor:not-allowed}
+            .historico-observacao-editavel{cursor:text}
+            .historico-observacao-editavel:focus{outline:2px solid #22c55e;background:#fff}
+        `;
+        document.head.appendChild(style);
+    }
+})();
+</script>
+
