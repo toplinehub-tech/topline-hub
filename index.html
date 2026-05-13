@@ -2104,6 +2104,39 @@ function montarTextoHistorico(item) {
     const tbody = document.getElementById('financeiro-body'); if(!tbody) return; const dados = lista || [];
     if(!dados.length){ tbody.innerHTML='<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhum cliente encontrado.</td></tr>'; window.atualizarCardsFinanceiro([]); return; }
     tbody.innerHTML = dados.map((item, idx) => { const r = window.getFinanceiroRegistro(item); const key = encodeURIComponent(clienteKey(item)); const pago = r.status === 'pago'; const dia = Number(r.vencimento_dia || 0); const vencido = !pago && isCompAtual(window.competenciaFinanceiraAtual()) && dia && dia < hojeDia(); const rowCls = vencido ? 'financeiro-atrasado-row' : (!pago && dia ? 'financeiro-a-vencer-row' : ''); return `<tr class="${rowCls}" data-fin-key="${key}"><td data-label="Cliente" class="font-black text-slate-700">${esc(r.cliente || '-')}</td><td data-label="Valor"><input class="fin-valor-input" value="${esc(formatBRL(r.valor))}" inputmode="decimal" onblur="salvarCampoFinanceiro('${key}','valor',this.value)" placeholder="R$ 0,00"></td><td data-label="Forma de pagamento"><select onchange="salvarCampoFinanceiro('${key}', 'forma_pagamento', this.value)"><option value="" ${!r.forma_pagamento ? 'selected' : ''}>Selecionar</option><option value="pix" ${r.forma_pagamento === 'pix' ? 'selected' : ''}>Pix</option><option value="boleto" ${r.forma_pagamento === 'boleto' ? 'selected' : ''}>Boleto</option></select></td><td data-label="Vencimento"><input class="fin-dia-input" value="${esc(r.vencimento_dia || '')}" inputmode="numeric" maxlength="2" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,2)" onblur="salvarCampoFinanceiro('${key}','vencimento_dia',this.value)" placeholder="Dia"></td><td data-label="Status"><span class="financeiro-status-pill ${pago ? 'financeiro-status-pago' : 'financeiro-status-nao_pago'}">${pago ? 'Pago' : 'Não pago'}</span></td><td data-label="Pagamento"><div class="financeiro-check-group"><label class="financeiro-check-option"><input type="radio" name="fin_status_${idx}" value="pago" ${pago ? 'checked' : ''} onchange="salvarCampoFinanceiro('${key}', 'status', 'pago')"> Pago</label><label class="financeiro-check-option"><input type="radio" name="fin_status_${idx}" value="nao_pago" ${!pago ? 'checked' : ''} onchange="salvarCampoFinanceiro('${key}', 'status', 'nao_pago')"> Não pago</label></div></td></tr>`; }).join('');
+
+        const totalPaginas = Math.max(1, Math.ceil(dados.length / window.historicoItensPorPagina));
+
+        let paginacao = document.getElementById('historicoPaginacao');
+        if(!paginacao){
+            paginacao = document.createElement('div');
+            paginacao.id = 'historicoPaginacao';
+            paginacao.className = 'flex gap-2 flex-wrap justify-center py-4';
+            tbody.parentNode.appendChild(paginacao);
+        }
+
+        paginacao.innerHTML = '';
+
+        for(let i=1; i<=totalPaginas; i++){
+
+            const btn = document.createElement('button');
+
+            btn.innerText = i;
+
+            btn.className =
+                'px-3 py-1 rounded-lg border text-xs font-bold ' +
+                (i === window.historicoPaginaAtual
+                    ? 'bg-emerald-500 text-white border-emerald-500'
+                    : 'bg-white text-slate-600 border-slate-200');
+
+            btn.onclick = function(){
+                window.historicoPaginaAtual = i;
+                renderizarHistorico(dados);
+            };
+
+            paginacao.appendChild(btn);
+        }
+
     window.atualizarCardsFinanceiro(dados);
   };
   window.atualizarCardsFinanceiro = function(lista){ const regs = (lista || window.financeiroData || []).map(window.getFinanceiroRegistro); const diaAtual = hojeDia(); const comp = window.competenciaFinanceiraAtual(); const pagos = regs.filter(d=>d.status==='pago').length; const aVencer = regs.filter(d=>d.status!=='pago' && (!isCompAtual(comp) || !d.vencimento_dia || Number(d.vencimento_dia) >= diaAtual)).length; const vencidos = regs.filter(d=>d.status!=='pago' && isCompAtual(comp) && d.vencimento_dia && Number(d.vencimento_dia) < diaAtual).length; const atrasadosCount = (window.financeiroAtrasadosData || []).reduce((acc,row)=> acc + ((row.meses||[]).length), 0); setText('fin-card-clientes', regs.length); setText('fin-card-pagos', pagos); setText('fin-card-nao-pagos', regs.length - pagos); setText('fin-card-a-vencer', aVencer); setText('fin-card-vencidos', vencidos); setText('fin-card-atrasados', atrasadosCount); };
@@ -2309,6 +2342,10 @@ function montarTextoHistorico(item) {
 
 (function(){
     window.historicoDiaSelecionado = window.historicoDiaSelecionado || null;
+    
+window.historicoPaginaAtual = 1;
+window.historicoItensPorPagina = 20;
+
     window.historicoDiasDisponiveis = window.historicoDiasDisponiveis || [];
 
     function historicoDataLocalISO(data) {
@@ -2382,7 +2419,7 @@ function montarTextoHistorico(item) {
                 .from('historico_observacoes')
                 .select('created_at')
                 .order('created_at', { ascending: false })
-                .limit(1200);
+                .limit(120);
 
             if (error) throw error;
 
@@ -2477,7 +2514,13 @@ function montarTextoHistorico(item) {
             Dev: 'text-red-600'
         };
 
-        tbody.innerHTML = dados.map(function(h){
+        
+const inicioPagina = (window.historicoPaginaAtual - 1) * window.historicoItensPorPagina;
+const fimPagina = inicioPagina + window.historicoItensPorPagina;
+const dadosPagina = dados.slice(inicioPagina, fimPagina);
+
+tbody.innerHTML = dadosPagina.map(function(h){
+
             const dt = new Date(h.created_at);
             const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             const corUser = coresUsuario[h.usuario] || 'text-slate-600';
@@ -2524,10 +2567,11 @@ function montarTextoHistorico(item) {
                 .gte('created_at', range.inicio)
                 .lt('created_at', range.fim)
                 .order('created_at', { ascending: false })
-                .limit(500);
+                .limit(20);
 
             if (error) throw error;
 
+            window.historicoPaginaAtual = 1;
             window.historicoData = data || [];
             renderizarHistorico(window.historicoData);
         } catch(e) {
@@ -3347,7 +3391,7 @@ function montarTextoHistorico(item) {
             if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Carregando...</td></tr>';
             try {
-                const { data, error } = await supabaseClient.from('historico_observacoes').select('*').order('created_at', { ascending: false }).limit(500);
+                const { data, error } = await supabaseClient.from('historico_observacoes').select('*').order('created_at', { ascending: false }).limit(20);
                 if (error) { console.error('Erro SQL:', error); throw error; }
                 historicoData = data || [];
                 console.log('Histórico carregado:', historicoData.length, 'registros');
@@ -4835,7 +4879,7 @@ function montarTextoHistorico(item) {
                     .select('*')
                     .eq('documento', 'PARCELAMENTOS')
                     .order('created_at', { ascending: false })
-                    .limit(500);
+                    .limit(20);
                 if (error) throw error;
                 const outros = (historicoData || []).filter(h => String(h.documento || '').toUpperCase() !== 'PARCELAMENTOS');
                 historicoData = [...(data || []), ...outros];
@@ -7418,6 +7462,10 @@ setInterval(aplicarHistoricoObservacao, 3000);
 
 (function(){
     window.historicoDiaSelecionado = window.historicoDiaSelecionado || null;
+    
+window.historicoPaginaAtual = 1;
+window.historicoItensPorPagina = 20;
+
     window.historicoDiasDisponiveis = window.historicoDiasDisponiveis || [];
 
     function historicoDataLocalISO(data) {
@@ -7491,7 +7539,7 @@ setInterval(aplicarHistoricoObservacao, 3000);
                 .from('historico_observacoes')
                 .select('created_at')
                 .order('created_at', { ascending: false })
-                .limit(1200);
+                .limit(120);
 
             if (error) throw error;
 
@@ -7586,7 +7634,13 @@ setInterval(aplicarHistoricoObservacao, 3000);
             Dev: 'text-red-600'
         };
 
-        tbody.innerHTML = dados.map(function(h){
+        
+const inicioPagina = (window.historicoPaginaAtual - 1) * window.historicoItensPorPagina;
+const fimPagina = inicioPagina + window.historicoItensPorPagina;
+const dadosPagina = dados.slice(inicioPagina, fimPagina);
+
+tbody.innerHTML = dadosPagina.map(function(h){
+
             const dt = new Date(h.created_at);
             const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             const corUser = coresUsuario[h.usuario] || 'text-slate-600';
@@ -7633,10 +7687,11 @@ setInterval(aplicarHistoricoObservacao, 3000);
                 .gte('created_at', range.inicio)
                 .lt('created_at', range.fim)
                 .order('created_at', { ascending: false })
-                .limit(500);
+                .limit(20);
 
             if (error) throw error;
 
+            window.historicoPaginaAtual = 1;
             window.historicoData = data || [];
             renderizarHistorico(window.historicoData);
         } catch(e) {
@@ -7944,7 +7999,7 @@ setInterval(aplicarHistoricoObservacao, 3000);
   window.renderizarAtrasadosFinanceiro=function(){const tbody=document.getElementById('financeiro-atrasados-body'); if(!tbody) return; const rows=window.financeiroAtrasadosData||[], comp=window.competenciaFinanceiraAtual(), ano=compAno(comp), mesLimite=(ano===new Date().getFullYear())?Math.min(compMes(comp)-1,new Date().getMonth()+1):12; const head=document.getElementById('financeiro-atrasados-head'); if(head) head.innerHTML='<tr><th>Cliente</th>'+MESES.map(m=>`<th>${m.slice(0,3)}</th>`).join('')+'</tr>'; if(!rows.length){tbody.innerHTML='<tr><td colspan="13" class="text-center py-8 text-slate-400">Nenhum atraso encontrado para o ano selecionado.</td></tr>'; return;} tbody.innerHTML=rows.map(row=>{let tds=''; for(let m=1;m<=12;m++){const r=row.meses[m], compMesStr=mesComp(ano,m); let status='vazio', label='-'; if(r){status=r.status==='pago'?'pago':'nao_pago'; label=r.status==='pago'?'Pago':'Não pago';} const disabled=status==='vazio'?'disabled':''; tds+=`<td class="fin-atraso-cell" data-label="${MESES[m-1]}"><button ${disabled} class="fin-atraso-btn ${status}" onclick="alterarStatusAtrasadoFinanceiro('${esc(row.key)}','${compMesStr}','${status==='pago'?'nao_pago':'pago'}')">${label}</button></td>`;} return `<tr><td data-label="Cliente" class="font-black text-slate-700">${esc(row.cliente)}</td>${tds}</tr>`;}).join('');};
   window.alterarStatusAtrasadoFinanceiro=async function(key,comp,statusNovo){const item=(window.financeiroData||[]).find(i=>clienteKey(i)===key)||{CLIENTE:key}; const payload={cliente_key:key,cliente:item.CLIENTE||key,competencia:comp,status:statusNovo,atualizado_por:getUser()||'Sistema',atualizado_em:new Date().toISOString()}; try{if(typeof setSaveStatus==='function') setSaveStatus('saving','Salvando atraso...'); const sb=getSB(); const {error}=await sb.from('financeiro_status_mensal').upsert([payload],{onConflict:'cliente_key,competencia'}); if(error) throw error; await window.registrarLogFinanceiro(item,'status',statusNovo==='pago'?'nao_pago':'pago',statusNovo,comp); await window.carregarAtrasadosFinanceiro(true); if(typeof setSaveStatus==='function') setSaveStatus('saved','Atraso salvo'); notify(statusNovo==='pago'?'Mês marcado como pago.':'Mês marcado como não pago.');}catch(e){console.error('Erro no atraso financeiro:',e); if(typeof setSaveStatus==='function') setSaveStatus('error','Erro no atraso'); notify('Erro ao salvar atraso.',true);}};
   window.marcarAtrasadoFinanceiroPago=function(key,comp){return window.alterarStatusAtrasadoFinanceiro(key,comp,'pago');};
-  window.carregarLogsFinanceiro=async function(){const tbody=document.getElementById('financeiro-log-body'); if(!tbody||!window.podeVerLogFinanceiro()) return; tbody.innerHTML='<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando logs financeiros...</td></tr>'; const sb=getSB(); try{const mes=document.getElementById('financeiroLogMesFiltro')?.value||''; let q=sb.from('financeiro_logs').select('*').order('created_at',{ascending:false}).limit(500); if(mes) q=q.eq('competencia',mes); const {data,error}=await q; if(error) throw error; window.financeiroLogsData=data||[]; window.renderizarLogsFinanceiro(window.financeiroLogsData);}catch(e){console.warn('Tabela financeiro_logs indisponível.',e); tbody.innerHTML='<tr><td colspan="5" class="text-center py-8 text-amber-500 font-bold">Verifique a tabela financeiro_logs no Supabase.</td></tr>';}};
+  window.carregarLogsFinanceiro=async function(){const tbody=document.getElementById('financeiro-log-body'); if(!tbody||!window.podeVerLogFinanceiro()) return; tbody.innerHTML='<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando logs financeiros...</td></tr>'; const sb=getSB(); try{const mes=document.getElementById('financeiroLogMesFiltro')?.value||''; let q=sb.from('financeiro_logs').select('*').order('created_at',{ascending:false}).limit(20); if(mes) q=q.eq('competencia',mes); const {data,error}=await q; if(error) throw error; window.financeiroLogsData=data||[]; window.renderizarLogsFinanceiro(window.financeiroLogsData);}catch(e){console.warn('Tabela financeiro_logs indisponível.',e); tbody.innerHTML='<tr><td colspan="5" class="text-center py-8 text-amber-500 font-bold">Verifique a tabela financeiro_logs no Supabase.</td></tr>';}};
   window.renderizarLogsFinanceiro=function(logs){const tbody=document.getElementById('financeiro-log-body'); if(!tbody) return; const busca=norm(document.getElementById('financeiroLogBuscaFiltro')?.value||''); const filtrados=(logs||[]).filter(l=>!busca||norm(`${l.usuario||''} ${l.cliente||''} ${l.acao||''} ${l.detalhes||''}`).includes(busca)); if(!filtrados.length){tbody.innerHTML='<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum log financeiro encontrado.</td></tr>'; return;} tbody.innerHTML=filtrados.map(log=>{const dt=log.created_at?new Date(log.created_at):new Date(); const ds=dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return `<tr><td class="font-mono text-[10px] text-slate-500">${esc(ds)}</td><td class="font-bold text-slate-700">${esc(log.usuario||'-')}</td><td class="font-bold text-slate-700">${esc(log.cliente||'-')}</td><td><span class="log-action-pill alteracao">${esc(log.acao||'Financeiro')}</span></td><td class="font-bold text-slate-700">${esc(log.detalhes||'-')}</td></tr>`;}).join('');};
   window.limparFiltroLogFinanceiro=function(){const m=document.getElementById('financeiroLogMesFiltro'), b=document.getElementById('financeiroLogBuscaFiltro'); if(m) m.value=''; if(b) b.value=''; window.carregarLogsFinanceiro();};
   document.addEventListener('DOMContentLoaded',function(){
