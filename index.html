@@ -96,29 +96,64 @@
 // ==========================
 // HISTÓRICO - OBSERVAÇÃO
 // ==========================
+// HISTÓRICO - OBSERVAÇÃO
+// Mostra somente mudança de status, inclusive em registros antigos.
+// Não apaga nem altera dados salvos; apenas muda a exibição na aba Histórico.
+// ==========================
 
 function montarTextoHistorico(item) {
+    item = item || {};
 
-    const statusAnterior =
+    function limparStatus(valor) {
+        return String(valor || '')
+            .replace(/[_-]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    }
+
+    const statusAnteriorBruto =
         item.statusAnterior ||
         item.status_anterior ||
+        item.status_antigo ||
+        item.statusAntigo ||
         item.de ||
         '';
 
-    const statusNovo =
+    const statusNovoBruto =
         item.statusNovo ||
         item.status_novo ||
+        item.novo_status ||
+        item.status_atual ||
         item.para ||
         item.status ||
         '';
 
-    if (statusAnterior && statusNovo) {
+    const statusAnterior = limparStatus(statusAnteriorBruto);
+    const statusNovo = limparStatus(statusNovoBruto);
+
+    if (statusAnterior && statusNovo && statusAnterior !== statusNovo) {
         return `${statusAnterior} → ${statusNovo}`;
     }
 
-    if (statusNovo) {
-        return statusNovo;
+    const obs = String(item.observacao || item.observacao_historico || item.descricao || item.detalhes || '');
+
+    const padroes = [
+        /(?:de|do status|status anterior)\s*[:\-]?\s*["']?([^"'\n\r→>-]{2,40})["']?\s*(?:para|p\/|->|→)\s*["']?([^"'\n\r.]{2,40})["']?/i,
+        /(?:alterad[oa]|mudou|troca(?:do|da)?)\s+(?:de\s+)?["']?([^"'\n\r→>-]{2,40})["']?\s*(?:para|p\/|->|→)\s*["']?([^"'\n\r.]{2,40})["']?/i,
+        /["']?([^"'\n\r→>-]{2,40})["']?\s*(?:->|→)\s*["']?([^"'\n\r.]{2,40})["']?/i
+    ];
+
+    for (const regex of padroes) {
+        const match = obs.match(regex);
+        if (match && match[1] && match[2]) {
+            const de = limparStatus(match[1]);
+            const para = limparStatus(match[2]);
+            if (de && para && de !== para) return `${de} → ${para}`;
+        }
     }
+
+    if (statusNovo) return statusNovo;
 
     return '-';
 }
