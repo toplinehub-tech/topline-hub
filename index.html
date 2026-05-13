@@ -1314,7 +1314,7 @@
                     <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, setor, quantidade ou PGDAS..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>QTD.</th><th>PGDAS</th><th>DATA ENVIO</th><th>AÇÕES</th></tr></thead>
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>QTD.</th><th>PGDAS</th><th>PARCELAMENTO</th><th>DATA ENVIO</th><th>AÇÕES</th></tr></thead>
                             <tbody id="empresasParcelamentosBody"></tbody>
                         </table>
                     </div>
@@ -2201,6 +2201,7 @@
         let empresasParcelamentosSetorFiltro = '';
         let pgdasStatusMensal = {};
         let pgdasDataEnvioMensal = {};
+        let parcelamentoStatusMensal = {};
         let pgdasCompetenciaAtual = getCompetenciaPGDAS();
         let pgdasStatusCarregado = false;
         let historicoParcelamentosCarregado = false;
@@ -4366,6 +4367,7 @@
                 if (error) throw error;
                 const outros = (historicoData || []).filter(h => String(h.documento || '').toUpperCase() !== 'PARCELAMENTOS');
                 historicoData = [...(data || []), ...outros];
+                reconstruirStatusParcelamentoEnviadoPorHistorico();
                 historicoParcelamentosCarregado = true;
                 if (!document.getElementById('view-empresasparcelamentos')?.classList.contains('hidden')) renderEmpresasParcelamentos();
             } catch(e) {
@@ -4392,6 +4394,38 @@
 
         function renderPGDASStatusPill(row) {
             const status = getPGDASStatus(row);
+            if (status === 'enviado') return '<span class="pgdas-status-pill enviado">Enviado</span>';
+            return '<span class="pgdas-status-pill nao-enviado">Não enviado</span>';
+        }
+
+        function getParcelamentoStatusKey(rowOrCliente, cnpj = '') {
+            return getPGDASKey(rowOrCliente, cnpj);
+        }
+
+        function reconstruirStatusParcelamentoEnviadoPorHistorico() {
+            parcelamentoStatusMensal = {};
+            (historicoData || []).forEach(h => {
+                const doc = String(h.documento || '').toUpperCase();
+                if (doc !== 'PARCELAMENTOS') return;
+                const texto = `${h.observacao || ''} ${h.valor_novo || ''} ${h.valor || ''}`.toLowerCase();
+                const marcouEnviado = texto.includes('parcelamento marcado como enviado') || texto.includes('status do parcelamento: enviado') || String(h.valor_novo || '').toLowerCase() === 'enviado';
+                if (!marcouEnviado) return;
+                const key = getParcelamentoStatusKey(h.cliente || '', h.cnpj || '');
+                const keyCliente = getParcelamentoStatusKey(h.cliente || '', '');
+                if (key && !parcelamentoStatusMensal[key]) parcelamentoStatusMensal[key] = 'enviado';
+                if (keyCliente && !parcelamentoStatusMensal[keyCliente]) parcelamentoStatusMensal[keyCliente] = 'enviado';
+            });
+        }
+
+        function getParcelamentoEnvioStatus(row) {
+            const key = getParcelamentoStatusKey(row);
+            const keyCliente = getParcelamentoStatusKey(row?.CLIENTE || '', '');
+            const status = parcelamentoStatusMensal[key] || parcelamentoStatusMensal[keyCliente] || row?.PARCELAMENTO_ENVIADO || row?.['PARCELAMENTO ENVIADO'] || '';
+            return String(status || '').toLowerCase().includes('enviado') && !String(status || '').toLowerCase().includes('não') && !String(status || '').toLowerCase().includes('nao') ? 'enviado' : 'nao_enviado';
+        }
+
+        function renderParcelamentoEnvioStatusPill(row) {
+            const status = getParcelamentoEnvioStatus(row);
             if (status === 'enviado') return '<span class="pgdas-status-pill enviado">Enviado</span>';
             return '<span class="pgdas-status-pill nao-enviado">Não enviado</span>';
         }
@@ -4533,12 +4567,17 @@
                 <div id="parcelamentoQuantidadeContainer" class="${quantidadeAtual ? '' : 'hidden'} mt-3">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Quantidade de parcelamento</label>
                     <select id="parcelamentoQuantidade" class="parcelamento-qty-select">${opcoes}</select>
+                    <label class="mt-2 flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 cursor-pointer">
+                        <input id="parcelamentoEnviadoCheck" type="checkbox" ${getParcelamentoEnvioStatus(row) === 'enviado' ? 'checked' : ''} class="w-4 h-4 rounded border-emerald-300 cursor-pointer">
+                        <span class="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Enviado</span>
+                    </label>
                 </div>
                 <div id="pgdasStatusContainer" class="hidden mt-3">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Status PGDAS da competência ${pgdasCompetenciaAtual}</label>
-                    <select id="pgdasStatusSelect" class="parcelamento-qty-select">
-                        <option value="enviado" selected>Enviado</option>
-                    </select>
+                    <label class="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 cursor-pointer">
+                        <input id="pgdasEnviadoCheck" type="checkbox" ${getPGDASStatus(row) === 'enviado' ? 'checked' : ''} class="w-4 h-4 rounded border-emerald-300 cursor-pointer">
+                        <span class="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Enviado</span>
+                    </label>
                     <div class="mt-2">
                         <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Data de envio</label>
                         <input id="pgdasDataEnvioInput" type="date" value="${escapeAttr(getPGDASDataEnvio(row) || new Date().toISOString().substring(0, 10))}" class="parcelamento-qty-select">
@@ -4570,7 +4609,7 @@
             const observacao = document.getElementById('modalObservacao')?.value || '';
 
             if (selectedOption === 'pgdas') {
-                const valorParaSalvar = document.getElementById('pgdasStatusSelect')?.value || 'enviado';
+                const valorParaSalvar = document.getElementById('pgdasEnviadoCheck')?.checked ? 'enviado' : 'nao_enviado';
                 const valorAnterior = getPGDASStatus(row) === 'enviado' ? 'Enviado' : 'Não enviado';
                 const valorNovo = valorParaSalvar === 'enviado' ? 'Enviado' : 'Não enviado';
                 const dataEnvio = document.getElementById('pgdasDataEnvioInput')?.value || new Date().toISOString().substring(0, 10);
@@ -4605,8 +4644,12 @@
             const valorAnterior = row[c] instanceof Date ? row[c].toLocaleDateString('pt-BR') : (row[c] || 'vazio');
             const statusPrefix = getParcelamentoStatusPrefix(row[c]);
             const valorParaSalvar = `${statusPrefix} - PARCELAMENTO ${quantidade}`;
+            const parcelamentoFoiEnviado = !!document.getElementById('parcelamentoEnviadoCheck')?.checked;
+            const statusParcelamentoAnterior = getParcelamentoEnvioStatus(row) === 'enviado' ? 'Enviado' : 'Não enviado';
+            const statusParcelamentoNovo = parcelamentoFoiEnviado ? 'Enviado' : statusParcelamentoAnterior;
 
             row[c] = valorParaSalvar;
+            if (parcelamentoFoiEnviado) { parcelamentoStatusMensal[getParcelamentoStatusKey(row)] = 'enviado'; parcelamentoStatusMensal[getParcelamentoStatusKey(row.CLIENTE || '', '')] = 'enviado'; }
             renderEmpresasParcelamentos();
             atualizarResumoParcelamentos();
             if (!document.getElementById('view-dash')?.classList.contains('hidden')) renderTable();
@@ -4615,11 +4658,18 @@
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
             try {
-                await Promise.all([
+                const tarefasSalvar = [
                     enviarParaGoogleSheets(cliente, c, 'parcelamento', valorParaSalvar),
                     registrarLog('Informações de parcelamento', cliente, c, `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorParaSalvar),
                     salvarObservacao(cliente, c, observacao || `Quantidade de parcelamento definida para ${quantidade}`, valorParaSalvar)
-                ]);
+                ];
+                if (parcelamentoFoiEnviado) {
+                    tarefasSalvar.push(
+                        registrarLog('Parcelamento enviado', cliente, c, `Status do parcelamento alterado de "${statusParcelamentoAnterior}" para "${statusParcelamentoNovo}"${observacao ? ' | Obs: ' + observacao : ''}`, statusParcelamentoAnterior, statusParcelamentoNovo),
+                        salvarObservacao(cliente, c, observacao || 'Parcelamento marcado como enviado', 'Enviado')
+                    );
+                }
+                await Promise.all(tarefasSalvar);
                 historicoParcelamentosCarregado = false;
                 await carregarHistoricoParcelamentosSilencioso();
                 loadingOverlay.style.display = 'none';
@@ -4646,12 +4696,12 @@
                 .filter(item => empresasParcelamentosSetorFiltro ? item.setor === empresasParcelamentosSetorFiltro : true)
                 .filter(item => {
                     const ultimaObs = getUltimaObservacaoParcelamento(item.row.CLIENTE);
-                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.SETOR || ''} ${getSetorParcelamentosLabel(item.row.SETOR)} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${getPGDASStatus(item.row)} ${formatarDataEnvioPGDAS(getPGDASDataEnvio(item.row))} ${ultimaObs?.observacao || ''}`.toLowerCase();
+                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.SETOR || ''} ${getSetorParcelamentosLabel(item.row.SETOR)} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${getPGDASStatus(item.row)} ${getParcelamentoEnvioStatus(item.row)} ${formatarDataEnvioPGDAS(getPGDASDataEnvio(item.row))} ${ultimaObs?.observacao || ''}`.toLowerCase();
                     return !q || texto.includes(q);
                 });
             if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
             if (!linhas.length) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
                 return;
             }
             tbody.innerHTML = linhas.map(item => {
@@ -4663,6 +4713,7 @@
                     <td><span class="parcelamento-status-pill sem-status">${escapeHtml(getSetorParcelamentosLabel(row.SETOR))}</span></td>
                     <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
                     <td>${renderPGDASStatusPill(row)}</td>
+                    <td>${renderParcelamentoEnvioStatusPill(row)}</td>
                     <td class="font-bold text-slate-600">${escapeHtml(formatarDataEnvioPGDAS(getPGDASDataEnvio(row)))}</td>
                     <td><button onclick="event.stopPropagation(); openParcelamentoInfoModal(${item.index})" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Informações</button></td>
                 </tr>`;
