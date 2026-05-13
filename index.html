@@ -1075,6 +1075,16 @@ function montarTextoHistorico(item) {
 @media (max-width: 1100px) { .pontuais-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .pontuais-form-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
 
+
+.historico-observacao-editavel{
+    cursor:text;
+    min-width:220px;
+}
+.historico-observacao-editavel:focus{
+    outline:2px solid #22c55e;
+    background:#fff;
+}
+
 </style>
 </head>
 <body>
@@ -2257,6 +2267,103 @@ function montarTextoHistorico(item) {
     window.addEventListener('load', function(){ setTimeout(bootDomOptimization, 300); });
   }
 })();
+</script>
+
+
+<script>
+// ==========================
+// OVERRIDE FINAL - HISTÓRICO OBSERVAÇÃO
+// ==========================
+
+function extrairStatusHistorico(texto) {
+    texto = String(texto || '').toLowerCase();
+
+    if ((texto.includes('não enviado') || texto.includes('nao enviado')) && texto.includes('enviado')) {
+        return 'Não enviado → Enviado';
+    }
+
+    const lista = [
+        ['analise','Análise'],
+        ['análise','Análise'],
+        ['andamento','Andamento'],
+        ['concluido','Concluído'],
+        ['concluído','Concluído'],
+        ['finalizado','Finalizado'],
+        ['ativo','Ativo'],
+        ['inativo','Inativo'],
+        ['pendente','Pendente'],
+        ['cancelado','Cancelado']
+    ];
+
+    let encontrados = [];
+
+    lista.forEach(function(item){
+        if(texto.includes(item[0]) && !encontrados.includes(item[1])){
+            encontrados.push(item[1]);
+        }
+    });
+
+    if(encontrados.length >= 2){
+        return encontrados[0] + ' → ' + encontrados[1];
+    }
+
+    return '-';
+}
+
+function aplicarHistoricoObservacao() {
+
+    const tabela = document.querySelectorAll('table tbody tr');
+
+    tabela.forEach(function(tr){
+
+        const tds = tr.querySelectorAll('td');
+
+        if(tds.length < 5) return;
+
+        const tdObs = tds[4];
+
+        if(!tdObs) return;
+
+        const original = tdObs.getAttribute('data-original-observacao') || tdObs.innerText || '';
+
+        tdObs.setAttribute('data-original-observacao', original);
+
+        const textoLimpo = extrairStatusHistorico(original);
+
+        tdObs.innerText = textoLimpo;
+
+        tdObs.contentEditable = true;
+
+        tdObs.classList.add('historico-observacao-editavel');
+
+        tdObs.onblur = async function(){
+
+            const novo = tdObs.innerText.trim();
+
+            try{
+
+                const linhaId =
+                    tr.dataset.id ||
+                    tr.getAttribute('data-id') ||
+                    tdObs.dataset.id ||
+                    '';
+
+                if(window.db && linhaId){
+                    await db.collection('historico').doc(String(linhaId)).update({
+                        observacao_editada: novo
+                    });
+                }
+
+            }catch(e){
+                console.error(e);
+            }
+        };
+
+    });
+}
+
+setTimeout(aplicarHistoricoObservacao, 1000);
+setInterval(aplicarHistoricoObservacao, 3000);
 </script>
 
 </body>
@@ -6825,6 +6932,103 @@ function renderizarLogsFinanceiro(logs) { const tbody = document.getElementById(
 const _switchTabFinanceiroBase = typeof switchTab === 'function' ? switchTab : null;
 if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { const wrappedSwitchFinanceiro = function(tab) { if (currentUser === 'Brenda' && tab !== 'financeiro') tab = 'financeiro'; return _switchTabFinanceiroBase(tab); }; wrappedSwitchFinanceiro.__financeiroV20 = true; switchTab = wrappedSwitchFinanceiro; }
 
+</script>
+
+
+<script>
+// ==========================
+// OVERRIDE FINAL - HISTÓRICO OBSERVAÇÃO
+// ==========================
+
+function extrairStatusHistorico(texto) {
+    texto = String(texto || '').toLowerCase();
+
+    if ((texto.includes('não enviado') || texto.includes('nao enviado')) && texto.includes('enviado')) {
+        return 'Não enviado → Enviado';
+    }
+
+    const lista = [
+        ['analise','Análise'],
+        ['análise','Análise'],
+        ['andamento','Andamento'],
+        ['concluido','Concluído'],
+        ['concluído','Concluído'],
+        ['finalizado','Finalizado'],
+        ['ativo','Ativo'],
+        ['inativo','Inativo'],
+        ['pendente','Pendente'],
+        ['cancelado','Cancelado']
+    ];
+
+    let encontrados = [];
+
+    lista.forEach(function(item){
+        if(texto.includes(item[0]) && !encontrados.includes(item[1])){
+            encontrados.push(item[1]);
+        }
+    });
+
+    if(encontrados.length >= 2){
+        return encontrados[0] + ' → ' + encontrados[1];
+    }
+
+    return '-';
+}
+
+function aplicarHistoricoObservacao() {
+
+    const tabela = document.querySelectorAll('table tbody tr');
+
+    tabela.forEach(function(tr){
+
+        const tds = tr.querySelectorAll('td');
+
+        if(tds.length < 5) return;
+
+        const tdObs = tds[4];
+
+        if(!tdObs) return;
+
+        const original = tdObs.getAttribute('data-original-observacao') || tdObs.innerText || '';
+
+        tdObs.setAttribute('data-original-observacao', original);
+
+        const textoLimpo = extrairStatusHistorico(original);
+
+        tdObs.innerText = textoLimpo;
+
+        tdObs.contentEditable = true;
+
+        tdObs.classList.add('historico-observacao-editavel');
+
+        tdObs.onblur = async function(){
+
+            const novo = tdObs.innerText.trim();
+
+            try{
+
+                const linhaId =
+                    tr.dataset.id ||
+                    tr.getAttribute('data-id') ||
+                    tdObs.dataset.id ||
+                    '';
+
+                if(window.db && linhaId){
+                    await db.collection('historico').doc(String(linhaId)).update({
+                        observacao_editada: novo
+                    });
+                }
+
+            }catch(e){
+                console.error(e);
+            }
+        };
+
+    });
+}
+
+setTimeout(aplicarHistoricoObservacao, 1000);
+setInterval(aplicarHistoricoObservacao, 3000);
 </script>
 
 </body>
