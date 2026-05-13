@@ -100,60 +100,112 @@
 // Mostra somente mudança de status, inclusive em registros antigos.
 // Não apaga nem altera dados salvos; apenas muda a exibição na aba Histórico.
 // ==========================
+// HISTÓRICO - OBSERVAÇÃO
+// Mostra somente mudança de status na aba Histórico.
+// Não apaga nem altera o texto original salvo; apenas controla a exibição.
+// ==========================
 
 function montarTextoHistorico(item) {
     item = item || {};
 
-    function limparStatus(valor) {
-        return String(valor || '')
-            .replace(/[_-]+/g, ' ')
+    function normalizar(txt) {
+        return String(txt || '')
+            .replace(/_/g, ' ')
             .replace(/\s+/g, ' ')
-            .trim()
-            .replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+            .trim();
     }
 
-    const statusAnteriorBruto =
-        item.statusAnterior ||
-        item.status_anterior ||
-        item.status_antigo ||
-        item.statusAntigo ||
-        item.de ||
-        '';
-
-    const statusNovoBruto =
-        item.statusNovo ||
-        item.status_novo ||
-        item.novo_status ||
-        item.status_atual ||
-        item.para ||
-        item.status ||
-        '';
-
-    const statusAnterior = limparStatus(statusAnteriorBruto);
-    const statusNovo = limparStatus(statusNovoBruto);
-
-    if (statusAnterior && statusNovo && statusAnterior !== statusNovo) {
-        return `${statusAnterior} → ${statusNovo}`;
+    function tituloStatus(txt) {
+        const v = normalizar(txt).toLowerCase();
+        const mapa = {
+            'analise': 'Análise',
+            'análise': 'Análise',
+            'andamento': 'Andamento',
+            'concluido': 'Concluído',
+            'concluído': 'Concluído',
+            'finalizado': 'Finalizado',
+            'pendente': 'Pendente',
+            'cancelado': 'Cancelado',
+            'ativo': 'Ativo',
+            'inativo': 'Inativo',
+            'nao enviado': 'Não enviado',
+            'não enviado': 'Não enviado',
+            'enviado': 'Enviado'
+        };
+        return mapa[v] || normalizar(txt).replace(/\b\w/g, function(l) { return l.toUpperCase(); });
     }
 
-    const obs = String(item.observacao || item.observacao_historico || item.descricao || item.detalhes || '');
+    const editado = normalizar(item.observacao_editada || item.observacaoEditada || '');
+    if (editado) return editado;
+
+    const textoOriginal = normalizar(
+        item.observacao ||
+        item.descricao ||
+        item.detalhes ||
+        item.mensagem ||
+        ''
+    );
+
+    const deCampo = normalizar(item.statusAnterior || item.status_anterior || item.status_antigo || item.statusAntigo || item.de || '');
+    const paraCampo = normalizar(item.statusNovo || item.status_novo || item.novo_status || item.status_atual || item.para || item.status || '');
+
+    if (deCampo && paraCampo && deCampo.toLowerCase() !== paraCampo.toLowerCase()) {
+        return tituloStatus(deCampo) + ' → ' + tituloStatus(paraCampo);
+    }
+
+    const t = textoOriginal.toLowerCase();
+
+    // Regra específica de Empresas/Parcelamentos:
+    // sempre que houver mudança de "Não enviado" para "Enviado", mostrar só isso.
+    if (
+        (t.includes('não enviado') || t.includes('nao enviado')) &&
+        t.includes('enviado')
+    ) {
+        return 'Não enviado → Enviado';
+    }
 
     const padroes = [
-        /(?:de|do status|status anterior)\s*[:\-]?\s*["']?([^"'\n\r→>-]{2,40})["']?\s*(?:para|p\/|->|→)\s*["']?([^"'\n\r.]{2,40})["']?/i,
-        /(?:alterad[oa]|mudou|troca(?:do|da)?)\s+(?:de\s+)?["']?([^"'\n\r→>-]{2,40})["']?\s*(?:para|p\/|->|→)\s*["']?([^"'\n\r.]{2,40})["']?/i,
-        /["']?([^"'\n\r→>-]{2,40})["']?\s*(?:->|→)\s*["']?([^"'\n\r.]{2,40})["']?/i
+        /(?:de|do status|status anterior)\s*[:\-]?\s*["']?([^"'\n\r|→>-]{2,45})["']?\s*(?:para|p\/|->|→)\s*["']?([^"'\n\r|.]{2,45})["']?/i,
+        /(?:alterad[oa]|mudou|troca(?:do|da)?)\s+(?:de\s+)?["']?([^"'\n\r|→>-]{2,45})["']?\s*(?:para|p\/|->|→)\s*["']?([^"'\n\r|.]{2,45})["']?/i,
+        /["']?([^"'\n\r|→>-]{2,45})["']?\s*(?:->|→)\s*["']?([^"'\n\r|.]{2,45})["']?/i
     ];
 
     for (const regex of padroes) {
-        const match = obs.match(regex);
-        if (match && match[1] && match[2]) {
-            const de = limparStatus(match[1]);
-            const para = limparStatus(match[2]);
-            if (de && para && de !== para) return `${de} → ${para}`;
+        const m = textoOriginal.match(regex);
+        if (m && m[1] && m[2]) {
+            const de = tituloStatus(m[1]);
+            const para = tituloStatus(m[2]);
+            if (de && para && de.toLowerCase() !== para.toLowerCase()) {
+                return de + ' → ' + para;
+            }
         }
     }
 
-    if (statusNovo) return statusNovo;
+    const ordem = [
+        ['analise', 'Análise'],
+        ['análise', 'Análise'],
+        ['andamento', 'Andamento'],
+        ['concluido', 'Concluído'],
+        ['concluído', 'Concluído'],
+        ['finalizado', 'Finalizado'],
+        ['pendente', 'Pendente'],
+        ['cancelado', 'Cancelado'],
+        ['ativo', 'Ativo'],
+        ['inativo', 'Inativo']
+    ];
+
+    const encontrados = [];
+    ordem.forEach(function(par) {
+        if (t.includes(par[0]) && !encontrados.includes(par[1])) {
+            encontrados.push(par[1]);
+        }
+    });
+
+    if (encontrados.length >= 2) {
+        return encontrados[0] + ' → ' + encontrados[1];
+    }
+
+    if (paraCampo) return tituloStatus(paraCampo);
 
     return '-';
 }
@@ -8721,6 +8773,47 @@ async function abrirHistoricoModal(cliente, documento) {
         setTimeout(function(){ try { window.atualizarDashboardDesempenho(); } catch(e) {} }, 1200);
     });
 })();
+
+
+// ==========================
+// HISTÓRICO - EDIÇÃO MANUAL DA OBSERVAÇÃO EXIBIDA
+// Salva somente uma observação editada, sem apagar a observação original.
+// ==========================
+
+async function salvarEdicaoHistorico(el, id) {
+    const novoTexto = (el && el.innerText ? el.innerText.trim() : '');
+    if (!id) return;
+
+    try {
+        const payload = {
+            observacao_editada: novoTexto,
+            editado_em: new Date().toISOString(),
+            editado_por: (typeof currentUser !== 'undefined' && currentUser) ? currentUser : ''
+        };
+
+        if (typeof supabase !== 'undefined' && window.supabaseClient && window.supabaseClient.from) {
+            await window.supabaseClient.from('historico_observacoes').update(payload).eq('id', id);
+            return;
+        }
+
+        if (typeof db !== 'undefined' && db.collection) {
+            await db.collection('historico').doc(String(id)).update(payload);
+            return;
+        }
+
+        if (window.supabase && window.supabase.from) {
+            await window.supabase.from('historico_observacoes').update(payload).eq('id', id);
+        }
+    } catch (e) {
+        console.error('Erro ao salvar edição do histórico:', e);
+    }
+}
+
+
+function montarCelulaObservacaoHistorico(item) {
+    const id = (item && (item.id || item.uuid || item._id)) ? String(item.id || item.uuid || item._id).replace(/'/g, "\\'") : '';
+    return `<td contenteditable="true" onblur="salvarEdicaoHistorico(this, '${id}')" title="Clique para editar a observação exibida">${montarTextoHistorico(item)}</td>`;
+}
 
 </script>
 
