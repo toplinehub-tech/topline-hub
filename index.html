@@ -7803,6 +7803,253 @@ async function abrirHistoricoModal(cliente, documento) {
         window.carregarMonitor();
     };
 })();
+
+
+/* ======================================================
+   HOTFIX v6 - Monitor, Painel e tarefas de dívidas
+   Escopo: somente corrigir gráficos do Monitor e contadores do Painel.
+   Mantém Logs restritos a login/logout e não altera regras das demais abas.
+   ====================================================== */
+(function(){
+    const COLABS_PAINEL_V6 = ['Jordan', 'Sirlene', 'Ingrid'];
+    const COLABS_MONITOR_V6 = ['Jordan', 'Sirlene', 'Ingrid', 'Patricia', 'Nikolas', 'Brenda', 'Dev'];
+
+    function sbV6(){
+        const c = window.supabaseClient || window.supabase;
+        return c && typeof c.from === 'function' ? c : null;
+    }
+    function escV6(v){
+        return String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+    function normV6(v){
+        return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    function usuarioRegistroV6(reg){
+        const detalhes = String(reg?.detalhes || reg?.observacao || '');
+        const m1 = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Patricia|Nikolas|Brenda|Dev)/i);
+        if (m1) return m1[1];
+        const m2 = detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Patricia|Nikolas|Brenda|Dev)/i);
+        if (m2) return m2[1];
+        return reg?.usuario || 'Sistema';
+    }
+    function chaveAtividadeV6(reg){
+        return [
+            String(reg?.cliente || '').trim().toUpperCase(),
+            String(reg?.documento || '').trim().toUpperCase(),
+            usuarioRegistroV6(reg),
+            String(reg?.created_at || '').slice(0, 10)
+        ].join('|');
+    }
+    function periodoInicioV6(){
+        const hoje = new Date();
+        const p = window.monitorPeriodoAtual || 'diario';
+        const d = new Date(hoje);
+        if (p === 'semanal') d.setDate(d.getDate() - 6);
+        else if (p === 'mensal') d.setDate(d.getDate() - 29);
+        return d.toISOString().slice(0, 10);
+    }
+    function periodoLabelV6(){
+        const p = window.monitorPeriodoAtual || 'diario';
+        return p === 'semanal' ? 'Ultimos 7 dias' : (p === 'mensal' ? 'Ultimos 30 dias' : 'Hoje');
+    }
+    async function buscarAtividadesV6(dataInicio){
+        const sb = sbV6();
+        if (!sb) return [];
+        const inicio = (dataInicio || new Date().toISOString().slice(0,10)) + 'T00:00:00';
+        const promessas = [
+            sb.from('logs_sistema')
+              .select('created_at,usuario,acao,cliente,documento,detalhes')
+              .in('acao', ['Tarefa do sorteio realizada', 'Tarefa contabilizada no monitor'])
+              .gte('created_at', inicio)
+              .order('created_at', { ascending:false })
+        ];
+        // Historico entra como apoio para atividades registradas fora do fluxo principal.
+        promessas.push(
+            sb.from('historico_observacoes')
+              .select('created_at,usuario,cliente,documento,observacao,status_novo')
+              .gte('created_at', inicio)
+              .order('created_at', { ascending:false })
+        );
+        const resultados = await Promise.allSettled(promessas);
+        const lista = [];
+        resultados.forEach(res => {
+            if (res.status !== 'fulfilled') return;
+            const { data, error } = res.value || {};
+            if (error) { console.warn('Monitor v6: consulta ignorada:', error); return; }
+            (data || []).forEach(item => {
+                const txt = normV6([item.acao, item.detalhes, item.observacao, item.status_novo].join(' '));
+                const ehAtividade = txt.includes('tarefa do sorteio realizada') ||
+                    txt.includes('tarefa contabilizada no monitor') ||
+                    txt.includes('sorteio de') ||
+                    txt.includes('tarefa atribuida a') ||
+                    txt.includes('alterado para') ||
+                    txt.includes('parcelamento marcado como enviado') ||
+                    txt.includes('pgdas') ||
+                    txt.includes('pontual') ||
+                    txt.includes('financeir');
+                if (ehAtividade) lista.push(item);
+            });
+        });
+        const vistos = new Set();
+        return lista.filter(item => {
+            const ch = chaveAtividadeV6(item);
+            if (vistos.has(ch)) return false;
+            vistos.add(ch);
+            return true;
+        }).sort((a,b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    }
+    function destruirGraficoCanvasV6(id){
+        const canvas = document.getElementById(id);
+        if (!canvas || typeof Chart === 'undefined') return;
+        try { Chart.getChart(canvas)?.destroy(); } catch(e) {}
+        try { Chart.getChart(id)?.destroy(); } catch(e) {}
+        try {
+            if (id === 'monitor-bar-chart' && window.monitorBarChart && typeof window.monitorBarChart.destroy === 'function') window.monitorBarChart.destroy();
+        } catch(e) {}
+        try {
+            if (id === 'monitor-pie-chart' && window.monitorPieChart && typeof window.monitorPieChart.destroy === 'function') window.monitorPieChart.destroy();
+        } catch(e) {}
+        try {
+            if (id === 'monitor-bar-chart' && typeof monitorBarChart !== 'undefined' && monitorBarChart && typeof monitorBarChart.destroy === 'function') monitorBarChart.destroy();
+        } catch(e) {}
+        try {
+            if (id === 'monitor-pie-chart' && typeof monitorPieChart !== 'undefined' && monitorPieChart && typeof monitorPieChart.destroy === 'function') monitorPieChart.destroy();
+        } catch(e) {}
+        if (id === 'monitor-bar-chart') window.monitorBarChart = null;
+        if (id === 'monitor-pie-chart') window.monitorPieChart = null;
+    }
+    window.destruirGraficosMonitorHotfix = function(){
+        destruirGraficoCanvasV6('monitor-bar-chart');
+        destruirGraficoCanvasV6('monitor-pie-chart');
+    };
+
+    window.atualizarDashboardDesempenho = atualizarDashboardDesempenho = async function(){
+        const hoje = new Date().toISOString().slice(0, 10);
+        const atividades = await buscarAtividadesV6(hoje);
+        const concluidas = { Jordan:0, Sirlene:0, Ingrid:0 };
+        atividades.forEach(a => {
+            const u = usuarioRegistroV6(a);
+            if (Object.prototype.hasOwnProperty.call(concluidas, u)) concluidas[u]++;
+        });
+        COLABS_PAINEL_V6.forEach(colab => {
+            let pendentes = 0;
+            try {
+                if (typeof getTarefasPendentesColaborador === 'function') pendentes = getTarefasPendentesColaborador(colab).length;
+                else {
+                    const lista = (window.distribuicaoAtual?.[colab] || distribuicaoAtual?.[colab] || []);
+                    pendentes = lista.filter(t => !(typeof isAtividadeRealizada === 'function' && isAtividadeRealizada(t.rowIndex, t.documento))).length;
+                }
+            } catch(e) { pendentes = 0; }
+            const done = concluidas[colab] || 0;
+            const total = pendentes + done;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            const n = colab.toLowerCase();
+            const pEl = document.getElementById(n + '-percent'); if (pEl) pEl.innerText = pct + '%';
+            const prEl = document.getElementById(n + '-progress'); if (prEl) prEl.style.width = Math.min(100, pct) + '%';
+            const cEl = document.getElementById(n + '-concluidas'); if (cEl) cEl.innerText = done;
+            const tEl = document.getElementById(n + '-total'); if (tEl) tEl.innerText = total;
+        });
+    };
+
+    window.carregarMonitor = carregarMonitor = async function(){
+        const cards = document.getElementById('monitor-cards');
+        const tbody = document.getElementById('monitor-historico-body');
+        if (!cards || !tbody) return;
+        const dataInicio = periodoInicioV6();
+        const label = periodoLabelV6();
+        const title = document.getElementById('monitor-chart-title');
+        const info = document.getElementById('monitor-historico-info');
+        if (title) title.textContent = 'Atividades realizadas - ' + label;
+        if (info) info.textContent = label;
+        cards.innerHTML = '<div class="col-span-3 text-center py-8 text-slate-400 text-xs font-bold">Carregando monitor...</div>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando registros...</td></tr>';
+        try {
+            const atividades = await buscarAtividadesV6(dataInicio);
+            const agrupado = {};
+            COLABS_MONITOR_V6.forEach(c => agrupado[c] = { concluidas:0 });
+            atividades.forEach(a => {
+                const u = usuarioRegistroV6(a);
+                if (!agrupado[u]) agrupado[u] = { concluidas:0 };
+                agrupado[u].concluidas++;
+            });
+            cards.innerHTML = COLABS_PAINEL_V6.map(c => {
+                const n = agrupado[c]?.concluidas || 0;
+                return '<div class="colab-card">' +
+                    '<div class="flex justify-between items-start mb-3"><div><h3 class="text-[10px] font-black uppercase tracking-wider text-slate-700">' + escV6(c) + '</h3><p class="text-[9px] text-slate-400">' + escV6(label) + '</p></div><div class="text-2xl font-black text-emerald-600">' + n + '</div></div>' +
+                    '<div class="text-[9px] text-slate-500"><span>Atividades realizadas: <strong>' + n + '</strong></span></div>' +
+                '</div>';
+            }).join('');
+
+            window.destruirGraficosMonitorHotfix();
+            const labels = COLABS_MONITOR_V6;
+            const values = labels.map(c => agrupado[c]?.concluidas || 0);
+            const ctxBar = document.getElementById('monitor-bar-chart')?.getContext('2d');
+            if (ctxBar && typeof Chart !== 'undefined') {
+                window.monitorBarChart = new Chart(ctxBar, {
+                    type:'bar',
+                    data:{ labels, datasets:[{ label:'Atividades', data:values, borderRadius:8, borderSkipped:false }] },
+                    options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+                });
+            }
+            const ctxPie = document.getElementById('monitor-pie-chart')?.getContext('2d');
+            if (ctxPie && typeof Chart !== 'undefined') {
+                window.monitorPieChart = new Chart(ctxPie, {
+                    type:'doughnut',
+                    data:{ labels, datasets:[{ data:values, borderWidth:1 }] },
+                    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, font:{ size:8 }, padding:5 } } }, cutout:'60%' }
+                });
+            }
+            tbody.innerHTML = atividades.slice(0, 120).map(a => {
+                const dt = a.created_at ? new Date(a.created_at) : new Date();
+                const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                const usuario = usuarioRegistroV6(a);
+                const origem = /sorteio/i.test(String(a.detalhes || a.observacao || '')) ? 'Sorteio' : 'Atividade';
+                const pctTxt = origem === 'Sorteio' ? 'Tarefa do sorteio' : 'Registrada';
+                return '<tr>' +
+                    '<td class="font-mono text-xs">' + escV6(dataStr) + '</td>' +
+                    '<td class="font-bold">' + escV6(usuario) + '</td>' +
+                    '<td>' + escV6(a.cliente || '-') + '</td>' +
+                    '<td class="text-emerald-600 font-bold">' + escV6(a.documento || '-') + '</td>' +
+                    '<td><span class="text-xs font-bold">' + escV6(pctTxt) + '</span></td>' +
+                '</tr>';
+            }).join('') || '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma atividade encontrada neste periodo.</td></tr>';
+        } catch(e) {
+            console.error('Erro ao carregar monitor v6:', e);
+            window.destruirGraficosMonitorHotfix();
+            cards.innerHTML = '<div class="col-span-3 text-center py-8 text-red-400 text-xs font-bold">Erro ao carregar monitor.</div>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar monitor: ' + escV6(e.message || 'desconhecido') + '</td></tr>';
+        }
+    };
+
+    window.setMonitorPeriodo = setMonitorPeriodo = function(periodo){
+        window.monitorPeriodoAtual = periodo || 'diario';
+        ['diario','semanal','mensal'].forEach(p => document.getElementById('monitor-btn-' + p)?.classList.remove('monitor-tab-active'));
+        document.getElementById('monitor-btn-' + window.monitorPeriodoAtual)?.classList.add('monitor-tab-active');
+        window.carregarMonitor();
+    };
+
+    const regAtivBaseV6 = window.registrarAtividadeRealizada || (typeof registrarAtividadeRealizada === 'function' ? registrarAtividadeRealizada : null);
+    if (typeof regAtivBaseV6 === 'function') {
+        window.registrarAtividadeRealizada = registrarAtividadeRealizada = async function(){
+            const r = await regAtivBaseV6.apply(this, arguments);
+            setTimeout(() => { try { window.atualizarDashboardDesempenho(); } catch(e) {} }, 250);
+            return r;
+        };
+    }
+    const regMonitorBaseV6 = window.registrarTarefaMonitorGeral || (typeof registrarTarefaMonitorGeral === 'function' ? registrarTarefaMonitorGeral : null);
+    if (typeof regMonitorBaseV6 === 'function') {
+        window.registrarTarefaMonitorGeral = registrarTarefaMonitorGeral = async function(){
+            const r = await regMonitorBaseV6.apply(this, arguments);
+            setTimeout(() => { try { window.atualizarDashboardDesempenho(); if ((window.monitorPeriodoAtual || 'diario') && document.getElementById('view-monitor') && !document.getElementById('view-monitor').classList.contains('hidden')) window.carregarMonitor(); } catch(e) {} }, 350);
+            return r;
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+        setTimeout(() => { try { window.atualizarDashboardDesempenho(); } catch(e) {} }, 1200);
+    });
+})();
+
 </script>
 
 </html>
