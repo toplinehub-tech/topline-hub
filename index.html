@@ -5558,13 +5558,40 @@
                     return;
                 }
 
-                // Distribuição igualitária por quantidade de tarefas, em ordem de cliente para manter previsibilidade.
-                tarefasDividas.sort((a, b) => String(a.cliente || '').localeCompare(String(b.cliente || ''), 'pt-BR'));
+                // Distribuição de dívidas agrupada por empresa.
+                // Importante: todas as dívidas de uma mesma empresa precisam ficar com o mesmo usuário.
+                // Usa CNPJ como chave principal quando existir; caso contrário, usa o nome normalizado do cliente.
+                const gruposPorEmpresa = new Map();
+                tarefasDividas.forEach(tarefa => {
+                    const row = rawData[tarefa.rowIndex] || {};
+                    const cnpjKey = String(row.CNPJ || '').replace(/\D/g, '');
+                    const clienteKey = String(tarefa.cliente || row.CLIENTE || '')
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toUpperCase()
+                        .trim();
+                    const chaveEmpresa = cnpjKey || clienteKey || String(tarefa.rowIndex);
+                    if (!gruposPorEmpresa.has(chaveEmpresa)) gruposPorEmpresa.set(chaveEmpresa, []);
+                    gruposPorEmpresa.get(chaveEmpresa).push(tarefa);
+                });
+
+                // Mantém previsibilidade e balanceia pela quantidade total de dívidas,
+                // mas sem separar itens da mesma empresa entre usuários diferentes.
+                const gruposOrdenados = Array.from(gruposPorEmpresa.values()).sort((a, b) => {
+                    if (b.length !== a.length) return b.length - a.length;
+                    return String(a[0]?.cliente || '').localeCompare(String(b[0]?.cliente || ''), 'pt-BR');
+                });
                 const novaDistribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
+                const cargas = { Jordan: 0, Sirlene: 0, Ingrid: 0 };
                 const colaboradores = ['Jordan', 'Sirlene', 'Ingrid'];
 
-                tarefasDividas.forEach((tarefa, idx) => {
-                    novaDistribuicao[colaboradores[idx % colaboradores.length]].push(tarefa);
+                gruposOrdenados.forEach(grupo => {
+                    let escolhido = colaboradores[0];
+                    colaboradores.forEach(colab => {
+                        if (cargas[colab] < cargas[escolhido]) escolhido = colab;
+                    });
+                    novaDistribuicao[escolhido].push(...grupo);
+                    cargas[escolhido] += grupo.length;
                 });
 
                 distribuicaoAtual = novaDistribuicao;
