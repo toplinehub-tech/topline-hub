@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.05.13.1";
+        window.TOPLINE_APP_VERSION = "2026.05.14.1";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -4039,11 +4039,21 @@ function montarTextoHistorico(item) {
         // ============================================
         // AUXILIARES
         // ============================================
+        function normalizarStatusPlanilha(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/_/g, ' ')
+                .replace(/\s+/g, ' ')
+                .toUpperCase()
+                .trim();
+        }
+
         function getStatus(val, row, col) {
-            const strVal = String(val || "").toUpperCase().trim();
-            if (strVal === "CONCLUIDO" || strVal === "CONCLUÍDO" || strVal === "OK") return 'concluido';
-            if (strVal === "EM ANDAMENTO") return 'andamento';
-            if (strVal === "ANALISE") return 'analise';
+            const strVal = normalizarStatusPlanilha(val);
+            if (strVal === "CONCLUIDO" || strVal === "CONCLUIDA" || strVal === "OK") return 'concluido';
+            if (strVal === "EM ANDAMENTO" || strVal === "ANDAMENTO") return 'andamento';
+            if (strVal === "ANALISE" || strVal === "EM ANALISE") return 'analise';
             if (row && col && row[col + "_DONE"]) return 'concluido';
             if (!(val instanceof Date)) return null;
             const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -4315,7 +4325,7 @@ function montarTextoHistorico(item) {
         function valorTarefaNormalizado(rowIndex, documento) {
             const linha = rawData[rowIndex];
             if (!linha) return '';
-            return String(linha[documento] || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+            return normalizarStatusPlanilha(linha[documento]);
         }
 
         function isTarefaPendente(rowIndex, documento) {
@@ -4323,13 +4333,13 @@ function montarTextoHistorico(item) {
             // Para sorteios específicos de Análise/Andamento, a tarefa continua visível
             // enquanto ainda estiver exatamente no status sorteado. Ao ser alterada,
             // ela é removida pela rotina já existente de execução e contabilização.
-            if (statusDistribuicaoAtual === 'analise') return valor === 'ANALISE';
-            if (statusDistribuicaoAtual === 'andamento') return valor === 'EM ANDAMENTO';
+            if (statusDistribuicaoAtual === 'analise') return valor === 'ANALISE' || valor === 'EM ANALISE';
+            if (statusDistribuicaoAtual === 'andamento') return valor === 'EM ANDAMENTO' || valor === 'ANDAMENTO';
 
             // Para os demais sorteios, somente entra o que ainda está pendente.
             // Itens já sinalizados como OK, concluídos, em análise ou em andamento saem da contagem.
             if (!valor) return false;
-            if (['OK', 'CONCLUIDO', 'CONCLUIDA', 'ANALISE', 'EM ANDAMENTO'].includes(valor)) return false;
+            if (['OK', 'CONCLUIDO', 'CONCLUIDA', 'ANALISE', 'EM ANALISE', 'EM ANDAMENTO', 'ANDAMENTO'].includes(valor)) return false;
             return true;
         }
 
@@ -4358,7 +4368,7 @@ function montarTextoHistorico(item) {
 
         function isAtividadeRealizada(rowIndex, documento) {
             const strVal = valorTarefaNormalizado(rowIndex, documento);
-            return strVal === "ANALISE" || strVal === "EM ANDAMENTO" || strVal === "OK" || strVal === "CONCLUIDO" || strVal === "CONCLUIDA";
+            return strVal === "ANALISE" || strVal === "EM ANALISE" || strVal === "EM ANDAMENTO" || strVal === "ANDAMENTO" || strVal === "OK" || strVal === "CONCLUIDO" || strVal === "CONCLUIDA";
         }
 
         function obterStatusTarefa(rowIndex, documento) {
@@ -6040,7 +6050,7 @@ function montarTextoHistorico(item) {
                     const tarefasDaEmpresa = [];
                     for (let colIndex = 0; colIndex < headers.length; colIndex++) {
                         const col = headers[colIndex];
-                        if (col === 'CLIENTE') continue;
+                        if (col === 'CLIENTE' || col === 'CNPJ') continue;
                         if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
                     }
                     if (tarefasDaEmpresa.length > 0) {
