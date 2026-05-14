@@ -2733,6 +2733,7 @@ function montarTextoHistorico(item) {
         
         let distribuicaoAtual = { Jordan: [], Sirlene: [], Ingrid: [] };
         let statusDistribuicaoAtual = null;
+        let rodadaDistribuicaoAtual = null;
         
         // Controle de notificações de conclusão por usuário (para evitar popups duplicados)
         let notificacoesEnviadasHoje = {};
@@ -3626,11 +3627,14 @@ function montarTextoHistorico(item) {
         async function salvarDistribuicaoNoServidor(statusAlvo) {
             statusDistribuicaoAtual = statusAlvo || statusDistribuicaoAtual || 'atual';
             statusAlvo = statusDistribuicaoAtual;
+            if (!rodadaDistribuicaoAtual) rodadaDistribuicaoAtual = new Date().toISOString();
             const compactarTarefa = (t) => t && t.tipo === 'pontual' ? `P:${t.id}|${t.documento}` : `${t.rowIndex}|${t.documento}`;
             const dadosCompactos = {
                 J: distribuicaoAtual.Jordan.map(compactarTarefa),
                 S: distribuicaoAtual.Sirlene.map(compactarTarefa),
-                I: distribuicaoAtual.Ingrid.map(compactarTarefa)
+                I: distribuicaoAtual.Ingrid.map(compactarTarefa),
+                __rodada: rodadaDistribuicaoAtual,
+                __status: statusAlvo
             };
             try {
                 await supabaseClient.from('distribuicao_tarefas').delete().eq('status', statusAlvo);
@@ -3650,6 +3654,7 @@ function montarTextoHistorico(item) {
                     const status = registro.status;
                     statusDistribuicaoAtual = status || statusDistribuicaoAtual;
                     const dataRegistro = registro.data;
+                    rodadaDistribuicaoAtual = (dados && dados.__rodada) ? dados.__rodada : (dataRegistro || rodadaDistribuicaoAtual);
                     const distribuicao = { Jordan: [], Sirlene: [], Ingrid: [] };
                     if (dados && dados.J) {
                         const mapPessoa = (arr, dest) => {
@@ -3972,13 +3977,25 @@ function montarTextoHistorico(item) {
         // REGISTRO GERAL PARA O MONITOR
         // ============================================
         function tarefaEstaNoSorteio(rowIndex, documento) {
+            const info = obterTarefaNoSorteio(rowIndex, documento);
+            return info ? info.colaborador : null;
+        }
+
+        function obterTarefaNoSorteio(rowIndex, documento) {
             const colaboradoresParaVerificar = ['Jordan', 'Sirlene', 'Ingrid'];
             for (const colab of colaboradoresParaVerificar) {
                 const tarefas = distribuicaoAtual[colab] || [];
                 const tarefaEncontrada = tarefas.find(t => t.rowIndex === rowIndex && t.documento === documento);
-                if (tarefaEncontrada) return colab;
+                if (tarefaEncontrada) return { colaborador: colab, tarefa: tarefaEncontrada };
             }
             return null;
+        }
+
+        function gerarChaveExecucaoSorteio(colaborador, rowIndex, documento) {
+            const cliente = rawData[rowIndex]?.CLIENTE || '';
+            const status = statusDistribuicaoAtual || 'atual';
+            const rodada = rodadaDistribuicaoAtual || 'sem-rodada';
+            return [status, rodada, colaborador || 'fora_sorteio', cliente, documento].map(v => String(v || '').replace(/\s+/g, ' ').trim()).join(' | ');
         }
 
         async function registrarTarefaMonitorGeral(rowIndex, documento, valorAnterior, valorNovo, observacao, colaboradorSorteioForcado = null) {
@@ -3986,12 +4003,13 @@ function montarTextoHistorico(item) {
                 const cliente = rawData[rowIndex]?.CLIENTE || '';
                 const colaboradorSorteio = colaboradorSorteioForcado || tarefaEstaNoSorteio(rowIndex, documento);
                 const origem = colaboradorSorteio ? `Sorteio de ${colaboradorSorteio}` : 'Fora do sorteio';
+                const chaveExecucao = gerarChaveExecucaoSorteio(colaboradorSorteio, rowIndex, documento);
                 await supabaseClient.from('logs_sistema').insert([{
                     usuario: currentUser,
                     acao: 'Tarefa contabilizada no monitor',
                     cliente: cliente,
                     documento: documento,
-                    detalhes: `${origem} | Usuário responsável pela execução: ${currentUser} | De "${valorAnterior}" para "${valorNovo}"${observacao ? ' | Obs: ' + observacao : ''}`
+                    detalhes: `${origem} | Rodada: ${rodadaDistribuicaoAtual || '-'} | ChaveExecucao: ${chaveExecucao} | Usuário responsável pela execução: ${currentUser} | De "${valorAnterior}" para "${valorNovo}"${observacao ? ' | Obs: ' + observacao : ''}`
                 }]);
             } catch(e) { console.warn('Erro ao registrar tarefa geral no monitor:', e); }
         }
@@ -4024,12 +4042,13 @@ function montarTextoHistorico(item) {
             try {
                 const hoje = new Date().toISOString().slice(0, 10);
                 const cliente = rawData[rowIndex]?.CLIENTE || '';
+                const chaveExecucao = gerarChaveExecucaoSorteio(colaborador, rowIndex, documento);
                 await supabaseClient.from('logs_sistema').insert([{
                     usuario: currentUser,
                     acao: 'Tarefa do sorteio realizada',
                     cliente: cliente,
                     documento: documento,
-                    detalhes: `Tarefa atribuída a ${colaborador} foi modificada (analise/andamento/data) — considerada como atividade realizada em ${hoje}`
+                    detalhes: `Tarefa atribuída a ${colaborador} foi modificada (analise/andamento/data) — considerada como atividade realizada em ${hoje} | Rodada: ${rodadaDistribuicaoAtual || '-'} | ChaveExecucao: ${chaveExecucao}`
                 }]);
             } catch(e) {
                 console.warn('Erro ao registrar atividade:', e);
@@ -4374,8 +4393,8 @@ function montarTextoHistorico(item) {
         function obterStatusTarefa(rowIndex, documento) {
             const strVal = valorTarefaNormalizado(rowIndex, documento);
             if (strVal === "CONCLUIDO" || strVal === "CONCLUIDA" || strVal === "OK") return 'concluido';
-            if (strVal === "EM ANDAMENTO") return 'andamento';
-            if (strVal === "ANALISE") return 'analise';
+            if (strVal === "EM ANDAMENTO" || strVal === "ANDAMENTO") return 'andamento';
+            if (strVal === "ANALISE" || strVal === "EM ANALISE") return 'analise';
             return 'pendente';
         }
 
@@ -6087,6 +6106,8 @@ function montarTextoHistorico(item) {
                     cargas[escolhido] += tarefas.length;
                 }
                 distribuicaoAtual = novaDistribuicao;
+                statusDistribuicaoAtual = statusAlvo;
+                rodadaDistribuicaoAtual = new Date().toISOString();
                 await salvarDistribuicaoNoServidor(statusAlvo);
                 await carregarDistribuicaoGlobal();
                 const n2 = { vencido:'Vencidas', '30':'30 Dias', '60':'60 Dias', '90':'90 Dias', analise:'Em Análise', andamento:'Em Andamento', dividas:'Dívidas' };
@@ -6189,6 +6210,7 @@ function montarTextoHistorico(item) {
 
                 distribuicaoAtual = novaDistribuicao;
                 statusDistribuicaoAtual = 'dividas';
+                rodadaDistribuicaoAtual = new Date().toISOString();
 
                 await salvarDistribuicaoNoServidor('dividas');
                 await carregarDistribuicaoGlobal();
@@ -6629,11 +6651,14 @@ renderizarTarefas = function() {
         if (!container || !countSpan) return;
         let tarefasPendentes = tarefas.filter(t => {
             const statusTarefa = obterStatusTarefa(t.rowIndex, t.documento);
-            const foiRealizada = isAtividadeRealizada(t.rowIndex, t.documento);
             const row = rawData[t.rowIndex] || {};
             const texto = normalizarTexto([t.cliente,row.CNPJ,t.documento,t.prazo].join(' '));
             const stPrazo = getStatus(row[t.documento], row, t.documento);
             const isDivida = t.tipo === 'divida' || statusDistribuicaoAtual === 'dividas' || (typeof textoContemDivida === 'function' && textoContemDivida(row[t.documento]));
+            const sorteioEspecialStatus = statusDistribuicaoAtual === 'analise' || statusDistribuicaoAtual === 'andamento';
+            const foiRealizada = sorteioEspecialStatus
+                ? !isTarefaPendente(t.rowIndex, t.documento)
+                : isAtividadeRealizada(t.rowIndex, t.documento);
             const passaPrioridade = !prioridade || (prioridade === 'dividas' ? isDivida : stPrazo === prioridade);
             const passaMinha = !mostrarSomenteMinhasTarefas || resp === currentUser;
             return statusTarefa !== 'concluido' && !foiRealizada && (!q || texto.includes(q)) && passaPrioridade && passaMinha;
