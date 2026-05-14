@@ -10059,3 +10059,299 @@ function montarCelulaObservacaoHistorico(item) {
 })();
 </script>
 
+
+<script>
+/* ======================================================
+   HOTFIX v8 - Monitor: cada alteracao conta como tarefa
+   - Nao consolida tarefas iguais: cada registro salvo conta.
+   - Restaura marcacao Sorteio x Fora do sorteio nos cards e tabela.
+   - Remove Brenda e Dev da area "Tarefas realizadas fora do sorteio".
+   - Mantem Empresas/Parcelamentos como tarefa fora do sorteio.
+   ====================================================== */
+(function(){
+    if (window.__TOPLINE_MONITOR_CADA_ALTERACAO_V8__) return;
+    window.__TOPLINE_MONITOR_CADA_ALTERACAO_V8__ = true;
+
+    const COLABS_DASH_V8 = ['Jordan', 'Sirlene', 'Ingrid'];
+    const COLABS_MONITOR_V8 = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'];
+    const COLABS_EXTRA_V8 = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas', 'Patricia'];
+    const CORES_V8 = { Jordan:'#3b82f6', Sirlene:'#a855f7', Ingrid:'#ec4899', Nikolas:'#334155', Patricia:'#14b8a6' };
+    const CORES_LIGHT_V8 = { Jordan:'#eff6ff', Sirlene:'#faf5ff', Ingrid:'#fdf2f8', Nikolas:'#f8fafc', Patricia:'#f0fdfa' };
+
+    function sbV8(){
+        try { if (window.supabaseClient && typeof window.supabaseClient.from === 'function') return window.supabaseClient; } catch(e) {}
+        try { if (typeof supabaseClient !== 'undefined' && supabaseClient && typeof supabaseClient.from === 'function') return supabaseClient; } catch(e) {}
+        return null;
+    }
+    function escV8(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function normV8(v){ return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+    function hojeV8(){ return new Date().toISOString().slice(0,10); }
+    function usuarioAtualV8(){ return window.currentUser || window.usuarioSelecionado || localStorage.getItem('topline_user') || 'Sistema'; }
+    function periodoAtualV8(){ return window.monitorPeriodoAtual || (typeof monitorPeriodoAtual !== 'undefined' ? monitorPeriodoAtual : 'diario') || 'diario'; }
+    function inicioPeriodoV8(){
+        const d = new Date();
+        const p = periodoAtualV8();
+        if (p === 'semanal') d.setDate(d.getDate() - 6);
+        else if (p === 'mensal') d.setDate(d.getDate() - 29);
+        return d.toISOString().slice(0,10);
+    }
+    function labelPeriodoV8(){
+        const p = periodoAtualV8();
+        if (p === 'semanal') return 'Últimos 7 dias';
+        if (p === 'mensal') return 'Últimos 30 dias';
+        return 'Hoje';
+    }
+    function dataHoraV8(v){
+        const d = v ? new Date(v) : new Date();
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    }
+    function responsavelV8(log){
+        const detalhes = String(log?.detalhes || log?.observacao || log?.acao || '');
+        const m = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i) ||
+                  detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i) ||
+                  detalhes.match(/Respons[aá]vel:\s*(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i) ||
+                  detalhes.match(/Usu[aá]rio respons[aá]vel pela execu[cç][aã]o:\s*(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i);
+        if (m) return m[1];
+        const u = log?.usuario || log?.atualizado_por || usuarioAtualV8();
+        return COLABS_EXTRA_V8.find(c => normV8(c) === normV8(u)) || u || 'Sistema';
+    }
+    function origemV8(log){
+        const txt = normV8([log?.acao, log?.detalhes, log?.observacao, log?.documento].join(' '));
+        if (txt.includes('fora do sorteio') || txt.includes('empresas/parcelamentos') || txt.includes('pgdas') || txt.includes('parcelamento')) return 'Fora do sorteio';
+        if (txt.includes('sorteio de') || txt.includes('tarefa atribuida') || txt.includes('tarefa do sorteio realizada')) return 'Sorteio';
+        return 'Fora do sorteio';
+    }
+    function pendentesV8(colab){
+        try { if (typeof getTarefasPendentesColaborador === 'function') return getTarefasPendentesColaborador(colab).length; } catch(e) {}
+        try {
+            const dist = window.distribuicaoAtual || (typeof distribuicaoAtual !== 'undefined' ? distribuicaoAtual : {});
+            const lista = dist && dist[colab] ? dist[colab] : [];
+            return lista.filter(t => !(typeof isAtividadeRealizada === 'function' && isAtividadeRealizada(t.rowIndex, t.documento))).length;
+        } catch(e) {}
+        return 0;
+    }
+    function destruirChartsV8(){
+        ['monitor-bar-chart','monitor-pie-chart'].forEach(id => {
+            const el = document.getElementById(id);
+            try { if (typeof Chart !== 'undefined' && el) Chart.getChart(el)?.destroy(); } catch(e) {}
+            try { if (typeof Chart !== 'undefined') Chart.getChart(id)?.destroy(); } catch(e) {}
+        });
+        try { if (window.monitorBarChart && typeof window.monitorBarChart.destroy === 'function') window.monitorBarChart.destroy(); } catch(e) {}
+        try { if (window.monitorPieChart && typeof window.monitorPieChart.destroy === 'function') window.monitorPieChart.destroy(); } catch(e) {}
+        window.monitorBarChart = null;
+        window.monitorPieChart = null;
+    }
+    function chaveApoioV8(l){ return [String(l?.id || ''), String(l?.created_at || '').slice(0,19), responsavelV8(l), String(l?.cliente || '').toUpperCase(), String(l?.documento || '').toUpperCase(), normV8(l?.detalhes || l?.observacao || l?.acao || '')].join('|'); }
+
+    async function buscarLogsV8(dataInicio){
+        const sb = sbV8();
+        if (!sb) return [];
+        const inicio = (dataInicio || hojeV8()) + 'T00:00:00';
+        const consultas = [
+            sb.from('logs_sistema').select('*').eq('acao', 'Tarefa contabilizada no monitor').gte('created_at', inicio).order('created_at', { ascending:false }).limit(2500),
+            sb.from('logs_sistema').select('*').in('acao', ['PGDAS mensal','Informações de parcelamento']).gte('created_at', inicio).order('created_at', { ascending:false }).limit(1000),
+            sb.from('historico_observacoes').select('*').in('documento', ['PGDAS','PARCELAMENTOS']).gte('created_at', inicio).order('created_at', { ascending:false }).limit(1000)
+        ];
+        const res = await Promise.allSettled(consultas);
+        const principais = [];
+        const apoio = [];
+        res.forEach((r, idx) => {
+            if (r.status !== 'fulfilled') return;
+            const val = r.value || {};
+            if (val.error) { console.warn('Monitor v8: fonte ignorada:', val.error); return; }
+            (val.data || []).forEach(x => {
+                const texto = normV8([x.acao, x.detalhes, x.observacao, x.documento].join(' '));
+                if (!texto || texto.includes('login') || texto.includes('logout') || texto.includes('sorteio realizado') || texto.includes('resetar distribuicao')) return;
+                if (idx === 0) principais.push(x); else apoio.push(x);
+            });
+        });
+        // Registros principais nao sao deduplicados: cada alteracao salva = uma tarefa feita.
+        // Fontes de apoio sao deduplicadas para nao contar a mesma acao duas vezes.
+        const vistos = new Set();
+        const apoioUnico = apoio.filter(l => {
+            const ch = chaveApoioV8(l);
+            if (vistos.has(ch)) return false;
+            vistos.add(ch);
+            return true;
+        });
+        return principais.concat(apoioUnico).sort((a,b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    }
+
+    function montarResumoV8(logs, incluirPendentes){
+        const resumo = {};
+        COLABS_EXTRA_V8.forEach(c => resumo[c] = { total:0, concluidas:0, pendentes: incluirPendentes ? pendentesV8(c) : 0, registros:0, sorteio:0, fora:0 });
+        logs.forEach(l => {
+            const resp = responsavelV8(l);
+            if (!COLABS_EXTRA_V8.some(c => normV8(c) === normV8(resp))) return;
+            if (!resumo[resp]) resumo[resp] = { total:0, concluidas:0, pendentes:0, registros:0, sorteio:0, fora:0 };
+            resumo[resp].concluidas += 1;
+            if (origemV8(l) === 'Sorteio') resumo[resp].sorteio += 1; else resumo[resp].fora += 1;
+        });
+        Object.keys(resumo).forEach(c => {
+            resumo[c].total = resumo[c].pendentes + resumo[c].concluidas;
+            resumo[c].registros = resumo[c].total ? 1 : 0;
+            resumo[c].percentual = resumo[c].total > 0 ? Math.round((resumo[c].concluidas / resumo[c].total) * 100) : 0;
+        });
+        return resumo;
+    }
+
+    window.atualizarDashboardDesempenho = atualizarDashboardDesempenho = async function(){
+        try {
+            const logs = await buscarLogsV8(hojeV8());
+            const resumo = montarResumoV8(logs, true);
+            COLABS_DASH_V8.forEach(colab => {
+                const d = resumo[colab] || { total:0, concluidas:0, percentual:0 };
+                const n = colab.toLowerCase();
+                const pct = Math.max(0, Math.min(100, d.percentual || 0));
+                const pctEl = document.getElementById(n + '-percent'); if (pctEl) pctEl.innerText = pct + '%';
+                const barEl = document.getElementById(n + '-progress'); if (barEl) barEl.style.width = pct + '%';
+                const concEl = document.getElementById(n + '-concluidas'); if (concEl) concEl.innerText = d.concluidas || 0;
+                const totalEl = document.getElementById(n + '-total'); if (totalEl) totalEl.innerText = d.total || 0;
+            });
+        } catch(e) { console.warn('Painel v8: falha ao atualizar desempenho.', e); }
+    };
+
+    window.carregarTarefasMonitorGeral = carregarTarefasMonitorGeral = async function(){
+        const body = document.getElementById('monitor-extra-body');
+        const cards = document.getElementById('monitor-extra-cards');
+        if (!body || !cards) return;
+        body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades...</td></tr>';
+        try {
+            const logs = (await buscarLogsV8(inicioPeriodoV8())).filter(l => COLABS_EXTRA_V8.some(c => normV8(c) === normV8(responsavelV8(l))));
+            const resumo = montarResumoV8(logs, false);
+            cards.innerHTML = COLABS_EXTRA_V8.map(c => {
+                const d = resumo[c] || { concluidas:0, fora:0, sorteio:0 };
+                return '<div class="mini-kpi"><strong>' + escV8(c) + '</strong><span>' + (d.concluidas || 0) + ' tarefas realizadas<br><b>' + (d.sorteio || 0) + '</b> no sorteio • <b>' + (d.fora || 0) + '</b> por fora</span></div>';
+            }).join('');
+            if (!logs.length) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhuma tarefa realizada no período.</td></tr>';
+                return;
+            }
+            body.innerHTML = logs.slice(0, 160).map(l => {
+                const org = origemV8(l);
+                const cls = org === 'Sorteio' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200';
+                return '<tr>' +
+                    '<td class="font-mono text-[10px] text-slate-500">' + escV8(dataHoraV8(l.created_at)) + '</td>' +
+                    '<td class="font-bold text-slate-700">' + escV8(responsavelV8(l)) + '</td>' +
+                    '<td class="font-bold text-slate-700">' + escV8(l.cliente || '-') + '</td>' +
+                    '<td class="text-xs text-emerald-600 font-bold">' + escV8(l.documento || l.acao || '-') + '</td>' +
+                    '<td><span class="px-2 py-1 rounded-full border text-[8px] font-black uppercase ' + cls + '">' + escV8(org) + '</span></td>' +
+                '</tr>';
+            }).join('');
+        } catch(e) {
+            body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar atividades: ' + escV8(e.message || 'desconhecido') + '</td></tr>';
+        }
+    };
+
+    window.carregarMonitor = carregarMonitor = async function(){
+        const cards = document.getElementById('monitor-cards');
+        const tbody = document.getElementById('monitor-historico-body');
+        if (!cards || !tbody) return;
+        const sb = sbV8();
+        const inicio = inicioPeriodoV8();
+        const label = labelPeriodoV8();
+        const title = document.getElementById('monitor-chart-title');
+        const info = document.getElementById('monitor-historico-info');
+        if (title) title.textContent = 'Tarefas Concluídas — ' + label;
+        if (info) info.textContent = label;
+        cards.innerHTML = '<div class="col-span-3 text-center py-8 text-slate-400 text-xs font-bold">Carregando monitor...</div>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando registros...</td></tr>';
+        try {
+            let registros = [];
+            if (sb) {
+                const resp = await sb.from('monitor_desempenho').select('*').gte('data', inicio).order('data', { ascending:false });
+                if (!resp.error) registros = resp.data || []; else console.warn('Tabela monitor_desempenho indisponivel:', resp.error);
+            }
+            const logs = await buscarLogsV8(inicio);
+            const resumoLogs = montarResumoV8(logs, false);
+            const agrupado = {};
+            COLABS_EXTRA_V8.forEach(c => agrupado[c] = { total:0, concluidas:0, registros:0, sorteio:0, fora:0 });
+            if (periodoAtualV8() === 'diario') {
+                COLABS_MONITOR_V8.forEach(c => { agrupado[c].total = pendentesV8(c); agrupado[c].registros = 1; });
+            } else {
+                registros.forEach(r => {
+                    const c = r.colaborador;
+                    if (!agrupado[c]) agrupado[c] = { total:0, concluidas:0, registros:0, sorteio:0, fora:0 };
+                    agrupado[c].total += Number(r.total_tarefas || 0);
+                    agrupado[c].concluidas += Number(r.concluidas || 0);
+                    agrupado[c].registros += 1;
+                });
+            }
+            Object.keys(resumoLogs).forEach(c => {
+                const d = resumoLogs[c];
+                if (!agrupado[c]) agrupado[c] = { total:0, concluidas:0, registros:0, sorteio:0, fora:0 };
+                agrupado[c].concluidas += d.concluidas || 0;
+                agrupado[c].sorteio += d.sorteio || 0;
+                agrupado[c].fora += d.fora || 0;
+                if (periodoAtualV8() === 'diario') agrupado[c].total += d.concluidas || 0;
+                else if (agrupado[c].total < agrupado[c].concluidas) agrupado[c].total = agrupado[c].concluidas;
+                if (!agrupado[c].registros && agrupado[c].total) agrupado[c].registros = 1;
+            });
+            Object.keys(agrupado).forEach(c => { agrupado[c].percentual = agrupado[c].total > 0 ? Math.round((agrupado[c].concluidas / agrupado[c].total) * 100) : 0; });
+
+            cards.innerHTML = COLABS_DASH_V8.map(c => {
+                const d = agrupado[c] || { total:0, concluidas:0, percentual:0, registros:0 };
+                const pct = Math.max(0, Math.min(100, d.percentual || 0));
+                return '<div class="colab-card" style="border-top:6px solid ' + CORES_V8[c] + '; background:' + CORES_LIGHT_V8[c] + '">' +
+                    '<div class="flex justify-between items-start mb-3"><div><h3 class="text-[10px] font-black uppercase tracking-wider" style="color:' + CORES_V8[c] + '">' + escV8(c) + '</h3><p class="text-[9px] text-slate-400">' + escV8(label) + '</p></div><div class="text-2xl font-black" style="color:' + CORES_V8[c] + '">' + pct + '%</div></div>' +
+                    '<div class="progress-bar rounded-full overflow-hidden" style="background:#e2e8f0"><div class="progress-bar" style="width:' + pct + '%;background:' + CORES_V8[c] + '"></div></div>' +
+                    '<div class="flex justify-between mt-2 text-[9px] text-slate-500"><span>Concluídas: <strong>' + (d.concluidas || 0) + '</strong></span><span>Total: <strong>' + (d.total || 0) + '</strong></span><span>Dias: <strong>' + (d.registros || 0) + '</strong></span></div>' +
+                '</div>';
+            }).join('');
+
+            destruirChartsV8();
+            const labelsBar = COLABS_MONITOR_V8;
+            const dataBar = labelsBar.map(c => (agrupado[c] && agrupado[c].concluidas) || 0);
+            const dataPie = labelsBar.map(c => (agrupado[c] && agrupado[c].total) || 0);
+            const bgBar = labelsBar.map(c => CORES_V8[c] || '#64748b');
+            const ctxBar = document.getElementById('monitor-bar-chart')?.getContext('2d');
+            if (ctxBar && typeof Chart !== 'undefined') window.monitorBarChart = new Chart(ctxBar, { type:'bar', data:{ labels:labelsBar, datasets:[{ label:'Tarefas Concluídas', data:dataBar, backgroundColor:bgBar, borderRadius:8, borderSkipped:false }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } } });
+            const ctxPie = document.getElementById('monitor-pie-chart')?.getContext('2d');
+            if (ctxPie && typeof Chart !== 'undefined') window.monitorPieChart = new Chart(ctxPie, { type:'doughnut', data:{ labels:labelsBar, datasets:[{ data:dataPie, backgroundColor:bgBar, borderWidth:1 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, font:{ size:8 }, padding:5 } } }, cutout:'60%' } });
+
+            let html = '';
+            if (periodoAtualV8() === 'diario') {
+                const hoje = hojeV8();
+                COLABS_MONITOR_V8.forEach(c => {
+                    const d = agrupado[c] || { total:0, concluidas:0, percentual:0 };
+                    const pct = Math.max(0, Math.min(100, d.percentual || 0));
+                    html += '<tr><td class="font-mono text-xs">' + escV8(new Date(hoje + 'T12:00:00').toLocaleDateString('pt-BR')) + '</td><td class="font-bold">' + escV8(c) + '</td><td>' + (d.total || 0) + '</td><td class="text-emerald-600 font-bold">' + (d.concluidas || 0) + '</td><td><div class="flex items-center gap-2"><div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:' + pct + '%"></div></div><span class="text-xs font-bold">' + pct + '%</span></div></td></tr>';
+                });
+            }
+            html += registros.map(r => {
+                const total = Number(r.total_tarefas || 0), conc = Number(r.concluidas || 0), pct = total > 0 ? Math.round((conc / total) * 100) : 0;
+                return '<tr><td class="font-mono text-xs">' + escV8(new Date(String(r.data || hojeV8()) + 'T12:00:00').toLocaleDateString('pt-BR')) + '</td><td class="font-bold">' + escV8(r.colaborador || '-') + '</td><td>' + total + '</td><td class="text-emerald-600 font-bold">' + conc + '</td><td><div class="flex items-center gap-2"><div class="w-16 bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:' + pct + '%"></div></div><span class="text-xs font-bold">' + pct + '%</span></div></td></tr>';
+            }).join('');
+            tbody.innerHTML = html || '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum registro encontrado.</td></tr>';
+            await window.carregarTarefasMonitorGeral();
+        } catch(e) {
+            console.error('Erro ao carregar monitor v8:', e);
+            destruirChartsV8();
+            cards.innerHTML = '<div class="col-span-3 text-center py-8 text-red-400 text-xs font-bold">Erro ao carregar monitor.</div>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400 font-bold">Erro ao carregar monitor: ' + escV8(e.message || 'desconhecido') + '</td></tr>';
+        }
+    };
+
+    window.setMonitorPeriodo = setMonitorPeriodo = function(periodo){
+        window.monitorPeriodoAtual = periodo || 'diario';
+        try { if (typeof monitorPeriodoAtual !== 'undefined') monitorPeriodoAtual = window.monitorPeriodoAtual; } catch(e) {}
+        ['diario','semanal','mensal'].forEach(p => document.getElementById('monitor-btn-' + p)?.classList.remove('monitor-tab-active'));
+        document.getElementById('monitor-btn-' + window.monitorPeriodoAtual)?.classList.add('monitor-tab-active');
+        window.carregarMonitor();
+    };
+
+    const baseSwitchV8 = window.switchTab || (typeof switchTab === 'function' ? switchTab : null);
+    if (typeof baseSwitchV8 === 'function' && !window.__TOPLINE_SWITCHTAB_MONITOR_V8__) {
+        window.__TOPLINE_SWITCHTAB_MONITOR_V8__ = true;
+        window.switchTab = switchTab = function(tab){
+            const r = baseSwitchV8.apply(this, arguments);
+            setTimeout(function(){ try { if (tab === 'dash') window.atualizarDashboardDesempenho(); if (tab === 'monitor') window.carregarMonitor(); } catch(e) {} }, 180);
+            return r;
+        };
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+        setTimeout(function(){ try { window.atualizarDashboardDesempenho(); } catch(e) {} }, 1400);
+    });
+})();
+</script>
