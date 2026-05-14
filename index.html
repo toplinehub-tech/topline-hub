@@ -2656,6 +2656,130 @@ function montarTextoHistorico(item) {
 })();
 </script>
 
+
+
+<!-- HOTFIX CLIMA PAINEL v5 - mantém clima independente dos cálculos do monitor -->
+<script>
+(function(){
+    const WEATHER_CACHE_KEY = 'toplinehub_weather_cache_v5';
+    const WEATHER_LAT = '-23.5329';
+    const WEATHER_LON = '-46.4428';
+
+    function el(id) { return document.getElementById(id); }
+    function atualizarHoraClima() {
+        const tag = el('last-update-tag');
+        if (tag) tag.innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+    function descricaoCodigoClima(code) {
+        code = Number(code);
+        if ([0].includes(code)) return { desc: 'Limpo', icon: '☀️' };
+        if ([1,2,3].includes(code)) return { desc: 'Parcial', icon: '⛅' };
+        if (code >= 45 && code <= 48) return { desc: 'Nevoeiro', icon: '🌫️' };
+        if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return { desc: 'Chuva', icon: '🌧️' };
+        if (code >= 71 && code <= 86) return { desc: 'Neve', icon: '❄️' };
+        if (code >= 95) return { desc: 'Tempestade', icon: '⛈️' };
+        return { desc: 'Atualizado', icon: '🌤️' };
+    }
+    function aplicarClima(info, origemCache) {
+        if (!info) return false;
+        const tempEl = el('weather-temp');
+        const humEl = el('weather-hum');
+        const descEl = el('weather-desc');
+        const iconEl = el('weather-icon');
+        const temp = Number(info.temp);
+        const hum = Number(info.hum);
+        const code = Number(info.code || 0);
+        const meta = descricaoCodigoClima(code);
+        if (tempEl && Number.isFinite(temp)) tempEl.innerText = Math.round(temp) + '°C';
+        if (humEl && Number.isFinite(hum)) humEl.innerText = Math.round(hum) + '%';
+        if (descEl) descEl.innerText = origemCache ? (meta.desc + ' • cache') : meta.desc;
+        if (iconEl) iconEl.innerText = meta.icon;
+        atualizarHoraClima();
+        return Number.isFinite(temp) || Number.isFinite(hum);
+    }
+    function salvarCacheClima(info) {
+        try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ ts: Date.now(), info })); } catch(e) {}
+    }
+    function carregarCacheClima() {
+        try {
+            const raw = localStorage.getItem(WEATHER_CACHE_KEY);
+            if (!raw) return null;
+            const obj = JSON.parse(raw);
+            if (!obj || !obj.info) return null;
+            if ((Date.now() - Number(obj.ts || 0)) > 2 * 60 * 60 * 1000) return null;
+            return obj.info;
+        } catch(e) { return null; }
+    }
+    async function consultarOpenMeteoPrimario() {
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + WEATHER_LAT + '&longitude=' + WEATHER_LON + '&current=temperature_2m,relative_humidity_2m,weather_code&timezone=America%2FSao_Paulo&forecast_days=1&_v=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Open-Meteo atual retornou HTTP ' + res.status);
+        const data = await res.json();
+        if (!data || !data.current) throw new Error('Resposta atual sem campo current');
+        return {
+            temp: data.current.temperature_2m,
+            hum: data.current.relative_humidity_2m,
+            code: data.current.weather_code
+        };
+    }
+    async function consultarOpenMeteoFallback() {
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + WEATHER_LAT + '&longitude=' + WEATHER_LON + '&current_weather=true&hourly=relative_humidity_2m&timezone=America%2FSao_Paulo&forecast_days=1&_v=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Open-Meteo fallback retornou HTTP ' + res.status);
+        const data = await res.json();
+        const cw = data && data.current_weather ? data.current_weather : {};
+        let hum = null;
+        try {
+            const horas = data.hourly && data.hourly.time ? data.hourly.time : [];
+            const hums = data.hourly && data.hourly.relative_humidity_2m ? data.hourly.relative_humidity_2m : [];
+            const horaAtual = new Date().toISOString().slice(0, 13);
+            let idx = horas.findIndex(h => String(h).slice(0, 13) === horaAtual);
+            if (idx < 0) idx = 0;
+            hum = hums[idx];
+        } catch(e) {}
+        return { temp: cw.temperature, hum: hum, code: cw.weathercode };
+    }
+    window.atualizarClimaTopline = async function() {
+        atualizarHoraClima();
+        try {
+            let info;
+            try { info = await consultarOpenMeteoPrimario(); }
+            catch(e1) { console.warn('Clima primário indisponível:', e1); info = await consultarOpenMeteoFallback(); }
+            if (aplicarClima(info, false)) salvarCacheClima(info);
+        } catch(e) {
+            console.warn('Clima indisponível no momento:', e);
+            const cache = carregarCacheClima();
+            if (cache) aplicarClima(cache, true);
+            else {
+                const descEl = el('weather-desc');
+                if (descEl) descEl.innerText = 'Indisponível';
+            }
+        } finally {
+            atualizarHoraClima();
+        }
+    };
+
+    const iniciarClima = function(){
+        try { window.atualizarClimaTopline(); } catch(e) {}
+        if (!window.__topline_weather_interval_v5) {
+            window.__topline_weather_interval_v5 = setInterval(function(){ try { window.atualizarClimaTopline(); } catch(e) {} }, 10 * 60 * 1000);
+        }
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciarClima);
+    else iniciarClima();
+
+    const originalSwitchTab = window.switchTab;
+    if (typeof originalSwitchTab === 'function' && !originalSwitchTab.__weatherV5) {
+        window.switchTab = function(tab) {
+            const ret = originalSwitchTab.apply(this, arguments);
+            if (tab === 'dash') setTimeout(iniciarClima, 150);
+            return ret;
+        };
+        window.switchTab.__weatherV5 = true;
+    }
+})();
+</script>
+
 </body>
 
     <script>
@@ -8448,7 +8572,7 @@ async function abrirHistoricoModal(cliente, documento) {
     }
     function colaboradorDoRegistroFinal(item){
         const detalhes = String(item?.detalhes || item?.observacao || '');
-        const m = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia|Brenda|Dev)/i) || detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia|Brenda|Dev)/i);
+        const m = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i) || detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i);
         return m ? m[1] : (item?.usuario || usuarioFinal() || 'Sistema');
     }
     function normalizarAtividadeFinal(item, origem){
@@ -9220,9 +9344,9 @@ async function abrirHistoricoModal(cliente, documento) {
 
     const COLABS_PAINEL_V7 = ['Jordan', 'Sirlene', 'Ingrid'];
     const COLABS_MONITOR_V7 = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas'];
-    const COLABS_EXTRA_V7 = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas', 'Patricia', 'Brenda', 'Dev'];
-    const CORES_V7 = { Jordan:'#3b82f6', Sirlene:'#a855f7', Ingrid:'#ec4899', Nikolas:'#334155', Patricia:'#14b8a6', Brenda:'#f59e0b', Dev:'#ef4444' };
-    const CORES_LIGHT_V7 = { Jordan:'#eff6ff', Sirlene:'#faf5ff', Ingrid:'#fdf2f8', Nikolas:'#f8fafc', Patricia:'#f0fdfa', Brenda:'#fffbeb', Dev:'#fef2f2' };
+    const COLABS_EXTRA_V7 = ['Jordan', 'Sirlene', 'Ingrid', 'Nikolas', 'Patricia'];
+    const CORES_V7 = { Jordan:'#3b82f6', Sirlene:'#a855f7', Ingrid:'#ec4899', Nikolas:'#334155', Patricia:'#14b8a6' };
+    const CORES_LIGHT_V7 = { Jordan:'#eff6ff', Sirlene:'#faf5ff', Ingrid:'#fdf2f8', Nikolas:'#f8fafc', Patricia:'#f0fdfa' };
 
     function sbV7(){
         try { if (window.supabaseClient && typeof window.supabaseClient.from === 'function') return window.supabaseClient; } catch(e) {}
@@ -9254,9 +9378,9 @@ async function abrirHistoricoModal(cliente, documento) {
     }
     function responsavelLogV7(log){
         const detalhes = String(log?.detalhes || log?.observacao || log?.acao || '');
-        const m = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia|Brenda|Dev)/i) ||
-                  detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia|Brenda|Dev)/i) ||
-                  detalhes.match(/Respons[aá]vel:\s*(Jordan|Sirlene|Ingrid|Nikolas|Patricia|Brenda|Dev)/i);
+        const m = detalhes.match(/Sorteio de\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i) ||
+                  detalhes.match(/Tarefa atribu[ií]da a\s+(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i) ||
+                  detalhes.match(/Respons[aá]vel:\s*(Jordan|Sirlene|Ingrid|Nikolas|Patricia)/i);
         if (m) return m[1];
         const u = log?.usuario || log?.atualizado_por || usuarioAtualV7();
         return COLABS_EXTRA_V7.find(c => normV7(c) === normV7(u)) || u || 'Sistema';
@@ -9348,6 +9472,7 @@ async function abrirHistoricoModal(cliente, documento) {
         COLABS_EXTRA_V7.forEach(c => resumo[c] = { total:0, concluidas:0, pendentes: incluirPendentes ? pendentesColaboradorV7(c) : 0, registros:0 });
         logs.forEach(l => {
             const resp = responsavelLogV7(l);
+            if (!COLABS_EXTRA_V7.some(c => normV7(c) === normV7(resp))) return;
             if (!resumo[resp]) resumo[resp] = { total:0, concluidas:0, pendentes:0, registros:0 };
             resumo[resp].concluidas += 1;
         });
@@ -9381,7 +9506,8 @@ async function abrirHistoricoModal(cliente, documento) {
         if (!body || !cards) return;
         body.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando atividades...</td></tr>';
         try {
-            const logs = await buscarLogsMonitorV7(inicioPeriodoV7());
+            const todosLogs = await buscarLogsMonitorV7(inicioPeriodoV7());
+            const logs = todosLogs.filter(l => COLABS_EXTRA_V7.some(c => normV7(c) === normV7(responsavelLogV7(l))));
             const resumo = montarResumoV7(logs, false);
             cards.innerHTML = COLABS_EXTRA_V7.map(c => '<div class="mini-kpi"><strong>' + escV7(c) + '</strong><span>' + ((resumo[c] && resumo[c].concluidas) || 0) + ' tarefas realizadas<br>' + escV7(labelPeriodoV7()) + '</span></div>').join('');
             if (!logs.length) {
@@ -9390,7 +9516,7 @@ async function abrirHistoricoModal(cliente, documento) {
             }
             body.innerHTML = logs.slice(0, 120).map(l => {
                 const txt = normV7([l.acao, l.detalhes, l.observacao, l.documento].join(' '));
-                const origem = txt.includes('empresas/parcelamentos') || txt.includes('pgdas') || txt.includes('parcelamento') ? 'Empresas/Parcelamentos' : (txt.includes('sorteio') || txt.includes('tarefa atribuida') ? 'Sorteio' : 'Fora do sorteio');
+                const origem = (txt.includes('sorteio') || txt.includes('tarefa atribuida')) ? 'Sorteio' : 'Fora do sorteio';
                 return '<tr>' +
                     '<td class="font-mono text-[10px] text-slate-500">' + escV7(dataHoraV7(l.created_at)) + '</td>' +
                     '<td class="font-bold text-slate-700">' + escV7(responsavelLogV7(l)) + '</td>' +
