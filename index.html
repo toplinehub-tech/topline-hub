@@ -1497,7 +1497,7 @@ function montarTextoHistorico(item) {
                     <input type="text" id="searchEmpresasParcelamentos" oninput="renderEmpresasParcelamentos()" placeholder="Pesquisar cliente, CNPJ, setor, quantidade ou PGDAS..." class="w-full mb-4 p-2 border rounded-xl text-xs outline-none">
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>QTD.</th><th>PGDAS</th><th>PARCELAMENTO</th><th>DATA ENVIO</th><th>AÇÕES</th></tr></thead>
+                            <thead><tr><th class="col-fixed">CLIENTE</th><th>CNPJ</th><th>SETOR</th><th>PARCELAMENTO</th><th>QTD.</th><th>DT.ENVIO.PARC</th><th>PGDAS</th><th>DT.ENVIO.PGDAS</th><th>AÇÕES</th></tr></thead>
                             <tbody id="empresasParcelamentosBody"></tbody>
                         </table>
                     </div>
@@ -2841,6 +2841,7 @@ function montarTextoHistorico(item) {
         let pgdasStatusMensal = {};
         let pgdasDataEnvioMensal = {};
         let parcelamentoStatusMensal = {};
+        let parcelamentoDataEnvioMensal = {};
         let pgdasCompetenciaAtual = getCompetenciaPGDAS();
         let pgdasStatusCarregado = false;
         let historicoParcelamentosCarregado = false;
@@ -5082,6 +5083,7 @@ function montarTextoHistorico(item) {
 
         function reconstruirStatusParcelamentoEnviadoPorHistorico() {
             parcelamentoStatusMensal = {};
+            parcelamentoDataEnvioMensal = {};
             (historicoData || []).forEach(h => {
                 const doc = String(h.documento || '').toUpperCase();
                 if (doc !== 'PARCELAMENTOS') return;
@@ -5090,8 +5092,11 @@ function montarTextoHistorico(item) {
                 if (!marcouEnviado) return;
                 const key = getParcelamentoStatusKey(h.cliente || '', h.cnpj || '');
                 const keyCliente = getParcelamentoStatusKey(h.cliente || '', '');
+                const dataHistorico = h.data_envio || h.data_envio_parc || h.created_at || h.atualizado_em || '';
                 if (key && !parcelamentoStatusMensal[key]) parcelamentoStatusMensal[key] = 'enviado';
                 if (keyCliente && !parcelamentoStatusMensal[keyCliente]) parcelamentoStatusMensal[keyCliente] = 'enviado';
+                if (key && dataHistorico && !parcelamentoDataEnvioMensal[key]) parcelamentoDataEnvioMensal[key] = dataHistorico;
+                if (keyCliente && dataHistorico && !parcelamentoDataEnvioMensal[keyCliente]) parcelamentoDataEnvioMensal[keyCliente] = dataHistorico;
             });
         }
 
@@ -5106,6 +5111,24 @@ function montarTextoHistorico(item) {
             const status = getParcelamentoEnvioStatus(row);
             if (status === 'enviado') return '<span class="pgdas-status-pill enviado">Enviado</span>';
             return '<span class="pgdas-status-pill nao-enviado">Não enviado</span>';
+        }
+
+
+        function getParcelamentoDataEnvio(row) {
+            const key = getParcelamentoStatusKey(row);
+            const keyCliente = getParcelamentoStatusKey(row?.CLIENTE || '', '');
+            return parcelamentoDataEnvioMensal[key] || parcelamentoDataEnvioMensal[keyCliente] || row?.DATA_ENVIO_PARC || row?.['DATA ENVIO PARC'] || row?.['DT.ENVIO.PARC'] || row?.['DT ENVIO PARC'] || row?.DATA_ENVIO_PARCELAMENTO || row?.['DATA ENVIO PARCELAMENTO'] || '';
+        }
+
+        function normalizarDataInput(valor) {
+            if (!valor) return '';
+            const txt = String(valor).trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(txt)) return txt.substring(0, 10);
+            const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+            const d = new Date(txt);
+            if (!isNaN(d.getTime())) return d.toISOString().substring(0, 10);
+            return '';
         }
 
 
@@ -5249,6 +5272,10 @@ function montarTextoHistorico(item) {
                         <input id="parcelamentoEnviadoCheck" type="checkbox" ${getParcelamentoEnvioStatus(row) === 'enviado' ? 'checked' : ''} class="w-4 h-4 rounded border-emerald-300 cursor-pointer">
                         <span class="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Enviado</span>
                     </label>
+                    <div class="mt-2">
+                        <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Data de envio do parcelamento</label>
+                        <input id="parcelamentoDataEnvioInput" type="date" value="${escapeAttr(normalizarDataInput(getParcelamentoDataEnvio(row)) || new Date().toISOString().substring(0, 10))}" class="parcelamento-qty-select">
+                    </div>
                 </div>
                 <div id="pgdasStatusContainer" class="hidden mt-3">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Status PGDAS da competência ${pgdasCompetenciaAtual}</label>
@@ -5292,6 +5319,8 @@ function montarTextoHistorico(item) {
                 const valorNovo = valorParaSalvar === 'enviado' ? 'Enviado' : 'Não enviado';
                 const dataEnvio = document.getElementById('pgdasDataEnvioInput')?.value || new Date().toISOString().substring(0, 10);
                 row.PGDAS = valorNovo;
+                row.DATA_ENVIO_PGDAS = dataEnvio;
+                row['DT.ENVIO.PGDAS'] = dataEnvio;
                 pgdasStatusMensal[getPGDASKey(row)] = valorParaSalvar === 'enviado' ? 'enviado' : 'nao_enviado';
                 pgdasDataEnvioMensal[getPGDASKey(row)] = dataEnvio;
                 renderEmpresasParcelamentos();
@@ -5301,6 +5330,7 @@ function montarTextoHistorico(item) {
                 try {
                     await Promise.all([
                         salvarPGDASMensal(row, valorParaSalvar, observacao, dataEnvio),
+                        enviarParaGoogleSheets(cliente, 'DT.ENVIO.PGDAS', 'pgdas', dataEnvio),
                         registrarLog('PGDAS mensal', cliente, 'PGDAS', `Competência ${getCompetenciaPGDAS()}: alterado de "${valorAnterior}" para "${valorNovo}" | Data envio: ${formatarDataEnvioPGDAS(dataEnvio)}${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorNovo),
                         salvarObservacao(cliente, 'PGDAS', observacao || `PGDAS da competência ${getCompetenciaPGDAS()} marcado como ${valorNovo} em ${formatarDataEnvioPGDAS(dataEnvio)}`, valorNovo)
                     ]);
@@ -5325,9 +5355,17 @@ function montarTextoHistorico(item) {
             const parcelamentoFoiEnviado = !!document.getElementById('parcelamentoEnviadoCheck')?.checked;
             const statusParcelamentoAnterior = getParcelamentoEnvioStatus(row) === 'enviado' ? 'Enviado' : 'Não enviado';
             const statusParcelamentoNovo = parcelamentoFoiEnviado ? 'Enviado' : statusParcelamentoAnterior;
+            const dataEnvioParcelamento = parcelamentoFoiEnviado ? (document.getElementById('parcelamentoDataEnvioInput')?.value || new Date().toISOString().substring(0, 10)) : '';
 
             row[c] = valorParaSalvar;
-            if (parcelamentoFoiEnviado) { parcelamentoStatusMensal[getParcelamentoStatusKey(row)] = 'enviado'; parcelamentoStatusMensal[getParcelamentoStatusKey(row.CLIENTE || '', '')] = 'enviado'; }
+            if (parcelamentoFoiEnviado) {
+                row.DATA_ENVIO_PARC = dataEnvioParcelamento;
+                row['DT.ENVIO.PARC'] = dataEnvioParcelamento;
+                parcelamentoStatusMensal[getParcelamentoStatusKey(row)] = 'enviado';
+                parcelamentoStatusMensal[getParcelamentoStatusKey(row.CLIENTE || '', '')] = 'enviado';
+                parcelamentoDataEnvioMensal[getParcelamentoStatusKey(row)] = dataEnvioParcelamento;
+                parcelamentoDataEnvioMensal[getParcelamentoStatusKey(row.CLIENTE || '', '')] = dataEnvioParcelamento;
+            }
             renderEmpresasParcelamentos();
             atualizarResumoParcelamentos();
             if (!document.getElementById('view-dash')?.classList.contains('hidden')) renderTable();
@@ -5343,8 +5381,9 @@ function montarTextoHistorico(item) {
                 ];
                 if (parcelamentoFoiEnviado) {
                     tarefasSalvar.push(
-                        registrarLog('Parcelamento enviado', cliente, c, `Status do parcelamento alterado de "${statusParcelamentoAnterior}" para "${statusParcelamentoNovo}"${observacao ? ' | Obs: ' + observacao : ''}`, statusParcelamentoAnterior, statusParcelamentoNovo),
-                        salvarObservacao(cliente, c, observacao || 'Parcelamento marcado como enviado', 'Enviado')
+                        enviarParaGoogleSheets(cliente, 'DT.ENVIO.PARC', 'parcelamento', dataEnvioParcelamento),
+                        registrarLog('Parcelamento enviado', cliente, c, `Status do parcelamento alterado de "${statusParcelamentoAnterior}" para "${statusParcelamentoNovo}" | Data envio parcelamento: ${formatarDataEnvioPGDAS(dataEnvioParcelamento)}${observacao ? ' | Obs: ' + observacao : ''}`, statusParcelamentoAnterior, statusParcelamentoNovo),
+                        salvarObservacao(cliente, c, observacao || `Parcelamento marcado como enviado em ${formatarDataEnvioPGDAS(dataEnvioParcelamento)}`, 'Enviado')
                     );
                 }
                 await Promise.all(tarefasSalvar);
@@ -5374,12 +5413,12 @@ function montarTextoHistorico(item) {
                 .filter(item => empresasParcelamentosSetorFiltro ? item.setor === empresasParcelamentosSetorFiltro : true)
                 .filter(item => {
                     const ultimaObs = getUltimaObservacaoParcelamento(item.row.CLIENTE);
-                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.SETOR || ''} ${getSetorParcelamentosLabel(item.row.SETOR)} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${getPGDASStatus(item.row)} ${getParcelamentoEnvioStatus(item.row)} ${formatarDataEnvioPGDAS(getPGDASDataEnvio(item.row))} ${ultimaObs?.observacao || ''}`.toLowerCase();
+                    const texto = `${item.row.CLIENTE || ''} ${item.row.CNPJ || ''} ${item.row.SETOR || ''} ${getSetorParcelamentosLabel(item.row.SETOR)} ${item.row.PARCELAMENTOS || ''} ${item.qtd || ''} ${getPGDASStatus(item.row)} ${getParcelamentoEnvioStatus(item.row)} ${formatarDataEnvioPGDAS(getParcelamentoDataEnvio(item.row))} ${formatarDataEnvioPGDAS(getPGDASDataEnvio(item.row))} ${ultimaObs?.observacao || ''}`.toLowerCase();
                     return !q || texto.includes(q);
                 });
             if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
             if (!linhas.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
                 return;
             }
             tbody.innerHTML = linhas.map(item => {
@@ -5389,9 +5428,10 @@ function montarTextoHistorico(item) {
                     <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
                     <td class="cnpj-cell" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
                     <td><span class="parcelamento-status-pill sem-status">${escapeHtml(getSetorParcelamentosLabel(row.SETOR))}</span></td>
-                    <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
-                    <td>${renderPGDASStatusPill(row)}</td>
                     <td>${renderParcelamentoEnvioStatusPill(row)}</td>
+                    <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
+                    <td class="font-bold text-slate-600">${escapeHtml(formatarDataEnvioPGDAS(getParcelamentoDataEnvio(row)))}</td>
+                    <td>${renderPGDASStatusPill(row)}</td>
                     <td class="font-bold text-slate-600">${escapeHtml(formatarDataEnvioPGDAS(getPGDASDataEnvio(row)))}</td>
                     <td><button onclick="event.stopPropagation(); openParcelamentoInfoModal(${item.index})" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Informações</button></td>
                 </tr>`;
@@ -9997,7 +10037,7 @@ function montarCelulaObservacaoHistorico(item) {
                 .filter(item => {
                     const row = item.row || {};
                     const ultimaObs = typeof getUltimaObservacaoParcelamento === 'function' ? getUltimaObservacaoParcelamento(row.CLIENTE) : null;
-                    const texto = `${row.CLIENTE || ''} ${row.CNPJ || ''} ${row.SETOR || ''} ${typeof getSetorParcelamentosLabel === 'function' ? getSetorParcelamentosLabel(row.SETOR) : ''} ${row.PARCELAMENTOS || ''} ${item.qtd || ''} ${typeof getPGDASStatus === 'function' ? getPGDASStatus(row) : ''} ${typeof getParcelamentoEnvioStatus === 'function' ? getParcelamentoEnvioStatus(row) : ''} ${ultimaObs?.observacao || ''}`.toLowerCase();
+                    const texto = `${row.CLIENTE || ''} ${row.CNPJ || ''} ${row.SETOR || ''} ${typeof getSetorParcelamentosLabel === 'function' ? getSetorParcelamentosLabel(row.SETOR) : ''} ${row.PARCELAMENTOS || ''} ${item.qtd || ''} ${typeof getPGDASStatus === 'function' ? getPGDASStatus(row) : ''} ${typeof getParcelamentoEnvioStatus === 'function' ? getParcelamentoEnvioStatus(row) : ''} ${typeof getParcelamentoDataEnvio === 'function' && typeof formatarDataEnvioPGDAS === 'function' ? formatarDataEnvioPGDAS(getParcelamentoDataEnvio(row)) : ''} ${typeof getPGDASDataEnvio === 'function' && typeof formatarDataEnvioPGDAS === 'function' ? formatarDataEnvioPGDAS(getPGDASDataEnvio(row)) : ''} ${ultimaObs?.observacao || ''}`.toLowerCase();
                     return !q || texto.includes(q);
                 });
 
@@ -10019,7 +10059,7 @@ function montarCelulaObservacaoHistorico(item) {
             if (counter) counter.innerText = `${linhas.length} empresa${linhas.length === 1 ? '' : 's'}`;
 
             if (!linhas.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">Nenhuma empresa encontrada para este filtro.</td></tr>';
                 return;
             }
 
@@ -10030,9 +10070,10 @@ function montarCelulaObservacaoHistorico(item) {
                     <td class="col-fixed font-bold text-slate-700">${escapeHtml(row.CLIENTE || '-')}</td>
                     <td class="cnpj-cell" onclick="copiarCNPJ('${escapeAttr(row.CNPJ || '-')}', event)">${escapeHtml(row.CNPJ || '-')}</td>
                     <td><span class="parcelamento-status-pill sem-status">${escapeHtml(getSetorParcelamentosLabel(row.SETOR))}</span></td>
-                    <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
-                    <td>${renderPGDASStatusPill(row)}</td>
                     <td>${renderParcelamentoEnvioStatusPill(row)}</td>
+                    <td class="font-black text-sky-700">${escapeHtml(qtd)}</td>
+                    <td class="font-bold text-slate-600">${escapeHtml(formatarDataEnvioPGDAS(getParcelamentoDataEnvio(row)))}</td>
+                    <td>${renderPGDASStatusPill(row)}</td>
                     <td class="font-bold text-slate-600">${escapeHtml(formatarDataEnvioPGDAS(getPGDASDataEnvio(row)))}</td>
                     <td><button onclick="event.stopPropagation(); openParcelamentoInfoModal(${item.index})" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Informações</button></td>
                 </tr>`;
