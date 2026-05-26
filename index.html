@@ -575,6 +575,11 @@ function montarTextoHistorico(item) {
         .badge-avisos { position: absolute; top: -12px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 10px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .badge-red { background: #ef4444; }
 
+
+        .parcelamento-status-edit-btn { width:100%; border:1.5px solid #dbe4ee; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:900; background:#ffffff; color:#475569; transition:all .18s ease; text-align:center; }
+        .parcelamento-status-edit-btn:hover { transform:translateY(-1px); box-shadow:0 8px 16px rgba(15,23,42,.08); }
+        .parcelamento-status-edit-btn.active.ativo { background:#dcfce7; color:#166534; border-color:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.12); }
+        .parcelamento-status-edit-btn.active.inativo { background:#fee2e2; color:#991b1b; border-color:#ef4444; box-shadow:0 0 0 3px rgba(239,68,68,.12); }
         .parcelamento-status-pill { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; font-size:9px; font-weight:900; text-transform:uppercase; }
         .parcelamento-status-pill.ativos { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
         .parcelamento-status-pill.inativos { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
@@ -5227,6 +5232,18 @@ function montarTextoHistorico(item) {
             if (box) box.classList.remove('hidden');
         }
 
+
+        function setParcelamentoStatusModal(status) {
+            const valor = String(status || 'ATIVO').toUpperCase() === 'INATIVO' ? 'INATIVO' : 'ATIVO';
+            const input = document.getElementById('parcelamentoStatusSelect');
+            const btnAtivo = document.getElementById('parcelamentoStatusBtnAtivo');
+            const btnInativo = document.getElementById('parcelamentoStatusBtnInativo');
+            if (input) input.value = valor;
+            if (btnAtivo) btnAtivo.className = 'parcelamento-status-edit-btn' + (valor === 'ATIVO' ? ' active ativo' : '');
+            if (btnInativo) btnInativo.className = 'parcelamento-status-edit-btn' + (valor === 'INATIVO' ? ' active inativo' : '');
+            selectedOption = 'parcelamento';
+        }
+
         function openParcelamentoInfoModal(r) {
             const c = 'PARCELAMENTOS';
             if (!rawData[r]) return;
@@ -5249,11 +5266,12 @@ function montarTextoHistorico(item) {
                 <div class="mb-2">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Valor atual no Sheets</label>
                     <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-[10px] font-mono text-slate-600 break-all mb-2">${valorExibicao}</div>
-                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Status do parcelamento</label>
-                    <select id="parcelamentoStatusSelect" onchange="selectedOption='parcelamento'" class="parcelamento-qty-select">
-                        <option value="ATIVO" ${statusAtualParcelamento === 'ATIVO' ? 'selected' : ''}>ATIVO</option>
-                        <option value="INATIVO" ${statusAtualParcelamento === 'INATIVO' ? 'selected' : ''}>INATIVO</option>
-                    </select>
+                    <input type="hidden" id="parcelamentoStatusSelect" value="${statusAtualParcelamento || 'ATIVO'}">
+                    <div class="grid grid-cols-2 gap-2 mb-2" role="group" aria-label="Alterar status do parcelamento no Sheets">
+                        <button type="button" id="parcelamentoStatusBtnAtivo" onclick="setParcelamentoStatusModal('ATIVO')" class="parcelamento-status-edit-btn ${statusAtualParcelamento === 'ATIVO' ? 'active ativo' : ''}">ATIVO</button>
+                        <button type="button" id="parcelamentoStatusBtnInativo" onclick="setParcelamentoStatusModal('INATIVO')" class="parcelamento-status-edit-btn ${statusAtualParcelamento === 'INATIVO' ? 'active inativo' : ''}">INATIVO</button>
+                    </div>
+                    <div class="text-[8px] text-slate-400 font-bold mb-2">Escolha ATIVO ou INATIVO e clique em Salvar para refletir na planilha.</div>
                 </div>
                 ${ultimaObs ? `<div class="mb-2 bg-amber-50 border border-amber-100 rounded-lg p-2"><div class="text-[8px] font-black text-amber-700 uppercase mb-1">Última observação</div><div class="text-[10px] text-slate-700">${escapeHtml(ultimaObs.observacao || '')}</div></div>` : ''}
                 <div>
