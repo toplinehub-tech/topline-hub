@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.05.14.1";
+        window.TOPLINE_APP_VERSION = "2026.05.26.1";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -5238,6 +5238,7 @@ function montarTextoHistorico(item) {
             const quantidadeAtual = getParcelamentoQuantidadeAtual(valorAtual);
             const ultimaObs = getUltimaObservacaoParcelamento(cliente);
             const valorExibicao = valorAtual instanceof Date ? valorAtual.toLocaleDateString('pt-BR') : (valorAtual ? escapeHtml(String(valorAtual)) : '<span class="text-slate-300 italic">vazio</span>');
+            const statusAtualParcelamento = getParcelamentoStatusPrefix(valorAtual);
             const opcoes = Array.from({ length: 30 }, (_, i) => {
                 const n = String(i + 1);
                 return `<option value="${n}" ${quantidadeAtual === n ? 'selected' : ''}>${n}</option>`;
@@ -5247,7 +5248,12 @@ function montarTextoHistorico(item) {
             document.getElementById('modalContent').innerHTML = `
                 <div class="mb-2">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Valor atual no Sheets</label>
-                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-[10px] font-mono text-slate-600 break-all">${valorExibicao}</div>
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-[10px] font-mono text-slate-600 break-all mb-2">${valorExibicao}</div>
+                    <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Status do parcelamento</label>
+                    <select id="parcelamentoStatusSelect" onchange="selectedOption='parcelamento'" class="parcelamento-qty-select">
+                        <option value="ATIVO" ${statusAtualParcelamento === 'ATIVO' ? 'selected' : ''}>ATIVO</option>
+                        <option value="INATIVO" ${statusAtualParcelamento === 'INATIVO' ? 'selected' : ''}>INATIVO</option>
+                    </select>
                 </div>
                 ${ultimaObs ? `<div class="mb-2 bg-amber-50 border border-amber-100 rounded-lg p-2"><div class="text-[8px] font-black text-amber-700 uppercase mb-1">Última observação</div><div class="text-[10px] text-slate-700">${escapeHtml(ultimaObs.observacao || '')}</div></div>` : ''}
                 <div>
@@ -5345,13 +5351,12 @@ function montarTextoHistorico(item) {
                 return;
             }
 
-            if (selectedOption !== 'parcelamento') { showNotification('Selecione Parcelamento ou PGDAS', true); return; }
-            const quantidade = document.getElementById('parcelamentoQuantidade')?.value;
-            if (!quantidade) { showNotification('Selecione a quantidade de parcelamento', true); return; }
+            if (selectedOption && selectedOption !== 'parcelamento') { showNotification('Selecione Parcelamento ou PGDAS', true); return; }
+            const quantidade = document.getElementById('parcelamentoQuantidade')?.value || getParcelamentoQuantidadeAtual(row[c]);
+            const statusPrefix = (document.getElementById('parcelamentoStatusSelect')?.value || getParcelamentoStatusPrefix(row[c]) || 'ATIVO').toUpperCase();
 
             const valorAnterior = row[c] instanceof Date ? row[c].toLocaleDateString('pt-BR') : (row[c] || 'vazio');
-            const statusPrefix = getParcelamentoStatusPrefix(row[c]);
-            const valorParaSalvar = `${statusPrefix} - PARCELAMENTO ${quantidade}`;
+            const valorParaSalvar = quantidade ? `${statusPrefix} - PARCELAMENTO ${quantidade}` : statusPrefix;
             const parcelamentoFoiEnviado = !!document.getElementById('parcelamentoEnviadoCheck')?.checked;
             const statusParcelamentoAnterior = getParcelamentoEnvioStatus(row) === 'enviado' ? 'Enviado' : 'Não enviado';
             const statusParcelamentoNovo = parcelamentoFoiEnviado ? 'Enviado' : statusParcelamentoAnterior;
@@ -5377,7 +5382,7 @@ function montarTextoHistorico(item) {
                 const tarefasSalvar = [
                     enviarParaGoogleSheets(cliente, c, 'parcelamento', valorParaSalvar),
                     registrarLog('Informações de parcelamento', cliente, c, `Alterado de "${valorAnterior}" para "${valorParaSalvar}"${observacao ? ' | Obs: ' + observacao : ''}`, valorAnterior, valorParaSalvar),
-                    salvarObservacao(cliente, c, observacao || `Quantidade de parcelamento definida para ${quantidade}`, valorParaSalvar)
+                    salvarObservacao(cliente, c, observacao || (quantidade ? `Status ${statusPrefix} e quantidade de parcelamento definida para ${quantidade}` : `Status do parcelamento definido como ${statusPrefix}`), valorParaSalvar)
                 ];
                 if (parcelamentoFoiEnviado) {
                     tarefasSalvar.push(
