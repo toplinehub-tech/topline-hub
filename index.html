@@ -1775,8 +1775,6 @@ body.agenda-modal-open { overflow:hidden; }
                         </select>
                         <input type="text" id="agendaBusca" oninput="renderAgendaGeral()" placeholder="Buscar por cliente, tarefa, observação..." class="flex-1 min-w-[240px]">
                         <button onclick="limparFormularioAgendaGeral()" class="btn-mini text-slate-700 border-slate-200 bg-white">Novo agendamento</button>
-                        <button onclick="importarAgendaGeralDaPlanilhaManual()" class="btn-mini text-sky-700 border-sky-200 bg-sky-50">Importar planilha</button>
-                        <button onclick="carregarAgendaGeral()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
                     </div>
 
                     <div class="agenda-form mb-5">
@@ -7090,13 +7088,6 @@ async function carregarAgendaGeral() {
             .map((x, i) => ({ ...x, id: x.origem_hash || ('seed-' + i), alerta_local: true }));
         popularResponsaveisAgendaGeral();
         renderAgendaGeral();
-        if (lista) {
-            const aviso = document.createElement('div');
-            aviso.className = 'agenda-empty text-amber-600';
-            aviso.style.marginBottom = '10px';
-            aviso.innerHTML = 'Mostrando dados da planilha em modo visual. Para salvar no banco, execute o SQL definitivo no Supabase.';
-            lista.prepend(aviso);
-        }
     } finally {
         agendaGeralCarregando = false;
     }
