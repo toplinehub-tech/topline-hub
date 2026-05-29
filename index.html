@@ -1145,6 +1145,43 @@ function montarTextoHistorico(item) {
     background:#fff;
 }
 
+
+/* AGENDA GERAL - nova aba clean e editavel */
+.agenda-page-card { background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98)); }
+.agenda-hero { background: linear-gradient(135deg,#ecfdf5 0%,#eff6ff 55%,#f8fafc 100%); border:1px solid #dbeafe; border-radius:22px; padding:20px; box-shadow:0 14px 30px -24px rgba(15,23,42,.40); }
+.agenda-hero h2 { font-size:18px; font-weight:900; color:#0f172a; text-transform:uppercase; letter-spacing:.06em; }
+.agenda-hero p { font-size:10px; color:#64748b; margin-top:5px; }
+.agenda-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:13px; box-shadow:0 8px 20px -18px rgba(15,23,42,.35); }
+.agenda-kpi strong { display:block; font-size:22px; line-height:1; font-weight:900; color:#0f172a; }
+.agenda-kpi span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.agenda-toolbar { display:flex; align-items:center; gap:9px; flex-wrap:wrap; background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:10px; }
+.agenda-toolbar input, .agenda-toolbar select, .agenda-form input, .agenda-form select, .agenda-form textarea { background:#fff; border:1px solid #dbe4ee; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; color:#334155; outline:none; }
+.agenda-toolbar input:focus, .agenda-toolbar select:focus, .agenda-form input:focus, .agenda-form select:focus, .agenda-form textarea:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
+.agenda-form { background:#fff; border:1px solid #e2e8f0; border-radius:20px; padding:16px; }
+.agenda-form label { font-size:8px; font-weight:900; color:#64748b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; display:block; }
+.agenda-form-grid { display:grid; grid-template-columns: 1.2fr .8fr 1fr 1fr 1fr; gap:10px; }
+.agenda-card { background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:14px; transition:all .18s ease; box-shadow:0 8px 18px -18px rgba(15,23,42,.35); }
+.agenda-card:hover { transform:translateY(-1px); box-shadow:0 16px 28px -24px rgba(15,23,42,.45); }
+.agenda-day-title { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:18px 0 8px; color:#334155; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+.agenda-item { display:grid; grid-template-columns: 72px 1fr auto; gap:12px; align-items:start; padding:13px; border-radius:16px; border:1px solid #e2e8f0; background:#fff; margin-bottom:8px; }
+.agenda-time { font-size:12px; font-weight:900; color:#0f766e; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:12px; text-align:center; padding:8px 6px; }
+.agenda-title { font-size:12px; font-weight:900; color:#0f172a; }
+.agenda-meta { display:flex; gap:6px; flex-wrap:wrap; margin-top:7px; }
+.agenda-pill { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:4px 8px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; }
+.agenda-pill.status-agendado { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.agenda-pill.status-concluido { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+.agenda-pill.status-cancelado { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+.agenda-pill.status-bloqueado { background:#f1f5f9; color:#475569; border-color:#cbd5e1; }
+.agenda-pill.prioridade-alta { background:#fff1f2; color:#be123c; border-color:#fecdd3; }
+.agenda-pill.prioridade-normal { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+.agenda-pill.prioridade-baixa { background:#f8fafc; color:#64748b; border-color:#e2e8f0; }
+.agenda-actions { display:flex; gap:6px; }
+.agenda-icon-btn { width:30px; height:30px; border-radius:10px; border:1px solid #e2e8f0; background:#fff; color:#475569; font-size:12px; font-weight:900; transition:all .18s ease; }
+.agenda-icon-btn:hover { transform:translateY(-1px); background:#f8fafc; }
+.agenda-empty { text-align:center; padding:32px; color:#94a3b8; font-size:12px; font-weight:800; border:1px dashed #cbd5e1; border-radius:18px; background:#f8fafc; }
+@media (max-width: 900px) { .agenda-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .agenda-item { grid-template-columns:1fr; } .agenda-actions { justify-content:flex-start; } }
+@media (max-width: 560px) { .agenda-form-grid { grid-template-columns:1fr; } .agenda-toolbar input, .agenda-toolbar select { width:100%; } }
+
 </style>
 </head>
 <body>
@@ -1262,6 +1299,7 @@ function montarTextoHistorico(item) {
                             <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                             <button onclick="switchTab('atribuicoes')" id="tab-atribuicoes" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atribuições</button>
                             <button onclick="switchTab('pontuais')" id="tab-pontuais" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Pontuais</button>
+                            <button onclick="switchTab('agendageral')" id="tab-agendageral" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Agenda Geral</button>
                             <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
                         </div>
                         <div class="nav-row nav-row-bottom">
@@ -1659,6 +1697,65 @@ function montarTextoHistorico(item) {
             </div>
 
             <!-- ABA COMUNICAR -->
+
+
+            <!-- AGENDA GERAL -->
+            <div id="view-agendageral" class="hidden">
+                <div class="white-card p-6 agenda-page-card">
+                    <div class="agenda-hero mb-5">
+                        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                            <div>
+                                <h2>Agenda Geral</h2>
+                                <p>Agenda única, editável e salva no Supabase. Os alertas de tarefas agendadas são publicados na aba Avisos com 1 dia de antecedência.</p>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 min-w-[420px] max-w-full">
+                                <div class="agenda-kpi"><strong id="agenda-kpi-hoje">0</strong><span>Hoje</span></div>
+                                <div class="agenda-kpi"><strong id="agenda-kpi-amanha">0</strong><span>Amanhã</span></div>
+                                <div class="agenda-kpi"><strong id="agenda-kpi-mes">0</strong><span>Mês</span></div>
+                                <div class="agenda-kpi"><strong id="agenda-kpi-abertos">0</strong><span>Em aberto</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="agenda-toolbar mb-4">
+                        <input type="month" id="agendaFiltroMes" onchange="carregarAgendaGeral()">
+                        <select id="agendaFiltroStatus" onchange="renderAgendaGeral()">
+                            <option value="">Todos os status</option>
+                            <option value="agendado">Agendado</option>
+                            <option value="concluido">Concluído</option>
+                            <option value="cancelado">Cancelado</option>
+                            <option value="bloqueado">Bloqueado</option>
+                        </select>
+                        <select id="agendaFiltroResponsavel" onchange="renderAgendaGeral()">
+                            <option value="">Todos responsáveis</option>
+                        </select>
+                        <input type="text" id="agendaBusca" oninput="renderAgendaGeral()" placeholder="Buscar por cliente, tarefa, observação..." class="flex-1 min-w-[240px]">
+                        <button onclick="limparFormularioAgendaGeral()" class="btn-mini text-slate-700 border-slate-200 bg-white">Novo agendamento</button>
+                        <button onclick="carregarAgendaGeral()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
+                    </div>
+
+                    <div class="agenda-form mb-5">
+                        <input type="hidden" id="agendaId">
+                        <div class="agenda-form-grid mb-3">
+                            <div><label>Título / Cliente</label><input id="agendaTitulo" type="text" placeholder="Ex.: Reunião - Cliente X" class="w-full"></div>
+                            <div><label>Data</label><input id="agendaData" type="date" class="w-full"></div>
+                            <div><label>Hora</label><input id="agendaHora" type="time" class="w-full"></div>
+                            <div><label>Responsável</label><select id="agendaResponsavel" class="w-full"><option value="">Equipe</option><option>Nikolas</option><option>Brenda</option><option>Ingrid</option><option>Jordan</option><option>Patricia</option><option>Sirlene</option><option>Dev</option></select></div>
+                            <div><label>Tipo</label><select id="agendaTipo" class="w-full"><option value="reuniao">Reunião</option><option value="tarefa">Tarefa</option><option value="prazo">Prazo</option><option value="bloqueio">Bloqueio</option><option value="outro">Outro</option></select></div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                            <div><label>Status</label><select id="agendaStatus" class="w-full"><option value="agendado">Agendado</option><option value="concluido">Concluído</option><option value="cancelado">Cancelado</option><option value="bloqueado">Bloqueado</option></select></div>
+                            <div><label>Prioridade</label><select id="agendaPrioridade" class="w-full"><option value="normal">Normal</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select></div>
+                            <div><label>Alerta</label><select id="agendaAlerta" class="w-full"><option value="true">Alertar 1 dia antes</option><option value="false">Sem alerta</option></select></div>
+                            <div class="flex items-end gap-2"><button onclick="salvarAgendaGeral()" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-lg w-full">Salvar agenda</button></div>
+                        </div>
+                        <div><label>Observações</label><textarea id="agendaObservacao" rows="2" placeholder="Detalhes rápidos, link da reunião ou pauta..." class="w-full"></textarea></div>
+                    </div>
+
+                    <div id="agendaLista" class="space-y-1"></div>
+                </div>
+            </div>
+
             <div id="view-comm" class="hidden">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Painel de Controle -->
@@ -2254,7 +2351,8 @@ function montarTextoHistorico(item) {
     financeiro: 'view-financeiro',
     empresasparcelamentos: 'view-empresasparcelamentos',
     avisos: 'view-avisos',
-    pontuais: 'view-pontuais'
+    pontuais: 'view-pontuais',
+    agendageral: 'view-agendageral'
   };
 
   var functionToView = {
@@ -2262,6 +2360,8 @@ function montarTextoHistorico(item) {
     carregarAvisos: 'view-avisos',
     carregarPontuais: 'view-pontuais',
     renderPontuais: 'view-pontuais',
+    carregarAgendaGeral: 'view-agendageral',
+    renderAgendaGeral: 'view-agendageral',
     renderSenhas: 'view-senhas',
     renderCommTable: 'view-comm',
     atualizarPreviewComunicado: 'view-comm',
@@ -3281,6 +3381,7 @@ function montarTextoHistorico(item) {
             if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
             
             carregarAvisos();
+            verificarAlertasAgendaGeral();
             iniciarTimerInatividadeLogin();
             agendarSorteioAutomatico();
             agendarRegistroMonitorAutomatico();
@@ -3299,6 +3400,7 @@ function montarTextoHistorico(item) {
             setInterval(() => fetchGoogleSheets(false), 60000);
             setInterval(() => carregarDistribuicaoGlobal(), 30000);
             setInterval(() => carregarAvisos(), 60000);
+            setInterval(() => verificarAlertasAgendaGeral(), 15 * 60 * 1000);
             setTimeout(() => { carregarDistribuicaoGlobal(); }, 2000);
         }
 
@@ -5903,7 +6005,7 @@ function montarTextoHistorico(item) {
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -5927,6 +6029,7 @@ function montarTextoHistorico(item) {
             if (tab === 'senhas') renderSenhas();
             if (tab === 'atribuicoes') renderAtribuicoes();
             if (tab === 'pontuais') carregarPontuais();
+            if (tab === 'agendageral') carregarAgendaGeral();
             if (tab === 'dash') atualizarDashboardDesempenho();
             if (tab === 'tasks') carregarDistribuicaoGlobal();
             if (tab === 'comm') renderCommTable();
@@ -6747,6 +6850,236 @@ function montarTextoHistorico(item) {
         function abrirModalNovoAviso() { document.getElementById('avisoModal').classList.remove('hidden'); }
         function fecharModalAviso() { document.getElementById('avisoModal').classList.add('hidden'); }
         async function salvarAviso() { const titulo = document.getElementById('aviso-titulo').value; const conteudo = document.getElementById('aviso-conteudo').value; if (!titulo || !conteudo) return alert('Preencha todos os campos'); try { await supabaseClient.from('avisos').insert([{ titulo, conteudo, autor: currentUser }]); document.getElementById('aviso-titulo').value = ''; document.getElementById('aviso-conteudo').value = ''; fecharModalAviso(); carregarAvisos(); } catch (e) { alert('Erro ao salvar aviso'); } }
+
+
+/* ======================================================
+   AGENDA GERAL - Supabase, edicao e alertas em Avisos
+   ====================================================== */
+let agendaGeralData = [];
+let agendaGeralCarregando = false;
+
+function agendaHojeISO() { return new Date().toISOString().slice(0,10); }
+function agendaAddDiasISO(dias) { const d = new Date(); d.setDate(d.getDate() + dias); return d.toISOString().slice(0,10); }
+function agendaMesAtual() { return new Date().toISOString().slice(0,7); }
+function agendaEsc(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function agendaDataBR(iso) { if (!iso) return '-'; const [a,m,d] = String(iso).split('-'); return `${d}/${m}/${a}`; }
+function agendaDiaSemana(iso) { const dt = new Date(String(iso) + 'T12:00:00'); return dt.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit' }); }
+function agendaNormalizar(v) { return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+function agendaInitFiltroMes() {
+    const mes = document.getElementById('agendaFiltroMes');
+    if (mes && !mes.value) mes.value = agendaMesAtual();
+    const data = document.getElementById('agendaData');
+    if (data && !data.value) data.value = agendaHojeISO();
+}
+
+function agendaPayloadFromForm() {
+    const id = document.getElementById('agendaId').value || null;
+    return {
+        id,
+        titulo: document.getElementById('agendaTitulo').value.trim(),
+        data_agenda: document.getElementById('agendaData').value,
+        hora_agenda: document.getElementById('agendaHora').value || null,
+        responsavel: document.getElementById('agendaResponsavel').value || null,
+        tipo: document.getElementById('agendaTipo').value || 'reuniao',
+        status: document.getElementById('agendaStatus').value || 'agendado',
+        prioridade: document.getElementById('agendaPrioridade').value || 'normal',
+        observacao: document.getElementById('agendaObservacao').value.trim() || null,
+        alertar_um_dia_antes: document.getElementById('agendaAlerta').value === 'true',
+        atualizado_por: currentUser || 'Sistema',
+        atualizado_em: new Date().toISOString()
+    };
+}
+
+async function carregarAgendaGeral() {
+    agendaInitFiltroMes();
+    if (agendaGeralCarregando) return;
+    agendaGeralCarregando = true;
+    const lista = document.getElementById('agendaLista');
+    if (lista) lista.innerHTML = '<div class="agenda-empty">Carregando agenda...</div>';
+    try {
+        const mes = document.getElementById('agendaFiltroMes')?.value || agendaMesAtual();
+        const inicio = mes + '-01';
+        const fimDate = new Date(inicio + 'T12:00:00');
+        fimDate.setMonth(fimDate.getMonth() + 1);
+        const fim = fimDate.toISOString().slice(0,10);
+        const { data, error } = await supabaseClient
+            .from('agenda_geral')
+            .select('*')
+            .gte('data_agenda', inicio)
+            .lt('data_agenda', fim)
+            .order('data_agenda', { ascending: true })
+            .order('hora_agenda', { ascending: true });
+        if (error) throw error;
+        agendaGeralData = data || [];
+        popularResponsaveisAgendaGeral();
+        renderAgendaGeral();
+    } catch (e) {
+        console.error('Erro ao carregar Agenda Geral:', e);
+        if (lista) lista.innerHTML = '<div class="agenda-empty text-amber-600">Crie a tabela agenda_geral no Supabase para ativar a agenda.</div>';
+    } finally {
+        agendaGeralCarregando = false;
+    }
+}
+
+function popularResponsaveisAgendaGeral() {
+    const sel = document.getElementById('agendaFiltroResponsavel');
+    if (!sel) return;
+    const atual = sel.value;
+    const nomes = Array.from(new Set((agendaGeralData || []).map(x => x.responsavel).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    sel.innerHTML = '<option value="">Todos responsáveis</option>' + nomes.map(n => `<option value="${agendaEsc(n)}">${agendaEsc(n)}</option>`).join('');
+    sel.value = atual;
+}
+
+function renderAgendaGeral() {
+    const lista = document.getElementById('agendaLista');
+    if (!lista) return;
+    const status = document.getElementById('agendaFiltroStatus')?.value || '';
+    const resp = document.getElementById('agendaFiltroResponsavel')?.value || '';
+    const busca = agendaNormalizar(document.getElementById('agendaBusca')?.value || '');
+    let dados = (agendaGeralData || []).filter(a => {
+        if (status && a.status !== status) return false;
+        if (resp && a.responsavel !== resp) return false;
+        if (busca) {
+            const base = agendaNormalizar([a.titulo,a.responsavel,a.tipo,a.status,a.prioridade,a.observacao].join(' '));
+            if (!base.includes(busca)) return false;
+        }
+        return true;
+    });
+    atualizarKpisAgendaGeral();
+    if (!dados.length) { lista.innerHTML = '<div class="agenda-empty">Nenhum agendamento encontrado para os filtros selecionados.</div>'; return; }
+    const grupos = {};
+    dados.forEach(a => { const d = a.data_agenda || 'sem-data'; if (!grupos[d]) grupos[d] = []; grupos[d].push(a); });
+    lista.innerHTML = Object.keys(grupos).sort().map(dia => `
+        <div class="agenda-day-title"><span>${agendaEsc(agendaDiaSemana(dia))}</span><span>${grupos[dia].length} item(ns)</span></div>
+        ${grupos[dia].map(a => `
+            <div class="agenda-item">
+                <div class="agenda-time">${agendaEsc((a.hora_agenda || '--:--').slice(0,5))}</div>
+                <div>
+                    <div class="agenda-title">${agendaEsc(a.titulo || '-')}</div>
+                    ${a.observacao ? `<div class="text-[10px] text-slate-500 mt-1 leading-relaxed">${agendaEsc(a.observacao)}</div>` : ''}
+                    <div class="agenda-meta">
+                        <span class="agenda-pill status-${agendaEsc(a.status || 'agendado')}">${agendaEsc(a.status || 'agendado')}</span>
+                        <span class="agenda-pill prioridade-${agendaEsc(a.prioridade || 'normal')}">${agendaEsc(a.prioridade || 'normal')}</span>
+                        <span class="agenda-pill">${agendaEsc(a.tipo || 'reuniao')}</span>
+                        <span class="agenda-pill">${agendaEsc(a.responsavel || 'Equipe')}</span>
+                        ${a.alertar_um_dia_antes ? '<span class="agenda-pill">🔔 alerta</span>' : ''}
+                    </div>
+                </div>
+                <div class="agenda-actions">
+                    <button class="agenda-icon-btn" title="Editar" onclick="editarAgendaGeral('${a.id}')">✎</button>
+                    <button class="agenda-icon-btn" title="Concluir" onclick="alterarStatusAgendaGeral('${a.id}','concluido')">✓</button>
+                    <button class="agenda-icon-btn" title="Excluir" onclick="excluirAgendaGeral('${a.id}')">×</button>
+                </div>
+            </div>`).join('')}
+    `).join('');
+}
+
+function atualizarKpisAgendaGeral() {
+    const hoje = agendaHojeISO(), amanha = agendaAddDiasISO(1);
+    const d = agendaGeralData || [];
+    setTextSafe('agenda-kpi-hoje', d.filter(x => x.data_agenda === hoje && x.status !== 'cancelado').length);
+    setTextSafe('agenda-kpi-amanha', d.filter(x => x.data_agenda === amanha && x.status !== 'cancelado').length);
+    setTextSafe('agenda-kpi-mes', d.length);
+    setTextSafe('agenda-kpi-abertos', d.filter(x => !['concluido','cancelado'].includes(x.status)).length);
+}
+
+function limparFormularioAgendaGeral() {
+    ['agendaId','agendaTitulo','agendaHora','agendaObservacao'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const data = document.getElementById('agendaData'); if (data) data.value = agendaHojeISO();
+    const resp = document.getElementById('agendaResponsavel'); if (resp) resp.value = '';
+    const tipo = document.getElementById('agendaTipo'); if (tipo) tipo.value = 'reuniao';
+    const status = document.getElementById('agendaStatus'); if (status) status.value = 'agendado';
+    const prioridade = document.getElementById('agendaPrioridade'); if (prioridade) prioridade.value = 'normal';
+    const alerta = document.getElementById('agendaAlerta'); if (alerta) alerta.value = 'true';
+}
+
+function editarAgendaGeral(id) {
+    const a = (agendaGeralData || []).find(x => String(x.id) === String(id));
+    if (!a) return;
+    document.getElementById('agendaId').value = a.id;
+    document.getElementById('agendaTitulo').value = a.titulo || '';
+    document.getElementById('agendaData').value = a.data_agenda || agendaHojeISO();
+    document.getElementById('agendaHora').value = (a.hora_agenda || '').slice(0,5);
+    document.getElementById('agendaResponsavel').value = a.responsavel || '';
+    document.getElementById('agendaTipo').value = a.tipo || 'reuniao';
+    document.getElementById('agendaStatus').value = a.status || 'agendado';
+    document.getElementById('agendaPrioridade').value = a.prioridade || 'normal';
+    document.getElementById('agendaAlerta').value = a.alertar_um_dia_antes ? 'true' : 'false';
+    document.getElementById('agendaObservacao').value = a.observacao || '';
+    document.getElementById('agendaTitulo').focus();
+}
+
+async function salvarAgendaGeral() {
+    const payload = agendaPayloadFromForm();
+    if (!payload.titulo || !payload.data_agenda) return alert('Informe pelo menos título e data.');
+    try {
+        if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando agenda...');
+        let resp;
+        if (payload.id) {
+            const id = payload.id; delete payload.id;
+            resp = await supabaseClient.from('agenda_geral').update(payload).eq('id', id).select('*').single();
+        } else {
+            delete payload.id;
+            payload.criado_por = currentUser || 'Sistema';
+            resp = await supabaseClient.from('agenda_geral').insert([payload]).select('*').single();
+        }
+        if (resp.error) throw resp.error;
+        limparFormularioAgendaGeral();
+        await carregarAgendaGeral();
+        await verificarAlertasAgendaGeral();
+        if (typeof setSaveStatus === 'function') setSaveStatus('saved','Agenda salva');
+        if (typeof showNotification === 'function') showNotification('Agenda salva com sucesso.');
+    } catch(e) {
+        console.error('Erro ao salvar agenda:', e);
+        if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro na agenda');
+        alert('Erro ao salvar agenda. Verifique a tabela agenda_geral no Supabase.');
+    }
+}
+
+async function alterarStatusAgendaGeral(id, statusNovo) {
+    try {
+        const { error } = await supabaseClient.from('agenda_geral').update({ status: statusNovo, atualizado_por: currentUser || 'Sistema', atualizado_em: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        await carregarAgendaGeral();
+    } catch(e) { console.error(e); alert('Erro ao atualizar status da agenda.'); }
+}
+
+async function excluirAgendaGeral(id) {
+    if (!confirm('Excluir este agendamento?')) return;
+    try {
+        const { error } = await supabaseClient.from('agenda_geral').delete().eq('id', id);
+        if (error) throw error;
+        await carregarAgendaGeral();
+    } catch(e) { console.error(e); alert('Erro ao excluir agendamento.'); }
+}
+
+async function verificarAlertasAgendaGeral() {
+    try {
+        if (!window.supabaseClient) return;
+        const amanha = agendaAddDiasISO(1);
+        const hoje = agendaHojeISO();
+        const { data, error } = await supabaseClient
+            .from('agenda_geral')
+            .select('*')
+            .eq('data_agenda', amanha)
+            .eq('alertar_um_dia_antes', true)
+            .neq('status', 'cancelado');
+        if (error) throw error;
+        const pendentes = (data || []).filter(a => a.alerta_enviado_em !== hoje && a.status !== 'concluido');
+        for (const a of pendentes) {
+            const hora = a.hora_agenda ? String(a.hora_agenda).slice(0,5) : 'horário não informado';
+            const titulo = `Agenda amanhã: ${a.titulo || 'Compromisso'}`.slice(0, 120);
+            const conteudo = `Lembrete automático da Agenda Geral para ${agendaDataBR(a.data_agenda)} às ${hora}. Responsável: ${a.responsavel || 'Equipe'}. Tipo: ${a.tipo || 'Agenda'}.${a.observacao ? ' Obs.: ' + a.observacao : ''}`;
+            const { error: avisoError } = await supabaseClient.from('avisos').insert([{ titulo, conteudo, autor: 'Sistema - Agenda Geral' }]);
+            if (avisoError) throw avisoError;
+            await supabaseClient.from('agenda_geral').update({ alerta_enviado_em: hoje, atualizado_em: new Date().toISOString() }).eq('id', a.id);
+        }
+        if (pendentes.length && typeof carregarAvisos === 'function') carregarAvisos();
+    } catch(e) {
+        console.warn('Alertas da Agenda Geral não foram processados:', e);
+    }
+}
 
 
 /* ======================================================
