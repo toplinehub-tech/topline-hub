@@ -6897,8 +6897,24 @@ function agendaPayloadFromForm() {
 async function garantirAgendaGeralImportada() {
     if (agendaGeralImportacaoExecutada) return;
     agendaGeralImportacaoExecutada = true;
+    if (!window.supabaseClient || !Array.isArray(AGENDA_GERAL_SEED) || !AGENDA_GERAL_SEED.length) return;
+
+    const toPayload = (item) => ({
+        titulo: item.titulo,
+        data_agenda: item.data_agenda,
+        hora_agenda: item.hora_agenda || null,
+        responsavel: item.responsavel || 'Equipe',
+        tipo: item.tipo || 'reuniao',
+        status: item.status || 'agendado',
+        prioridade: item.prioridade || 'normal',
+        observacao: item.observacao || null,
+        alertar_um_dia_antes: item.alertar_um_dia_antes === true || item.alertar_um_dia_antes === 'true',
+        criado_por: 'Importação planilha',
+        origem_planilha: item.origem_planilha || null,
+        origem_hash: item.origem_hash || null
+    });
+
     try {
-        if (!window.supabaseClient || !Array.isArray(AGENDA_GERAL_SEED) || !AGENDA_GERAL_SEED.length) return;
         const { count, error: countError } = await supabaseClient
             .from('agenda_geral')
             .select('id', { count: 'exact', head: true });
@@ -6906,25 +6922,11 @@ async function garantirAgendaGeralImportada() {
         if (count && count > 0) return;
 
         if (typeof setSaveStatus === 'function') setSaveStatus('saving', 'Importando agenda...');
-        const lote = 100;
+        const lote = 80;
         for (let i = 0; i < AGENDA_GERAL_SEED.length; i += lote) {
-            const payload = AGENDA_GERAL_SEED.slice(i, i + lote).map(item => ({
-                titulo: item.titulo,
-                data_agenda: item.data_agenda,
-                hora_agenda: item.hora_agenda || null,
-                responsavel: item.responsavel || 'Equipe',
-                tipo: item.tipo || 'reuniao',
-                status: item.status || 'agendado',
-                prioridade: item.prioridade || 'normal',
-                observacao: item.observacao || null,
-                alertar_um_dia_antes: item.alertar_um_dia_antes === true || item.alertar_um_dia_antes === 'true',
-                criado_por: 'Importação planilha',
-                origem_planilha: item.origem_planilha || null,
-                origem_hash: item.origem_hash || null
-            }));
-            const { error } = await supabaseClient
-                .from('agenda_geral')
-                .upsert(payload, { onConflict: 'origem_hash', ignoreDuplicates: true });
+            const payload = AGENDA_GERAL_SEED.slice(i, i + lote).map(toPayload);
+            // Não usa upsert/ON CONFLICT para evitar erro de constraint no Supabase.
+            const { error } = await supabaseClient.from('agenda_geral').insert(payload);
             if (error) throw error;
         }
         if (typeof setSaveStatus === 'function') setSaveStatus('saved', 'Agenda importada');
@@ -6932,8 +6934,6 @@ async function garantirAgendaGeralImportada() {
     } catch (e) {
         agendaGeralImportacaoExecutada = false;
         console.error('Erro ao importar Agenda Geral da planilha:', e);
-        const lista = document.getElementById('agendaLista');
-        if (lista) lista.innerHTML = '<div class="agenda-empty text-amber-600">A tabela agenda_geral precisa ser atualizada no Supabase. Execute o SQL corrigido enviado e recarregue a aba.</div>';
         throw e;
     }
 }
@@ -6964,7 +6964,20 @@ async function carregarAgendaGeral() {
         renderAgendaGeral();
     } catch (e) {
         console.error('Erro ao carregar Agenda Geral:', e);
-        if (lista) lista.innerHTML = '<div class="agenda-empty text-amber-600">Execute o SQL corrigido da Agenda Geral no Supabase e recarregue esta aba.</div>';
+        // Fallback visual: não deixa a aba em branco. Os dados abaixo são os 344 itens extraídos da planilha.
+        const mes = document.getElementById('agendaFiltroMes')?.value || agendaMesAtual();
+        agendaGeralData = (Array.isArray(AGENDA_GERAL_SEED) ? AGENDA_GERAL_SEED : [])
+            .filter(x => String(x.data_agenda || '').slice(0,7) === mes)
+            .map((x, i) => ({ ...x, id: x.origem_hash || ('seed-' + i), alerta_local: true }));
+        popularResponsaveisAgendaGeral();
+        renderAgendaGeral();
+        if (lista) {
+            const aviso = document.createElement('div');
+            aviso.className = 'agenda-empty text-amber-600';
+            aviso.style.marginBottom = '10px';
+            aviso.innerHTML = 'Mostrando dados da planilha em modo visual. Para salvar no banco, execute o SQL definitivo no Supabase.';
+            lista.prepend(aviso);
+        }
     } finally {
         agendaGeralCarregando = false;
     }
@@ -6975,8 +6988,11 @@ async function importarAgendaGeralDaPlanilhaManual() {
     try {
         await garantirAgendaGeralImportada();
         await carregarAgendaGeral();
+        alert('Importação concluída. Se os itens ainda aparecerem só em modo visual, execute o SQL definitivo no Supabase e recarregue.');
     } catch (e) {
-        alert('Não foi possível importar. Execute primeiro o SQL corrigido no Supabase e tente novamente.');
+        console.error(e);
+        alert('Não foi possível gravar no Supabase. A agenda será exibida em modo visual. Execute o SQL definitivo enviado e depois recarregue.');
+        await carregarAgendaGeral();
     }
 }
 
