@@ -7012,47 +7012,8 @@ async function registrarHistoricoAgendaGeral(acao, item, detalhe) {
 }
 
 async function garantirAgendaGeralImportada() {
-    if (agendaGeralImportacaoExecutada) return;
-    agendaGeralImportacaoExecutada = true;
-    if (!window.supabaseClient || !Array.isArray(AGENDA_GERAL_SEED) || !AGENDA_GERAL_SEED.length) return;
-
-    const toPayload = (item) => ({
-        titulo: item.titulo,
-        data_agenda: item.data_agenda,
-        hora_agenda: item.hora_agenda || null,
-        responsavel: ['Ingrid','Nikolas'].includes(item.responsavel) ? item.responsavel : 'Ingrid',
-        tipo: item.tipo || 'reuniao',
-        status: item.status || 'agendado',
-        prioridade: item.prioridade || 'normal',
-        observacao: item.observacao || null,
-        alertar_um_dia_antes: item.alertar_um_dia_antes === true || item.alertar_um_dia_antes === 'true',
-        criado_por: 'Importação planilha',
-        origem_planilha: item.origem_planilha || null,
-        origem_hash: item.origem_hash || null
-    });
-
-    try {
-        const { count, error: countError } = await supabaseClient
-            .from('agenda_geral')
-            .select('id', { count: 'exact', head: true });
-        if (countError) throw countError;
-        if (count && count > 0) return;
-
-        if (typeof setSaveStatus === 'function') setSaveStatus('saving', 'Importando agenda...');
-        const lote = 80;
-        for (let i = 0; i < AGENDA_GERAL_SEED.length; i += lote) {
-            const payload = AGENDA_GERAL_SEED.slice(i, i + lote).map(toPayload);
-            // Não usa upsert/ON CONFLICT para evitar erro de constraint no Supabase.
-            const { error } = await supabaseClient.from('agenda_geral').insert(payload);
-            if (error) throw error;
-        }
-        if (typeof setSaveStatus === 'function') setSaveStatus('saved', 'Agenda importada');
-        if (typeof showNotification === 'function') showNotification('Agenda Geral importada da planilha com sucesso.');
-    } catch (e) {
-        agendaGeralImportacaoExecutada = false;
-        console.error('Erro ao importar Agenda Geral da planilha:', e);
-        throw e;
-    }
+    // Importação automática desativada. A Agenda Geral agora trabalha somente com Supabase.
+    return;
 }
 
 async function carregarAgendaGeral() {
@@ -7062,7 +7023,6 @@ async function carregarAgendaGeral() {
     const lista = document.getElementById('agendaLista');
     if (lista) lista.innerHTML = '<div class="agenda-empty">Carregando agenda...</div>';
     try {
-        await garantirAgendaGeralImportada();
         const mes = document.getElementById('agendaFiltroMes')?.value || agendaMesAtual();
         const inicio = mes + '-01';
         const fimDate = new Date(inicio + 'T12:00:00');
@@ -7081,28 +7041,16 @@ async function carregarAgendaGeral() {
         renderAgendaGeral();
     } catch (e) {
         console.error('Erro ao carregar Agenda Geral:', e);
-        // Fallback visual: não deixa a aba em branco. Os dados abaixo são os 344 itens extraídos da planilha.
-        const mes = document.getElementById('agendaFiltroMes')?.value || agendaMesAtual();
-        agendaGeralData = (Array.isArray(AGENDA_GERAL_SEED) ? AGENDA_GERAL_SEED : [])
-            .filter(x => String(x.data_agenda || '').slice(0,7) === mes)
-            .map((x, i) => ({ ...x, id: x.origem_hash || ('seed-' + i), alerta_local: true }));
+        agendaGeralData = [];
         popularResponsaveisAgendaGeral();
-        renderAgendaGeral();
+        if (lista) {
+            const msg = (e && (e.code === '42501' || e.status === 401 || String(e.message || '').includes('401')))
+                ? 'Sem permissão para acessar a tabela agenda_geral. Execute o SQL de permissões no Supabase e recarregue a página.'
+                : 'Não foi possível carregar a Agenda Geral. Verifique a tabela agenda_geral no Supabase.';
+            lista.innerHTML = '<div class="agenda-empty">' + msg + '</div>';
+        }
     } finally {
         agendaGeralCarregando = false;
-    }
-}
-
-async function importarAgendaGeralDaPlanilhaManual() {
-    agendaGeralImportacaoExecutada = false;
-    try {
-        await garantirAgendaGeralImportada();
-        await carregarAgendaGeral();
-        alert('Importação concluída. Se os itens ainda aparecerem só em modo visual, execute o SQL definitivo no Supabase e recarregue.');
-    } catch (e) {
-        console.error(e);
-        alert('Não foi possível gravar no Supabase. A agenda será exibida em modo visual. Execute o SQL definitivo enviado e depois recarregue.');
-        await carregarAgendaGeral();
     }
 }
 
@@ -7373,7 +7321,7 @@ async function salvarAgendaGeral() {
     } catch(e) {
         console.error('Erro ao salvar agenda:', e);
         if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro na agenda');
-        alert('Erro ao salvar agenda. Verifique a tabela agenda_geral no Supabase.');
+        alert('Erro ao salvar agenda. Execute o SQL de permissões da Agenda Geral no Supabase e tente novamente.');
     }
 }
 
