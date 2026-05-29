@@ -1739,7 +1739,7 @@ body.agenda-modal-open { overflow:hidden; }
                         <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
                             <div>
                                 <h2>Agenda Geral</h2>
-                                <p>Agenda única, editável e salva no Supabase. Os alertas de tarefas agendadas são publicados na aba Avisos com 1 dia de antecedência.</p>
+                                <p>Agenda única, editável e salva no Supabase. Os alertas internos são publicados na aba Avisos e exibidos no sistema 1 hora antes.</p>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-7 gap-3 min-w-[680px] max-w-full">
                                 <button type="button" id="agenda-card-hoje" onclick="filtrarAgendaKpi('hoje')" class="agenda-kpi"><strong id="agenda-kpi-hoje">0</strong><span>Hoje</span></button>
@@ -1782,7 +1782,7 @@ body.agenda-modal-open { overflow:hidden; }
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                             <div><label>Status</label><select id="agendaStatus" class="w-full"><option value="agendado">Agendado</option><option value="concluido">Concluído</option><option value="cancelado">Cancelado</option></select></div>
                             <div><label>Prioridade</label><select id="agendaPrioridade" class="w-full"><option value="normal">Normal</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select></div>
-                            <div><label>Alerta</label><select id="agendaAlerta" class="w-full"><option value="true">Alertar 1 dia antes</option><option value="false">Sem alerta</option></select></div>
+                            <div><label>Alerta</label><select id="agendaAlerta" class="w-full"><option value="true">Alertar no sistema 1h antes</option><option value="false">Sem alerta</option></select></div>
                             <div class="flex items-end gap-2"><button onclick="salvarAgendaGeral()" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-lg w-full">Salvar agenda</button></div>
                         </div>
                         <div><label>Observações</label><textarea id="agendaObservacao" rows="2" placeholder="Detalhes rápidos, link da reunião ou pauta..." class="w-full"></textarea></div>
@@ -6908,7 +6908,7 @@ body.agenda-modal-open { overflow:hidden; }
 
 
 /* ======================================================
-   AGENDA GERAL - Supabase, edicao e alertas em Avisos
+   AGENDA GERAL - Supabase, edicao e alertas internos em Avisos
    ====================================================== */
 let agendaGeralData = [];
 let agendaGeralCarregando = false;
@@ -6972,7 +6972,8 @@ function agendaPayloadFromForm() {
         status: document.getElementById('agendaStatus').value || 'agendado',
         prioridade: document.getElementById('agendaPrioridade').value || 'normal',
         observacao: document.getElementById('agendaObservacao').value.trim() || null,
-        alertar_um_dia_antes: document.getElementById('agendaAlerta').value === 'true',
+        alertar_uma_hora_antes: document.getElementById('agendaAlerta').value === 'true',
+        alertar_um_dia_antes: false,
         atualizado_por: currentUser || 'Sistema',
         atualizado_em: new Date().toISOString()
     };
@@ -7178,7 +7179,7 @@ function renderAgendaGeral() {
                         <span class="agenda-pill prioridade-${agendaEsc(a.prioridade || 'normal')}">${agendaEsc(a.prioridade || 'normal')}</span>
                         <span class="agenda-pill">${agendaEsc(a.tipo || 'reuniao')}</span>
                         <span class="agenda-pill">${agendaEsc(agendaResponsavelReal(a))}</span>
-                        ${a.alertar_um_dia_antes ? '<span class="agenda-pill">🔔 alerta</span>' : ''}
+                        ${(a.alertar_uma_hora_antes !== false && a.alertar_uma_hora_antes !== 'false') ? '<span class="agenda-pill">🔔 alerta 1h</span>' : ''}
                     </div>
                 </div>
                 <div class="agenda-actions">
@@ -7313,7 +7314,7 @@ function editarAgendaGeral(id) {
     document.getElementById('agendaTipo').value = a.tipo || 'reuniao';
     document.getElementById('agendaStatus').value = a.status || 'agendado';
     document.getElementById('agendaPrioridade').value = a.prioridade || 'normal';
-    document.getElementById('agendaAlerta').value = a.alertar_um_dia_antes ? 'true' : 'false';
+    document.getElementById('agendaAlerta').value = (a.alertar_uma_hora_antes !== false && a.alertar_uma_hora_antes !== 'false') ? 'true' : 'false';
     document.getElementById('agendaObservacao').value = a.observacao || '';
     document.getElementById('agendaTitulo').focus();
 }
@@ -7365,29 +7366,51 @@ async function excluirAgendaGeral(id) {
 async function verificarAlertasAgendaGeral() {
     try {
         if (!window.supabaseClient) return;
-        const amanha = agendaAddDiasISO(1);
-        const hoje = agendaHojeISO();
+        const agora = new Date();
+        const limite = new Date(agora.getTime() + 65 * 60000);
+        const hojeISO = agendaHojeISO();
+        const amanhaISO = agendaAddDiasISO(1);
         const { data, error } = await supabaseClient
             .from('agenda_geral')
             .select('*')
-            .eq('data_agenda', amanha)
-            .eq('alertar_um_dia_antes', true)
+            .in('data_agenda', [hojeISO, amanhaISO])
             .neq('status', 'cancelado');
         if (error) throw error;
-        const pendentes = (data || []).filter(a => a.alerta_enviado_em !== hoje && a.status !== 'concluido');
+
+        const pendentes = (data || []).filter(a => {
+            if (!agendaItemVisivel(a)) return false;
+            if (a.status === 'concluido') return false;
+            if (a.alertar_uma_hora_antes === false || a.alertar_uma_hora_antes === 'false') return false;
+            if (a.alerta_1h_enviado_em) return false;
+            if (!a.data_agenda || !a.hora_agenda) return false;
+            const alvo = new Date(`${a.data_agenda}T${String(a.hora_agenda).slice(0,5)}:00`);
+            return alvo >= agora && alvo <= limite;
+        });
+
         for (const a of pendentes) {
             const hora = a.hora_agenda ? String(a.hora_agenda).slice(0,5) : 'horário não informado';
-            const titulo = `Agenda amanhã: ${a.titulo || 'Compromisso'}`.slice(0, 120);
-            const conteudo = `Lembrete automático da Agenda Geral para ${agendaDataBR(a.data_agenda)} às ${hora}. Responsável: ${a.responsavel || 'Equipe'}. Tipo: ${a.tipo || 'Agenda'}.${a.observacao ? ' Obs.: ' + a.observacao : ''}`;
+            const responsavel = agendaResponsavelReal(a);
+            const cliente = agendaNomeCliente(a);
+            const titulo = `🔔 Agenda em 1h: ${cliente}`.slice(0, 120);
+            const conteudo = `Compromisso agendado para hoje às ${hora}. Responsável: ${responsavel}. Cliente/Tarefa: ${cliente}.${a.observacao ? ' Observação: ' + agendaObservacaoLimpa(a.observacao) : ''}`;
             const { error: avisoError } = await supabaseClient.from('avisos').insert([{ titulo, conteudo, autor: 'Sistema - Agenda Geral' }]);
             if (avisoError) throw avisoError;
-            await supabaseClient.from('agenda_geral').update({ alerta_enviado_em: hoje, atualizado_em: new Date().toISOString() }).eq('id', a.id);
+            await supabaseClient.from('agenda_geral').update({ alerta_1h_enviado_em: new Date().toISOString(), atualizado_em: new Date().toISOString(), atualizado_por: 'Sistema - Agenda Geral' }).eq('id', a.id);
+            if (typeof showNotification === 'function') showNotification(`Agenda em 1h: ${cliente}`, false, `${responsavel} • ${hora}`);
         }
         if (pendentes.length && typeof carregarAvisos === 'function') carregarAvisos();
     } catch(e) {
-        console.warn('Alertas da Agenda Geral não foram processados:', e);
+        console.warn('Alertas internos da Agenda Geral não foram processados:', e);
     }
 }
+
+function iniciarRotinaAlertasAgendaGeral() {
+    if (window.__agendaGeralAlertasInternosAtivos) return;
+    window.__agendaGeralAlertasInternosAtivos = true;
+    verificarAlertasAgendaGeral();
+    setInterval(verificarAlertasAgendaGeral, 5 * 60000);
+}
+
 
 
 /* ======================================================
