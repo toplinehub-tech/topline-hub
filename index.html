@@ -1151,11 +1151,20 @@ function montarTextoHistorico(item) {
 .agenda-hero { background: linear-gradient(135deg,#ecfdf5 0%,#eff6ff 55%,#f8fafc 100%); border:1px solid #dbeafe; border-radius:22px; padding:20px; box-shadow:0 14px 30px -24px rgba(15,23,42,.40); }
 .agenda-hero h2 { font-size:18px; font-weight:900; color:#0f172a; text-transform:uppercase; letter-spacing:.06em; }
 .agenda-hero p { font-size:10px; color:#64748b; margin-top:5px; }
-.agenda-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:13px; box-shadow:0 8px 20px -18px rgba(15,23,42,.35); }
+.agenda-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:13px; box-shadow:0 8px 20px -18px rgba(15,23,42,.35); transition:all .18s ease; }
+.agenda-kpi:hover { transform:translateY(-1px); box-shadow:0 14px 26px -20px rgba(15,23,42,.42); }
 .agenda-kpi strong { display:block; font-size:22px; line-height:1; font-weight:900; color:#0f172a; }
 .agenda-kpi span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.agenda-kpi.active { background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%); border-color:#22c55e; box-shadow:0 12px 28px -18px rgba(16,185,129,.65),0 0 0 4px rgba(16,185,129,.12); transform:translateY(-1px); }
+.agenda-kpi.active strong { color:#065f46; }
+.agenda-kpi.active span { color:#047857; }
+.agenda-owner-kpi { min-height:72px; display:flex; align-items:center; justify-content:center; }
 .agenda-owner-kpi strong { font-size:16px; color:#0f766e; }
 .agenda-owner-kpi.nikolas strong { color:#1d4ed8; }
+.agenda-owner-kpi.active { background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%); border-color:#3b82f6; box-shadow:0 12px 28px -18px rgba(59,130,246,.65),0 0 0 4px rgba(59,130,246,.12); }
+.agenda-owner-kpi.active strong { color:#1e40af; }
+#agenda-owner-ingrid.active { background:linear-gradient(135deg,#d1fae5 0%,#a7f3d0 100%); border-color:#10b981; }
+#agenda-owner-ingrid.active strong { color:#065f46; }
 .agenda-owner-kpi.hidden-owner { display:none !important; }
 .agenda-toolbar { display:flex; align-items:center; gap:9px; flex-wrap:wrap; background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:10px; }
 .agenda-toolbar input, .agenda-toolbar select, .agenda-form input, .agenda-form select, .agenda-form textarea { background:#fff; border:1px solid #dbe4ee; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; color:#334155; outline:none; }
@@ -1746,8 +1755,8 @@ body.agenda-modal-open { overflow:hidden; }
                                 <button type="button" id="agenda-card-amanha" onclick="filtrarAgendaKpi('amanha')" class="agenda-kpi"><strong id="agenda-kpi-amanha">0</strong><span>Amanhã</span></button>
                                 <button type="button" id="agenda-card-mes" onclick="filtrarAgendaKpi('mes')" class="agenda-kpi"><strong id="agenda-kpi-mes">0</strong><span>Mês</span></button>
                                 <button type="button" id="agenda-card-abertos" onclick="filtrarAgendaKpi('abertos')" class="agenda-kpi"><strong id="agenda-kpi-abertos">0</strong><span>Em aberto</span></button>
-                                <button type="button" id="agenda-owner-ingrid" onclick="selecionarAgendaResponsavel('Ingrid')" class="agenda-kpi agenda-owner-kpi"><strong>INGRID</strong><span>Agenda Ingrid</span></button>
-                                <button type="button" id="agenda-owner-nikolas" onclick="selecionarAgendaResponsavel('Nikolas')" class="agenda-kpi agenda-owner-kpi nikolas"><strong>NIKOLAS</strong><span>Agenda Nikolas</span></button>
+                                <button type="button" id="agenda-owner-ingrid" onclick="selecionarAgendaResponsavel('Ingrid')" class="agenda-kpi agenda-owner-kpi"><strong>INGRID</strong></button>
+                                <button type="button" id="agenda-owner-nikolas" onclick="selecionarAgendaResponsavel('Nikolas')" class="agenda-kpi agenda-owner-kpi nikolas"><strong>NIKOLAS</strong></button>
                                 <button type="button" onclick="abrirCalendarioAgendaGeral()" class="agenda-kpi agenda-calendar-kpi"><strong>📅</strong><span>Calendário</span></button>
                             </div>
                         </div>
@@ -6979,6 +6988,31 @@ function agendaPayloadFromForm() {
     };
 }
 
+
+async function registrarHistoricoAgendaGeral(acao, item, detalhe) {
+    try {
+        if (!window.supabaseClient || !item) return;
+        const cliente = agendaNomeCliente(item);
+        const hora = item.hora_agenda ? String(item.hora_agenda).slice(0,5) : '--:--';
+        const data = item.data_agenda ? agendaDataBR(item.data_agenda) : '-';
+        const resp = agendaResponsavelReal(item);
+        const obs = detalhe || `${acao}: ${cliente} em ${data} às ${hora} | Responsável: ${resp}`;
+        if (typeof salvarObservacao === 'function') {
+            await salvarObservacao(cliente, 'AGENDA GERAL', obs, item.status || null);
+        } else {
+            await supabaseClient.from('historico_observacoes').insert([{
+                cliente: cliente || 'Agenda Geral',
+                documento: 'AGENDA GERAL',
+                observacao: obs,
+                status_novo: item.status || null,
+                usuario: currentUser || 'Sistema'
+            }]);
+        }
+    } catch(e) {
+        console.warn('Histórico da Agenda Geral não foi salvo:', e);
+    }
+}
+
 async function garantirAgendaGeralImportada() {
     if (agendaGeralImportacaoExecutada) return;
     agendaGeralImportacaoExecutada = true;
@@ -7325,6 +7359,7 @@ async function salvarAgendaGeral() {
     try {
         if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando agenda...');
         let resp;
+        let agendaAcaoHistorico = 'atualizado';
         if (payload.id) {
             const id = payload.id; delete payload.id;
             resp = await supabaseClient.from('agenda_geral').update(payload).eq('id', id).select('*').single();
@@ -7332,8 +7367,13 @@ async function salvarAgendaGeral() {
             delete payload.id;
             payload.criado_por = currentUser || 'Sistema';
             resp = await supabaseClient.from('agenda_geral').insert([payload]).select('*').single();
+            agendaAcaoHistorico = 'incluido';
         }
         if (resp.error) throw resp.error;
+        if (agendaAcaoHistorico === 'incluido') {
+            const itemNovo = resp.data || payload;
+            await registrarHistoricoAgendaGeral('Novo agendamento incluído', itemNovo, `Novo agendamento incluído: ${agendaNomeCliente(itemNovo)} em ${agendaDataBR(itemNovo.data_agenda)} às ${(itemNovo.hora_agenda || '--:--').slice(0,5)} | Responsável: ${agendaResponsavelReal(itemNovo)}`);
+        }
         limparFormularioAgendaGeral();
         await carregarAgendaGeral();
         await verificarAlertasAgendaGeral();
@@ -7348,8 +7388,13 @@ async function salvarAgendaGeral() {
 
 async function alterarStatusAgendaGeral(id, statusNovo) {
     try {
+        const itemAntes = (agendaGeralData || []).find(x => String(x.id) === String(id));
         const { error } = await supabaseClient.from('agenda_geral').update({ status: statusNovo, atualizado_por: currentUser || 'Sistema', atualizado_em: new Date().toISOString() }).eq('id', id);
         if (error) throw error;
+        if (statusNovo === 'concluido') {
+            const itemHist = Object.assign({}, itemAntes || {}, { id, status: statusNovo });
+            await registrarHistoricoAgendaGeral('Agendamento concluído', itemHist, `Agendamento marcado como concluído: ${agendaNomeCliente(itemHist)} em ${agendaDataBR(itemHist.data_agenda)} às ${(itemHist.hora_agenda || '--:--').slice(0,5)} | Responsável: ${agendaResponsavelReal(itemHist)}`);
+        }
         await carregarAgendaGeral();
     } catch(e) { console.error(e); alert('Erro ao atualizar status da agenda.'); }
 }
