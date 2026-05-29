@@ -1154,6 +1154,9 @@ function montarTextoHistorico(item) {
 .agenda-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:13px; box-shadow:0 8px 20px -18px rgba(15,23,42,.35); }
 .agenda-kpi strong { display:block; font-size:22px; line-height:1; font-weight:900; color:#0f172a; }
 .agenda-kpi span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.agenda-owner-kpi strong { font-size:16px; color:#0f766e; }
+.agenda-owner-kpi.nikolas strong { color:#1d4ed8; }
+.agenda-owner-kpi.hidden-owner { display:none !important; }
 .agenda-toolbar { display:flex; align-items:center; gap:9px; flex-wrap:wrap; background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:10px; }
 .agenda-toolbar input, .agenda-toolbar select, .agenda-form input, .agenda-form select, .agenda-form textarea { background:#fff; border:1px solid #dbe4ee; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; color:#334155; outline:none; }
 .agenda-toolbar input:focus, .agenda-toolbar select:focus, .agenda-form input:focus, .agenda-form select:focus, .agenda-form textarea:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
@@ -1187,9 +1190,10 @@ function montarTextoHistorico(item) {
 .agenda-active-hint { display:none; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px; padding:9px 12px; border-radius:14px; background:#ecfdf5; border:1px solid #a7f3d0; color:#047857; font-size:10px; font-weight:900; text-transform:uppercase; }
 .agenda-active-hint.show { display:flex; }
 .agenda-active-hint button { color:#065f46; font-weight:900; }
-.agenda-modal-overlay { position:fixed; inset:0; z-index:13000; background:rgba(15,23,42,.52); display:none; align-items:center; justify-content:center; padding:18px; }
+.agenda-modal-overlay { position:fixed !important; inset:0 !important; z-index:13000; background:rgba(15,23,42,.52); display:none; align-items:flex-start; justify-content:center; padding:20px 18px; overflow:auto; }
 .agenda-modal-overlay.show { display:flex; }
-.agenda-modal-card { width:min(940px, 96vw); max-height:88vh; overflow:auto; background:#fff; border-radius:24px; border:1px solid #dbe4ee; box-shadow:0 28px 80px rgba(15,23,42,.32); padding:18px; }
+body.agenda-modal-open { overflow:hidden; }
+.agenda-modal-card { width:min(940px, 96vw); max-height:calc(100vh - 40px); overflow:auto; background:#fff; border-radius:24px; border:1px solid #dbe4ee; box-shadow:0 28px 80px rgba(15,23,42,.32); padding:18px; margin:0 auto; }
 .agenda-modal-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
 .agenda-modal-title { font-size:14px; font-weight:900; text-transform:uppercase; color:#0f172a; letter-spacing:.06em; }
 .agenda-calendar-nav { display:flex; align-items:center; gap:8px; }
@@ -1203,6 +1207,7 @@ function montarTextoHistorico(item) {
 .agenda-calendar-num { font-size:11px; font-weight:900; color:#0f172a; }
 .agenda-calendar-badge { position:absolute; right:8px; top:8px; min-width:22px; height:22px; border-radius:999px; padding:0 6px; display:flex; align-items:center; justify-content:center; background:#dbeafe; color:#1d4ed8; font-size:9px; font-weight:900; border:1px solid #bfdbfe; }
 .agenda-calendar-preview { margin-top:18px; }
+.agenda-calendar-preview:empty, .agenda-calendar-preview.is-hidden { display:none; }
 .agenda-modal-list { display:grid; gap:8px; }
 .agenda-modal-item { display:grid; grid-template-columns:70px 1fr; gap:10px; padding:11px; border:1px solid #e2e8f0; border-radius:15px; background:#f8fafc; }
 .agenda-modal-time { font-size:11px; font-weight:900; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:11px; display:flex; align-items:center; justify-content:center; min-height:34px; }
@@ -1736,11 +1741,13 @@ function montarTextoHistorico(item) {
                                 <h2>Agenda Geral</h2>
                                 <p>Agenda única, editável e salva no Supabase. Os alertas de tarefas agendadas são publicados na aba Avisos com 1 dia de antecedência.</p>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 min-w-[520px] max-w-full">
+                            <div class="grid grid-cols-2 md:grid-cols-7 gap-3 min-w-[680px] max-w-full">
                                 <button type="button" id="agenda-card-hoje" onclick="filtrarAgendaKpi('hoje')" class="agenda-kpi"><strong id="agenda-kpi-hoje">0</strong><span>Hoje</span></button>
                                 <button type="button" id="agenda-card-amanha" onclick="filtrarAgendaKpi('amanha')" class="agenda-kpi"><strong id="agenda-kpi-amanha">0</strong><span>Amanhã</span></button>
                                 <button type="button" id="agenda-card-mes" onclick="filtrarAgendaKpi('mes')" class="agenda-kpi"><strong id="agenda-kpi-mes">0</strong><span>Mês</span></button>
                                 <button type="button" id="agenda-card-abertos" onclick="filtrarAgendaKpi('abertos')" class="agenda-kpi"><strong id="agenda-kpi-abertos">0</strong><span>Em aberto</span></button>
+                                <button type="button" id="agenda-owner-ingrid" onclick="selecionarAgendaResponsavel('Ingrid')" class="agenda-kpi agenda-owner-kpi"><strong>INGRID</strong><span>Agenda Ingrid</span></button>
+                                <button type="button" id="agenda-owner-nikolas" onclick="selecionarAgendaResponsavel('Nikolas')" class="agenda-kpi agenda-owner-kpi nikolas"><strong>NIKOLAS</strong><span>Agenda Nikolas</span></button>
                                 <button type="button" onclick="abrirCalendarioAgendaGeral()" class="agenda-kpi agenda-calendar-kpi"><strong>📅</strong><span>Calendário</span></button>
                             </div>
                         </div>
@@ -1753,7 +1760,6 @@ function montarTextoHistorico(item) {
                             <option value="agendado">Agendado</option>
                             <option value="concluido">Concluído</option>
                             <option value="cancelado">Cancelado</option>
-                            <option value="bloqueado">Bloqueado</option>
                         </select>
                         <select id="agendaFiltroResponsavel" onchange="renderAgendaGeral()">
                             <option value="">Todos responsáveis</option>
@@ -1770,11 +1776,11 @@ function montarTextoHistorico(item) {
                             <div><label>Título / Cliente</label><input id="agendaTitulo" type="text" placeholder="Ex.: Reunião - Cliente X" class="w-full"></div>
                             <div><label>Data</label><input id="agendaData" type="date" class="w-full"></div>
                             <div><label>Hora</label><input id="agendaHora" type="time" class="w-full"></div>
-                            <div><label>Responsável</label><select id="agendaResponsavel" class="w-full"><option value="">Equipe</option><option>Nikolas</option><option>Brenda</option><option>Ingrid</option><option>Jordan</option><option>Patricia</option><option>Sirlene</option><option>Dev</option></select></div>
+                            <div><label>Responsável</label><select id="agendaResponsavel" class="w-full"><option>Ingrid</option><option>Nikolas</option></select></div>
                             <div><label>Tipo</label><select id="agendaTipo" class="w-full"><option value="reuniao">Reunião</option><option value="tarefa">Tarefa</option><option value="prazo">Prazo</option><option value="bloqueio">Bloqueio</option><option value="outro">Outro</option></select></div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                            <div><label>Status</label><select id="agendaStatus" class="w-full"><option value="agendado">Agendado</option><option value="concluido">Concluído</option><option value="cancelado">Cancelado</option><option value="bloqueado">Bloqueado</option></select></div>
+                            <div><label>Status</label><select id="agendaStatus" class="w-full"><option value="agendado">Agendado</option><option value="concluido">Concluído</option><option value="cancelado">Cancelado</option></select></div>
                             <div><label>Prioridade</label><select id="agendaPrioridade" class="w-full"><option value="normal">Normal</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select></div>
                             <div><label>Alerta</label><select id="agendaAlerta" class="w-full"><option value="true">Alertar 1 dia antes</option><option value="false">Sem alerta</option></select></div>
                             <div class="flex items-end gap-2"><button onclick="salvarAgendaGeral()" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-lg w-full">Salvar agenda</button></div>
@@ -6910,6 +6916,34 @@ const AGENDA_GERAL_SEED = [{"titulo":"ALMOÇO","data_agenda":"2026-01-05","hora_
 let agendaGeralImportacaoExecutada = false;
 let agendaKpiFiltroAtivo = '';
 let agendaCalendarioMesAtual = '';
+let agendaResponsavelFiltroAtivo = '';
+
+function agendaUsuarioPodeVerNikolas() { return ['Nikolas','Dev'].includes(String(currentUser || '')); }
+function agendaResponsavelReal(a) { const r = String(a?.responsavel || '').trim(); return ['Ingrid','Nikolas'].includes(r) ? r : 'Ingrid'; }
+function agendaItemVisivel(a) {
+    const texto = agendaNormalizar([a?.titulo, a?.tipo, a?.status, a?.observacao].join(' '));
+    if (texto.includes('almoco') || texto.includes('feriado')) return false;
+    if (String(a?.tipo || '').toLowerCase() === 'bloqueio') return false;
+    if (String(a?.status || '').toLowerCase() === 'bloqueado') return false;
+    return true;
+}
+function agendaDadosVisiveis() { return (agendaGeralData || []).filter(agendaItemVisivel); }
+function atualizarAcessoAgendaResponsaveis() {
+    const btnNikolas = document.getElementById('agenda-owner-nikolas');
+    if (btnNikolas) btnNikolas.classList.toggle('hidden-owner', !agendaUsuarioPodeVerNikolas());
+    if (!agendaUsuarioPodeVerNikolas() && agendaResponsavelFiltroAtivo === 'Nikolas') agendaResponsavelFiltroAtivo = 'Ingrid';
+    document.querySelectorAll('#agenda-owner-ingrid,#agenda-owner-nikolas').forEach(b => b.classList.remove('active'));
+    const ativo = agendaResponsavelFiltroAtivo ? document.getElementById('agenda-owner-' + agendaResponsavelFiltroAtivo.toLowerCase()) : null;
+    if (ativo) ativo.classList.add('active');
+    const sel = document.getElementById('agendaResponsavel');
+    if (sel && agendaResponsavelFiltroAtivo && ['Ingrid','Nikolas'].includes(agendaResponsavelFiltroAtivo)) sel.value = agendaResponsavelFiltroAtivo;
+}
+function selecionarAgendaResponsavel(nome) {
+    if (nome === 'Nikolas' && !agendaUsuarioPodeVerNikolas()) return;
+    agendaResponsavelFiltroAtivo = agendaResponsavelFiltroAtivo === nome ? '' : nome;
+    atualizarAcessoAgendaResponsaveis();
+    renderAgendaGeral();
+}
 
 function agendaHojeISO() { return new Date().toISOString().slice(0,10); }
 function agendaAddDiasISO(dias) { const d = new Date(); d.setDate(d.getDate() + dias); return d.toISOString().slice(0,10); }
@@ -6933,7 +6967,7 @@ function agendaPayloadFromForm() {
         titulo: document.getElementById('agendaTitulo').value.trim(),
         data_agenda: document.getElementById('agendaData').value,
         hora_agenda: document.getElementById('agendaHora').value || null,
-        responsavel: document.getElementById('agendaResponsavel').value || null,
+        responsavel: document.getElementById('agendaResponsavel').value || agendaResponsavelFiltroAtivo || 'Ingrid',
         tipo: document.getElementById('agendaTipo').value || 'reuniao',
         status: document.getElementById('agendaStatus').value || 'agendado',
         prioridade: document.getElementById('agendaPrioridade').value || 'normal',
@@ -6953,7 +6987,7 @@ async function garantirAgendaGeralImportada() {
         titulo: item.titulo,
         data_agenda: item.data_agenda,
         hora_agenda: item.hora_agenda || null,
-        responsavel: item.responsavel || 'Equipe',
+        responsavel: ['Ingrid','Nikolas'].includes(item.responsavel) ? item.responsavel : 'Ingrid',
         tipo: item.tipo || 'reuniao',
         status: item.status || 'agendado',
         prioridade: item.prioridade || 'normal',
@@ -7050,9 +7084,10 @@ function popularResponsaveisAgendaGeral() {
     const sel = document.getElementById('agendaFiltroResponsavel');
     if (!sel) return;
     const atual = sel.value;
-    const nomes = Array.from(new Set((agendaGeralData || []).map(x => x.responsavel).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-    sel.innerHTML = '<option value="">Todos responsáveis</option>' + nomes.map(n => `<option value="${agendaEsc(n)}">${agendaEsc(n)}</option>`).join('');
-    sel.value = atual;
+    const opcoes = agendaUsuarioPodeVerNikolas() ? ['Ingrid','Nikolas'] : ['Ingrid'];
+    sel.innerHTML = '<option value="">Todos responsáveis</option>' + opcoes.map(n => `<option value="${agendaEsc(n)}">${agendaEsc(n)}</option>`).join('');
+    sel.value = opcoes.includes(atual) ? atual : '';
+    atualizarAcessoAgendaResponsaveis();
 }
 
 function agendaObservacaoLimpa(txt) {
@@ -7071,11 +7106,14 @@ function agendaDadosFiltradosBasicos() {
     const status = document.getElementById('agendaFiltroStatus')?.value || '';
     const resp = document.getElementById('agendaFiltroResponsavel')?.value || '';
     const busca = agendaNormalizar(document.getElementById('agendaBusca')?.value || '');
-    return (agendaGeralData || []).filter(a => {
+    return agendaDadosVisiveis().filter(a => {
+        const rReal = agendaResponsavelReal(a);
         if (status && a.status !== status) return false;
-        if (resp && a.responsavel !== resp) return false;
+        if (resp && rReal !== resp) return false;
+        if (agendaResponsavelFiltroAtivo && rReal !== agendaResponsavelFiltroAtivo) return false;
+        if (!agendaUsuarioPodeVerNikolas() && rReal === 'Nikolas') return false;
         if (busca) {
-            const base = agendaNormalizar([a.titulo,a.responsavel,a.tipo,a.status,a.prioridade,a.observacao].join(' '));
+            const base = agendaNormalizar([a.titulo,rReal,a.tipo,a.status,a.prioridade,a.observacao].join(' '));
             if (!base.includes(busca)) return false;
         }
         return true;
@@ -7119,6 +7157,7 @@ function renderAgendaGeral() {
     if (!lista) return;
     const dadosBase = agendaDadosFiltradosBasicos();
     let dados = agendaAplicarFiltroKpi(dadosBase);
+    atualizarAcessoAgendaResponsaveis();
     atualizarKpisAgendaGeral();
     atualizarEstadoKpiAgenda();
     if (!dados.length) { lista.innerHTML = '<div class="agenda-empty">Nenhum agendamento encontrado para os filtros selecionados.</div>'; return; }
@@ -7138,7 +7177,7 @@ function renderAgendaGeral() {
                         <span class="agenda-pill status-${agendaEsc(a.status || 'agendado')}">${agendaEsc(a.status || 'agendado')}</span>
                         <span class="agenda-pill prioridade-${agendaEsc(a.prioridade || 'normal')}">${agendaEsc(a.prioridade || 'normal')}</span>
                         <span class="agenda-pill">${agendaEsc(a.tipo || 'reuniao')}</span>
-                        <span class="agenda-pill">${agendaEsc(a.responsavel || 'Equipe')}</span>
+                        <span class="agenda-pill">${agendaEsc(agendaResponsavelReal(a))}</span>
                         ${a.alertar_um_dia_antes ? '<span class="agenda-pill">🔔 alerta</span>' : ''}
                     </div>
                 </div>
@@ -7154,7 +7193,7 @@ function renderAgendaGeral() {
 
 function atualizarKpisAgendaGeral() {
     const hoje = agendaHojeISO(), amanha = agendaAddDiasISO(1);
-    const d = agendaGeralData || [];
+    const d = agendaDadosVisiveis().filter(x => agendaUsuarioPodeVerNikolas() || agendaResponsavelReal(x) !== 'Nikolas');
     setTextSafe('agenda-kpi-hoje', d.filter(x => x.data_agenda === hoje && x.status !== 'cancelado').length);
     setTextSafe('agenda-kpi-amanha', d.filter(x => x.data_agenda === amanha && x.status !== 'cancelado').length);
     setTextSafe('agenda-kpi-mes', d.length);
@@ -7162,8 +7201,8 @@ function atualizarKpisAgendaGeral() {
 }
 
 function agendaItensDoDia(dataISO) {
-    return (agendaGeralData || [])
-        .filter(a => a.data_agenda === dataISO)
+    return agendaDadosVisiveis()
+        .filter(a => a.data_agenda === dataISO && (!agendaResponsavelFiltroAtivo || agendaResponsavelReal(a) === agendaResponsavelFiltroAtivo) && (agendaUsuarioPodeVerNikolas() || agendaResponsavelReal(a) !== 'Nikolas'))
         .sort((a,b) => String(a.hora_agenda || '99:99').localeCompare(String(b.hora_agenda || '99:99')));
 }
 
@@ -7171,13 +7210,21 @@ function abrirCalendarioAgendaGeral() {
     agendaCalendarioMesAtual = document.getElementById('agendaFiltroMes')?.value || agendaMesAtual();
     renderCalendarioAgendaGeral();
     const modal = document.getElementById('agendaCalendarioModal');
-    if (modal) modal.classList.add('show');
+    if (modal) {
+        if (modal.parentElement !== document.body) document.body.appendChild(modal);
+        modal.classList.add('show');
+        modal.scrollTop = 0;
+        const card = modal.querySelector('.agenda-modal-card');
+        if (card) card.scrollTop = 0;
+        document.body.classList.add('agenda-modal-open');
+    }
 }
 
 function fecharModalAgendaGeral(ev) {
     if (ev && ev.target && ev.target.id !== 'agendaCalendarioModal') return;
     const modal = document.getElementById('agendaCalendarioModal');
     if (modal) modal.classList.remove('show');
+    document.body.classList.remove('agenda-modal-open');
 }
 
 function agendaCalendarioMoverMes(delta) {
@@ -7213,15 +7260,17 @@ function renderCalendarioAgendaGeral() {
         </button>`;
     }
     grid.innerHTML = html;
-    if (preview) preview.innerHTML = '<div class="agenda-empty">Clique em um dia do calendário para visualizar os agendamentos.</div>';
+    if (preview) { preview.innerHTML = ''; preview.classList.add('is-hidden'); }
 }
 
 function abrirModalAgendaDia(dataISO) {
     const preview = document.getElementById('agendaCalendarioPreview');
     if (!preview) return;
+    preview.classList.remove('is-hidden');
     const itens = agendaItensDoDia(dataISO);
     if (!itens.length) {
         preview.innerHTML = `<div class="agenda-empty">Nenhum agendamento em ${agendaEsc(agendaDataBR(dataISO))}.</div>`;
+        preview.scrollIntoView({ behavior:'smooth', block:'nearest' });
         return;
     }
     preview.innerHTML = `
@@ -7234,18 +7283,19 @@ function abrirModalAgendaDia(dataISO) {
                         <div class="agenda-modal-name">${agendaEsc(agendaNomeCliente(a))}</div>
                         <div class="agenda-meta">
                             <span class="agenda-pill status-${agendaEsc(a.status || 'agendado')}">${agendaEsc(a.status || 'agendado')}</span>
-                            <span class="agenda-pill">${agendaEsc(a.responsavel || 'Equipe')}</span>
+                            <span class="agenda-pill">${agendaEsc(agendaResponsavelReal(a))}</span>
                             <span class="agenda-pill">${agendaEsc(a.tipo || 'agenda')}</span>
                         </div>
                     </div>
                 </div>`).join('')}
         </div>`;
+    preview.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
 function limparFormularioAgendaGeral() {
     ['agendaId','agendaTitulo','agendaHora','agendaObservacao'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     const data = document.getElementById('agendaData'); if (data) data.value = agendaHojeISO();
-    const resp = document.getElementById('agendaResponsavel'); if (resp) resp.value = '';
+    const resp = document.getElementById('agendaResponsavel'); if (resp) resp.value = agendaResponsavelFiltroAtivo || 'Ingrid';
     const tipo = document.getElementById('agendaTipo'); if (tipo) tipo.value = 'reuniao';
     const status = document.getElementById('agendaStatus'); if (status) status.value = 'agendado';
     const prioridade = document.getElementById('agendaPrioridade'); if (prioridade) prioridade.value = 'normal';
@@ -7259,7 +7309,7 @@ function editarAgendaGeral(id) {
     document.getElementById('agendaTitulo').value = a.titulo || '';
     document.getElementById('agendaData').value = a.data_agenda || agendaHojeISO();
     document.getElementById('agendaHora').value = (a.hora_agenda || '').slice(0,5);
-    document.getElementById('agendaResponsavel').value = a.responsavel || '';
+    document.getElementById('agendaResponsavel').value = agendaResponsavelReal(a);
     document.getElementById('agendaTipo').value = a.tipo || 'reuniao';
     document.getElementById('agendaStatus').value = a.status || 'agendado';
     document.getElementById('agendaPrioridade').value = a.prioridade || 'normal';
