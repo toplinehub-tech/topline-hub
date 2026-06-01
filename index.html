@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.01.1";
+        window.TOPLINE_APP_VERSION = "2026.06.01.2";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -1063,7 +1063,7 @@ function montarTextoHistorico(item) {
 .pontuais-field input:focus, .pontuais-field select:focus, .pontuais-field textarea:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
 .pontuais-doc-select { cursor:pointer; }
 .pontuais-status-pill { display:inline-flex; align-items:center; justify-content:center; padding:5px 10px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; white-space:nowrap; }
-.pontuais-status-cadastrado { background:#f8fafc; color:#475569; }
+.pontuais-status-cadastrado, .pontuais-status-aguardando { background:#f8fafc; color:#475569; }
 .pontuais-status-analise { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
 .pontuais-status-andamento { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
 .pontuais-status-concluido, .pontuais-status-enviado { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
@@ -1665,7 +1665,7 @@ body.agenda-modal-open { overflow:hidden; }
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                         <div>
                             <h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Pontuais</h2>
-                            <p class="text-[10px] text-slate-400 mt-1">Cadastre solicitações avulsas de documentos e acompanhe data de cadastro, vencimento, status e envio.</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Cadastre solicitações avulsas de documentos e acompanhe data de cadastro, vencimento, situação e envio.</p>
                         </div>
                         <div class="flex gap-2 flex-wrap">
                             <button onclick="carregarPontuais()" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button>
@@ -1690,7 +1690,7 @@ body.agenda-modal-open { overflow:hidden; }
 
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
                         <div class="mini-kpi"><strong id="pontuais-kpi-total">0</strong><span>Total</span></div>
-                        <div class="mini-kpi kpi-vencidos"><strong id="pontuais-kpi-vencidos">0</strong><span>Vencidos</span></div>
+                        <div class="mini-kpi kpi-vencidos"><strong id="pontuais-kpi-vencidos">0</strong><span>Aguardando</span></div>
                         <div class="mini-kpi kpi-30"><strong id="pontuais-kpi-analise">0</strong><span>Análise</span></div>
                         <div class="mini-kpi kpi-60"><strong id="pontuais-kpi-andamento">0</strong><span>Andamento</span></div>
                         <div class="mini-kpi kpi-90"><strong id="pontuais-kpi-concluidos">0</strong><span>Enviados</span></div>
@@ -1698,12 +1698,12 @@ body.agenda-modal-open { overflow:hidden; }
 
                     <div class="topline-toolbar mb-4">
                         <input type="text" id="pontuais-search" oninput="renderPontuais()" placeholder="Pesquisar por nome, CNPJ, documento, e-mail ou telefone..." class="flex-1 min-w-[240px]">
-                        <select id="pontuais-filtro-status" onchange="renderPontuais()"><option value="">Todos os status</option><option value="vencido">Vencidos</option><option value="cadastrado">Cadastrado</option><option value="analise">Análise</option><option value="andamento">Andamento</option><option value="concluido">Concluído / enviado</option></select>
+                        <select id="pontuais-filtro-status" onchange="renderPontuais()"><option value="">Todas as situações</option><option value="aguardando">Aguardando</option><option value="analise">Análise</option><option value="andamento">Andamento</option></select>
                     </div>
 
                     <div class="scroll-container">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr><th>Nome</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Documento</th><th>Data Cadastro</th><th>Vencimento</th><th>Status</th><th>Observação</th><th>Ação</th></tr></thead>
+                            <thead><tr><th>Nome</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Documento</th><th>Data Cadastro</th><th>Vencimento</th><th>Observação</th><th>Ação</th><th>Situação</th></tr></thead>
                             <tbody id="pontuais-body"><tr><td colspan="10" class="text-center py-10 text-slate-400">Nenhum pontual carregado.</td></tr></tbody>
                         </table>
                     </div>
@@ -5792,7 +5792,11 @@ body.agenda-modal-open { overflow:hidden; }
                 lembrete_dias: item.lembrete_dias || null,
                 lembrete_data: item.lembrete_data || null,
                 responsavel_lembrete: item.responsavel_lembrete || '',
-                status: item.status || 'cadastrado',
+                situacao: (function() {
+                    const raw = String(item.situacao || item.status_pontual || item.status_acompanhamento || item.status_manual || item.status_modal || item.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+                    return (raw === 'analise' || raw === 'andamento') ? raw : 'aguardando';
+                })(),
+                status: item.status || item.situacao || 'aguardando',
                 enviado: !!item.enviado || item.status === 'concluido',
                 observacao: item.observacao || '',
                 data_status: item.data_status || item.data_conclusao || '',
@@ -5859,13 +5863,20 @@ body.agenda-modal-open { overflow:hidden; }
                 data_cadastro: document.getElementById('pontual-data-cadastro')?.value || new Date().toISOString().slice(0,10),
                 vencimento: document.getElementById('pontual-vencimento')?.value || '',
                 validade: document.getElementById('pontual-vencimento')?.value || '',
-                status: 'cadastrado',
+                status: 'aguardando',
+                situacao: 'aguardando',
                 enviado: false
             });
             if (!item.nome || !item.documento || !item.vencimento) { showNotification('Preencha Nome, Documento e Vencimento. O CNPJ é opcional.', true); return; }
             try {
-                const payload = { cnpj:item.cnpj || null, cliente:item.nome, email:item.email, telefone:item.telefone, documento:item.documento, data_cadastro:item.data_cadastro, vencimento:item.vencimento, validade:item.vencimento, status:item.status, enviado:false, observacao:'', data_status:null, criado_por: currentUser || 'Sistema', atualizado_por: currentUser || 'Sistema' };
-                const { data, error } = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
+                const payload = { cnpj:item.cnpj || null, cliente:item.nome, email:item.email, telefone:item.telefone, documento:item.documento, data_cadastro:item.data_cadastro, vencimento:item.vencimento, validade:item.vencimento, status:'aguardando', situacao:'aguardando', enviado:false, observacao:'', data_status:null, criado_por: currentUser || 'Sistema', atualizado_por: currentUser || 'Sistema' };
+                let resp = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
+                if (resp.error && String(resp.error.message || '').toLowerCase().includes('situacao')) {
+                    const payloadSemSituacao = { ...payload };
+                    delete payloadSemSituacao.situacao;
+                    resp = await supabaseClient.from('pontuais').insert([payloadSemSituacao]).select('*').single();
+                }
+                const { data, error } = resp;
                 if (error) throw error;
                 const salvo = normalizarPontual(data);
                 pontuaisData.unshift(salvo);
@@ -5876,8 +5887,8 @@ body.agenda-modal-open { overflow:hidden; }
                 pontuaisData.unshift(item);
                 salvarPontuaisLocal();
             }
-            await salvarObservacao(item.nome, item.documento, `Pontual cadastrado | CNPJ: ${item.cnpj || '-'} | Data cadastro: ${formatDateBR(item.data_cadastro)} | Vencimento: ${formatDateBR(item.vencimento)}`, 'cadastrado');
-            await registrarHistoricoPontualEspecifico(item, 'CADASTRO', `CNPJ: ${item.cnpj || '-'} | Data cadastro: ${formatDateBR(item.data_cadastro)} | Vencimento: ${formatDateBR(item.vencimento)}`, 'cadastrado', item.vencimento);
+            await salvarObservacao(item.nome, item.documento, `Pontual cadastrado | CNPJ: ${item.cnpj || '-'} | Data cadastro: ${formatDateBR(item.data_cadastro)} | Vencimento: ${formatDateBR(item.vencimento)}`, 'aguardando');
+            await registrarHistoricoPontualEspecifico(item, 'CADASTRO', `CNPJ: ${item.cnpj || '-'} | Data cadastro: ${formatDateBR(item.data_cadastro)} | Vencimento: ${formatDateBR(item.vencimento)}`, 'aguardando', item.vencimento);
             await registrarLog('Pontual cadastrado', item.nome, item.documento, `CNPJ ${item.cnpj || '-'} | Data cadastro ${formatDateBR(item.data_cadastro)} | Vencimento ${formatDateBR(item.vencimento)}`);
             limparFormularioPontual();
             renderPontuais();
@@ -5885,15 +5896,23 @@ body.agenda-modal-open { overflow:hidden; }
         }
 
         function getPontualStatusVisual(item) {
-            const hoje = new Date(); hoje.setHours(0,0,0,0);
-            const vencimento = item.vencimento ? new Date(item.vencimento + 'T00:00:00') : null;
-            if (!item.enviado && vencimento && vencimento < hoje) return 'vencido';
-            return item.status || 'cadastrado';
+            const raw = String(
+                item?.situacao ||
+                item?.status_pontual ||
+                item?.status_acompanhamento ||
+                item?.status_manual ||
+                item?.status_modal ||
+                item?.status ||
+                ''
+            ).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+            if (raw === 'analise' || raw === 'andamento') return raw;
+            return 'aguardando';
         }
 
         function labelStatusPontual(status) {
-            const labels = { cadastrado:'Cadastrado', analise:'Análise', andamento:'Andamento', concluido:'Enviado', enviado:'Enviado', vencido:'Vencido' };
-            return labels[status] || status || '-';
+            const labels = { aguardando:'Aguardando', cadastrado:'Aguardando', analise:'Análise', andamento:'Andamento' };
+            return labels[status] || 'Aguardando';
         }
 
         function renderPontuais() {
@@ -5910,7 +5929,7 @@ body.agenda-modal-open { overflow:hidden; }
                 return matchQ && matchStatus;
             });
             const counts = { total:pontuaisData.length, vencidos:0, analise:0, andamento:0, concluidos:0 };
-            (pontuaisData || []).forEach(item => { const s = getPontualStatusVisual(item); if (s === 'vencido') counts.vencidos++; if (s === 'analise') counts.analise++; if (s === 'andamento') counts.andamento++; if (item.enviado || s === 'concluido') counts.concluidos++; });
+            (pontuaisData || []).forEach(item => { const s = getPontualStatusVisual(item); if (s === 'aguardando') counts.vencidos++; if (s === 'analise') counts.analise++; if (s === 'andamento') counts.andamento++; if (item.enviado) counts.concluidos++; });
             const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
             setText('pontuais-kpi-total', counts.total); setText('pontuais-kpi-vencidos', counts.vencidos); setText('pontuais-kpi-analise', counts.analise); setText('pontuais-kpi-andamento', counts.andamento); setText('pontuais-kpi-concluidos', counts.concluidos);
             if (!lista.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">Nenhum pontual encontrado.</td></tr>'; return; }
@@ -5927,9 +5946,9 @@ body.agenda-modal-open { overflow:hidden; }
                     <td><span class="pontuais-doc-click">${escapeHtml(item.documento || '-')}</span></td>
                     <td>${escapeHtml(formatDateBR(item.data_cadastro) || '-')}</td>
                     <td><span class="pontuais-doc-click">${escapeHtml(formatDateBR(item.vencimento) || '-')}</span></td>
-                    <td><span class="pontuais-status-pill pontuais-status-${escapeAttr(statusVisual)}">${escapeHtml(labelStatusPontual(statusVisual))}</span></td>
                     <td onclick="event.stopPropagation()">${obs}</td>
                     <td onclick="event.stopPropagation()"><button onclick="marcarPontualEnviado('${escapeAttr(item.id)}', event)" class="pontuais-enviado-btn ${item.enviado ? 'done' : ''}">${item.enviado ? 'Enviado ✓' : 'Marcar enviado'}</button></td>
+                    <td><span class="pontuais-status-pill pontuais-status-${escapeAttr(statusVisual)}">${escapeHtml(labelStatusPontual(statusVisual))}</span></td>
                 </tr>`;
             }).join('');
         }
@@ -5943,7 +5962,7 @@ body.agenda-modal-open { overflow:hidden; }
             document.getElementById('pontual-modal-subtitle').textContent = `Cadastro: ${formatDateBR(item.data_cadastro) || '-'} | Vencimento: ${formatDateBR(item.vencimento) || '-'}`;
             document.getElementById('pontual-modal-observacao').value = item.observacao || '';
             document.getElementById('pontual-modal-data').value = item.data_status || new Date().toISOString().slice(0,10);
-            selecionarStatusPontual(item.status === 'concluido' ? 'concluido' : (item.status || 'andamento'));
+            selecionarStatusPontual((getPontualStatusVisual(item) === 'analise' || getPontualStatusVisual(item) === 'andamento') ? getPontualStatusVisual(item) : 'andamento');
             modal.classList.remove('hidden');
         }
 
@@ -5994,9 +6013,15 @@ body.agenda-modal-open { overflow:hidden; }
             try {
                 const idLocal = String(id).includes('_');
                 if (!idLocal) {
-                    const { data, error } = await supabaseClient.from('pontuais').update(patchSupabase).eq('id', id).select('*').single();
+                    let resp = await supabaseClient.from('pontuais').update(patchSupabase).eq('id', id).select('*').single();
+                    if (resp.error && patchSupabase.situacao && String(resp.error.message || '').toLowerCase().includes('situacao')) {
+                        const patchSemSituacao = { ...patchSupabase };
+                        delete patchSemSituacao.situacao;
+                        resp = await supabaseClient.from('pontuais').update(patchSemSituacao).eq('id', id).select('*').single();
+                    }
+                    const { data, error } = resp;
                     if (error) throw error;
-                    if (data) pontuaisData[idx] = normalizarPontual(data);
+                    if (data) pontuaisData[idx] = normalizarPontual({ ...data, situacao: patchSupabase.situacao || data.situacao });
                     sincronizado = true;
                 } else {
                     const payload = {
@@ -6008,16 +6033,23 @@ body.agenda-modal-open { overflow:hidden; }
                         data_cadastro: atualizado.data_cadastro || null,
                         vencimento: atualizado.vencimento || null,
                         validade: atualizado.vencimento || atualizado.validade || null,
-                        status: atualizado.status || 'cadastrado',
+                        status: atualizado.status || atualizado.situacao || 'aguardando',
+                        situacao: atualizado.situacao || getPontualStatusVisual(atualizado),
                         enviado: !!atualizado.enviado,
                         observacao: atualizado.observacao || '',
                         data_status: atualizado.data_status || null,
                         criado_por: currentUser || 'Sistema',
                         atualizado_por: currentUser || 'Sistema'
                     };
-                    const { data, error } = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
+                    let resp = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
+                    if (resp.error && String(resp.error.message || '').toLowerCase().includes('situacao')) {
+                        const payloadSemSituacao = { ...payload };
+                        delete payloadSemSituacao.situacao;
+                        resp = await supabaseClient.from('pontuais').insert([payloadSemSituacao]).select('*').single();
+                    }
+                    const { data, error } = resp;
                     if (error) throw error;
-                    if (data) pontuaisData[idx] = normalizarPontual(data);
+                    if (data) pontuaisData[idx] = normalizarPontual({ ...data, situacao: payload.situacao });
                     sincronizado = true;
                 }
                 salvarPontuaisLocal();
@@ -6037,8 +6069,8 @@ body.agenda-modal-open { overflow:hidden; }
             const observacao = String(novaObs).trim();
             const resultado = await atualizarPontual(id, { observacao });
             const atualizado = resultado?.atualizado || item;
-            await salvarObservacao(atualizado.nome, atualizado.documento, `Observação atualizada${observacao ? ': ' + observacao : ''}`, atualizado.status || 'cadastrado');
-            await registrarHistoricoPontualEspecifico(atualizado, 'OBSERVACAO', observacao || 'Observação removida', atualizado.status || 'cadastrado', atualizado.data_status || new Date().toISOString().slice(0,10));
+            await salvarObservacao(atualizado.nome, atualizado.documento, `Observação atualizada${observacao ? ': ' + observacao : ''}`, atualizado.situacao || getPontualStatusVisual(atualizado));
+            await registrarHistoricoPontualEspecifico(atualizado, 'OBSERVACAO', observacao || 'Observação removida', atualizado.situacao || getPontualStatusVisual(atualizado), atualizado.data_status || new Date().toISOString().slice(0,10));
             await registrarLog('Observação pontual atualizada', atualizado.nome, atualizado.documento, observacao || 'Observação removida');
             renderPontuais();
             showNotification('Observação atualizada.', false, atualizado.nome);
@@ -6098,7 +6130,8 @@ body.agenda-modal-open { overflow:hidden; }
             const observacao = document.getElementById('pontual-modal-observacao')?.value.trim() || '';
             if (pontualStatusSelecionado === 'andamento' && !pontualLembreteDiasSelecionado) { showNotification('Selecione se deseja lembrar em 5 ou 10 dias.', true); return; }
             const responsavelPontual = tarefaPontualEstaNoSorteio(id) || currentUser || 'Sistema';
-            const patch = { status: pontualStatusSelecionado, observacao, data_status: dataStatus, enviado: pontualStatusSelecionado === 'concluido' ? true : !!item.enviado, lembrete_dias: pontualStatusSelecionado === 'andamento' ? pontualLembreteDiasSelecionado : null, lembrete_data: pontualStatusSelecionado === 'andamento' ? calcularDataLembrete(pontualLembreteDiasSelecionado) : null, responsavel_lembrete: pontualStatusSelecionado === 'andamento' ? responsavelPontual : '' };
+            const situacaoEscolhida = (pontualStatusSelecionado === 'analise' || pontualStatusSelecionado === 'andamento') ? pontualStatusSelecionado : (item.situacao || getPontualStatusVisual(item) || 'aguardando');
+            const patch = { status: pontualStatusSelecionado, situacao: situacaoEscolhida, observacao, data_status: dataStatus, enviado: pontualStatusSelecionado === 'concluido' ? true : !!item.enviado, lembrete_dias: pontualStatusSelecionado === 'andamento' ? pontualLembreteDiasSelecionado : null, lembrete_data: pontualStatusSelecionado === 'andamento' ? calcularDataLembrete(pontualLembreteDiasSelecionado) : null, responsavel_lembrete: pontualStatusSelecionado === 'andamento' ? responsavelPontual : '' };
             await atualizarPontual(id, patch);
             const statusLabel = labelStatusPontual(pontualStatusSelecionado);
             await salvarObservacao(item.nome, item.documento, `${statusLabel} em ${formatDateBR(dataStatus)}${observacao ? ' | ' + observacao : ''}`, pontualStatusSelecionado);
@@ -6125,7 +6158,7 @@ body.agenda-modal-open { overflow:hidden; }
         }
 
         function obterPontuaisVencidosParaSorteio() {
-            return (pontuaisData || []).filter(item => getPontualStatusVisual(item) === 'vencido').map(item => ({
+            return (pontuaisData || []).filter(item => { const hoje = new Date(); hoje.setHours(0,0,0,0); const v = item.vencimento ? new Date(item.vencimento + 'T00:00:00') : null; return !item.enviado && v && v < hoje; }).map(item => ({
                 tipo:'pontual', id:item.id, cliente:item.nome, documento:item.documento, rowIndex:'P:' + item.id, prazo:formatDateBR(item.vencimento) || '-', pontual:item
             }));
         }
