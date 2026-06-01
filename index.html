@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.05.26.1";
+        window.TOPLINE_APP_VERSION = "2026.06.01.1";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -1072,6 +1072,11 @@ function montarTextoHistorico(item) {
 .pontuais-enviado-btn { padding:6px 10px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #a7f3d0; color:#047857; background:#ecfdf5; transition:all .18s ease; }
 .pontuais-enviado-btn:hover { transform:translateY(-1px); box-shadow:0 8px 14px rgba(16,185,129,.16); }
 .pontuais-enviado-btn.done { color:#166534; background:#dcfce7; border-color:#86efac; }
+.pontuais-row-clickable { cursor:pointer; transition: background .15s ease, transform .15s ease; }
+.pontuais-row-clickable:hover { background:#f8fafc; }
+.pontuais-obs-edit { cursor:text; display:inline-block; min-width:80px; max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:9px; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; border-radius:999px; padding:4px 8px; }
+.pontuais-obs-edit:hover { background:#ecfdf5; border-color:#86efac; color:#047857; }
+.pontuais-obs-empty { color:#94a3b8; border-style:dashed; }
 .pontuais-modal-action { padding:10px 12px; border-radius:12px; font-size:10px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; background:white; transition:all .18s ease; }
 .pontuais-modal-action:hover, .pontuais-modal-action.active { transform:translateY(-1px); box-shadow:0 8px 16px rgba(15,23,42,.08); }
 .pontuais-modal-action.analise { color:#c2410c; background:#fff7ed; border-color:#fed7aa; }
@@ -5804,18 +5809,34 @@ body.agenda-modal-open { overflow:hidden; }
             try { pontuaisData = (JSON.parse(localStorage.getItem(pontualStorageKey()) || '[]') || []).map(normalizarPontual); } catch(e) { pontuaisData = []; }
         }
 
+        function mesclarPontuaisPorId(...listas) {
+            const mapa = new Map();
+            listas.flat().filter(Boolean).map(normalizarPontual).forEach(function(item) {
+                const chave = String(item.id || item.nome + '_' + item.documento + '_' + item.vencimento);
+                const atual = mapa.get(chave) || {};
+                mapa.set(chave, normalizarPontual({ ...atual, ...item }));
+            });
+            return Array.from(mapa.values()).sort(function(a,b) {
+                return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+            });
+        }
+
         async function carregarPontuais() {
             initPontuaisSelect();
             const tbody = document.getElementById('pontuais-body');
             if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">Carregando pontuais...</td></tr>';
+            const locaisAntes = (() => {
+                try { return (JSON.parse(localStorage.getItem(pontualStorageKey()) || '[]') || []).map(normalizarPontual); } catch(e) { return []; }
+            })();
             try {
                 const { data, error } = await supabaseClient.from('pontuais').select('*').order('created_at', { ascending: false });
                 if (error) throw error;
-                pontuaisData = (data || []).map(normalizarPontual);
+                // Mantém também registros locais ainda não sincronizados, evitando sumir da aba Pontuais após salvar/recarregar.
+                pontuaisData = mesclarPontuaisPorId((data || []), locaisAntes.filter(function(x) { return String(x.id || '').includes('_'); }));
                 salvarPontuaisLocal();
             } catch(e) {
                 console.warn('Tabela pontuais indisponivel. Usando armazenamento local.', e);
-                carregarPontuaisLocal();
+                pontuaisData = locaisAntes;
                 if (tbody && !pontuaisData.length) tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-amber-500 font-bold">Crie/ajuste a tabela pontuais no Supabase para salvar para todos os usuários.</td></tr>';
             }
             renderPontuais();
@@ -5848,6 +5869,7 @@ body.agenda-modal-open { overflow:hidden; }
                 if (error) throw error;
                 const salvo = normalizarPontual(data);
                 pontuaisData.unshift(salvo);
+                salvarPontuaisLocal();
                 item.id = salvo.id;
             } catch(e) {
                 console.warn('Não foi possível salvar no Supabase. Salvando localmente.', e);
@@ -5894,18 +5916,20 @@ body.agenda-modal-open { overflow:hidden; }
             if (!lista.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-slate-400">Nenhum pontual encontrado.</td></tr>'; return; }
             tbody.innerHTML = lista.map(item => {
                 const statusVisual = getPontualStatusVisual(item);
-                const obs = item.observacao ? `<span class="last-obs-chip" title="${escapeAttr(item.observacao)}">${escapeHtml(item.observacao)}</span>` : '-';
-                return `<tr>
+                const obsTexto = item.observacao || 'Clique para editar';
+                const obsClasse = item.observacao ? 'pontuais-obs-edit' : 'pontuais-obs-edit pontuais-obs-empty';
+                const obs = `<span class="${obsClasse}" title="${escapeAttr(obsTexto)}" onclick="editarObservacaoPontual('${escapeAttr(item.id)}', event)">${escapeHtml(obsTexto)}</span>`;
+                return `<tr class="pontuais-row-clickable" onclick="abrirModalPontual('${escapeAttr(item.id)}')">
                     <td class="font-black text-slate-700">${escapeHtml(item.nome || '-')}</td>
                     <td class="font-mono text-[10px]">${escapeHtml(item.cnpj || '-')}</td>
                     <td>${escapeHtml(item.email || '-')}</td>
                     <td>${escapeHtml(item.telefone || '-')}</td>
-                    <td><span class="pontuais-doc-click" onclick="abrirModalPontual('${escapeAttr(item.id)}')">${escapeHtml(item.documento || '-')}</span></td>
+                    <td><span class="pontuais-doc-click">${escapeHtml(item.documento || '-')}</span></td>
                     <td>${escapeHtml(formatDateBR(item.data_cadastro) || '-')}</td>
-                    <td><span class="pontuais-doc-click" onclick="abrirModalPontual('${escapeAttr(item.id)}')">${escapeHtml(formatDateBR(item.vencimento) || '-')}</span></td>
+                    <td><span class="pontuais-doc-click">${escapeHtml(formatDateBR(item.vencimento) || '-')}</span></td>
                     <td><span class="pontuais-status-pill pontuais-status-${escapeAttr(statusVisual)}">${escapeHtml(labelStatusPontual(statusVisual))}</span></td>
-                    <td>${obs}</td>
-                    <td><button onclick="marcarPontualEnviado('${escapeAttr(item.id)}')" class="pontuais-enviado-btn ${item.enviado ? 'done' : ''}">${item.enviado ? 'Enviado ✓' : 'Marcar enviado'}</button></td>
+                    <td onclick="event.stopPropagation()">${obs}</td>
+                    <td onclick="event.stopPropagation()"><button onclick="marcarPontualEnviado('${escapeAttr(item.id)}', event)" class="pontuais-enviado-btn ${item.enviado ? 'done' : ''}">${item.enviado ? 'Enviado ✓' : 'Marcar enviado'}</button></td>
                 </tr>`;
             }).join('');
         }
@@ -5965,15 +5989,59 @@ body.agenda-modal-open { overflow:hidden; }
             const atualizado = normalizarPontual({ ...pontuaisData[idx], ...patchSupabase, updated_at: new Date().toISOString() });
             pontuaisData[idx] = atualizado;
             salvarPontuaisLocal();
+
+            let sincronizado = false;
             try {
                 const idLocal = String(id).includes('_');
                 if (!idLocal) {
                     const { data, error } = await supabaseClient.from('pontuais').update(patchSupabase).eq('id', id).select('*').single();
                     if (error) throw error;
-                    if (data) { pontuaisData[idx] = normalizarPontual(data); salvarPontuaisLocal(); }
+                    if (data) pontuaisData[idx] = normalizarPontual(data);
+                    sincronizado = true;
+                } else {
+                    const payload = {
+                        cnpj: atualizado.cnpj || null,
+                        cliente: atualizado.nome || '',
+                        email: atualizado.email || '',
+                        telefone: atualizado.telefone || '',
+                        documento: atualizado.documento || '',
+                        data_cadastro: atualizado.data_cadastro || null,
+                        vencimento: atualizado.vencimento || null,
+                        validade: atualizado.vencimento || atualizado.validade || null,
+                        status: atualizado.status || 'cadastrado',
+                        enviado: !!atualizado.enviado,
+                        observacao: atualizado.observacao || '',
+                        data_status: atualizado.data_status || null,
+                        criado_por: currentUser || 'Sistema',
+                        atualizado_por: currentUser || 'Sistema'
+                    };
+                    const { data, error } = await supabaseClient.from('pontuais').insert([payload]).select('*').single();
+                    if (error) throw error;
+                    if (data) pontuaisData[idx] = normalizarPontual(data);
+                    sincronizado = true;
                 }
-            } catch(e) { console.warn('Atualização pontual salva localmente, mas não sincronizada.', e); }
-            return { anterior, atualizado: pontuaisData[idx] };
+                salvarPontuaisLocal();
+            } catch(e) {
+                console.warn('Atualização pontual salva localmente, mas não sincronizada no Supabase.', e);
+                showNotification('A ação foi mantida nesta tela, mas não sincronizou no banco. Verifique a tabela pontuais/permissões.', true);
+            }
+            return { anterior, atualizado: pontuaisData[idx], sincronizado };
+        }
+
+        async function editarObservacaoPontual(id, event) {
+            if (event) event.stopPropagation();
+            const item = (pontuaisData || []).find(p => String(p.id) === String(id));
+            if (!item) return;
+            const novaObs = window.prompt('Editar observação do pontual:', item.observacao || '');
+            if (novaObs === null) return;
+            const observacao = String(novaObs).trim();
+            const resultado = await atualizarPontual(id, { observacao });
+            const atualizado = resultado?.atualizado || item;
+            await salvarObservacao(atualizado.nome, atualizado.documento, `Observação atualizada${observacao ? ': ' + observacao : ''}`, atualizado.status || 'cadastrado');
+            await registrarHistoricoPontualEspecifico(atualizado, 'OBSERVACAO', observacao || 'Observação removida', atualizado.status || 'cadastrado', atualizado.data_status || new Date().toISOString().slice(0,10));
+            await registrarLog('Observação pontual atualizada', atualizado.nome, atualizado.documento, observacao || 'Observação removida');
+            renderPontuais();
+            showNotification('Observação atualizada.', false, atualizado.nome);
         }
 
         function calcularDataLembrete(dias) {
@@ -6043,7 +6111,8 @@ body.agenda-modal-open { overflow:hidden; }
             showNotification('Pontual atualizado.', false, item.nome);
         }
 
-        async function marcarPontualEnviado(id) {
+        async function marcarPontualEnviado(id, event) {
+            if (event) event.stopPropagation();
             const item = (pontuaisData || []).find(p => String(p.id) === String(id));
             if (!item) return;
             const hoje = new Date().toISOString().slice(0,10);
