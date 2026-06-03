@@ -10551,7 +10551,50 @@ function montarCelulaObservacaoHistorico(item) {
             return 'Não enviado → Enviado';
         }
 
-        return h?.observacao_editada || h?.observacao || h?.detalhes || '-';
+        const editada = ultimaAtualizacaoObservacaoFinal(h?.observacao_editada || '');
+        if (editada) return editada;
+
+        const ultima = ultimaAtualizacaoObservacaoFinal(h?.observacao || h?.detalhes || '');
+        return ultima || '-';
+    }
+
+    function ultimaAtualizacaoObservacaoFinal(texto){
+        let t = String(texto || '').replace(/\r/g, '\n').trim();
+        if (!t) return '';
+
+        // Quando a observação do modal vem acumulada no mesmo texto,
+        // mostra apenas a última entrada na coluna da aba Histórico.
+        // O conteúdo completo continua salvo no campo original do Supabase.
+        const marcadores = [
+            /observa(?:ç|c)[aã]o\s*[:\-]/ig,
+            /nova\s+observa(?:ç|c)[aã]o\s*[:\-]/ig,
+            /atualiza(?:ç|c)[aã]o\s*[:\-]/ig,
+            /hist[oó]rico\s*[:\-]/ig
+        ];
+
+        marcadores.forEach(function(regex){
+            let m, ultimo = -1;
+            while ((m = regex.exec(t)) !== null) ultimo = regex.lastIndex;
+            if (ultimo > -1 && ultimo < t.length) t = t.slice(ultimo).trim();
+        });
+
+        const partes = t
+            .split(/\n+|\s+\|\s+|\s+•\s+|\s*;;\s*/g)
+            .map(function(p){ return p.trim(); })
+            .filter(Boolean);
+
+        if (partes.length > 1) {
+            for (let i = partes.length - 1; i >= 0; i--) {
+                const p = partes[i];
+                const n = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (/^(origem|responsavel|usuario|data|status)\s*[:\-]/.test(n)) continue;
+                if (/^(analise|andamento|concluido|finalizado|pendente|cancelado)\s+em\s+\d{2}\/\d{2}\/\d{4}$/i.test(p)) continue;
+                return p;
+            }
+            return partes[partes.length - 1];
+        }
+
+        return t;
     }
 
     function dataHora(v){
