@@ -6664,11 +6664,19 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             }
         }
 
+
+        function alugueisPayloadBanco(r) {
+            const payload = { ...r };
+            // valor_liquido é coluna gerada no Supabase; não pode ser enviado em insert/update.
+            delete payload.valor_liquido;
+            return payload;
+        }
+
         async function alugueisSalvarCargaBanco(silencioso) {
             if (!alugueisData.length) { showNotification('Importe a planilha antes de salvar no banco.', true); return; }
             try {
                 if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando aluguéis no banco...');
-                const lote = alugueisData.map(r => ({
+                const lote = alugueisData.map(r => alugueisPayloadBanco({
                     ...r,
                     cliente: alugueisNomeCliente(r),
                     status: alugueisNormalizarStatus(r.status),
@@ -6800,7 +6808,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 r.cliente = alugueisNomeCliente(r);
                 r.atualizado_por = window.currentUser || 'Sistema';
                 r.atualizado_em = new Date().toISOString();
-                const { error } = await supabaseClient.from('alugueis_darf').upsert([r], { onConflict:'unique_key' });
+                const { error } = await supabaseClient.from('alugueis_darf').upsert([alugueisPayloadBanco(r)], { onConflict:'unique_key' });
                 if (error) throw error;
                 if (typeof registrarLog === 'function') registrarLog('Alteração aluguel', r.cliente || null, 'ALUGUEIS', `${r.mes_label || r.competencia} - ${r.nome_beneficiario || ''}`);
                 if (typeof setSaveStatus === 'function') setSaveStatus('saved','Aluguel salvo');
