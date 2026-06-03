@@ -1260,7 +1260,25 @@ body.agenda-modal-open { overflow:hidden; }
 .alugueis-action-primary { background:#10b981; color:white; border-color:#059669; }
 .alugueis-action-blue { background:#2563eb; color:white; border-color:#1d4ed8; }
 .alugueis-action-red { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
-@media (max-width: 900px) { .alugueis-table { min-width:1100px; } .alugueis-toolbar input, .alugueis-toolbar select, .alugueis-toolbar button { width:100%; } }
+.alugueis-quick-filters { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.alugueis-filter-btn { padding:8px 12px; border-radius:999px; border:1px solid #dbe4ee; background:#fff; color:#475569; font-size:9px; font-weight:900; text-transform:uppercase; transition:all .18s ease; }
+.alugueis-filter-btn:hover, .alugueis-filter-btn.active { transform:translateY(-1px); background:#10b981; border-color:#059669; color:#fff; box-shadow:0 10px 18px -14px rgba(16,185,129,.70); }
+.alugueis-clientes-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 10px; }
+.alugueis-clientes-title { font-size:10px; font-weight:900; color:#334155; text-transform:uppercase; letter-spacing:.08em; }
+.alugueis-clientes-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+.alugueis-cliente-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:13px; text-align:left; transition:all .18s ease; cursor:pointer; box-shadow:0 10px 20px -18px rgba(15,23,42,.45); min-height:112px; }
+.alugueis-cliente-card:hover { transform:translateY(-2px); border-color:#86efac; box-shadow:0 16px 28px -22px rgba(16,185,129,.65); }
+.alugueis-cliente-card.active { background:linear-gradient(135deg,#ecfdf5,#dbeafe); border-color:#10b981; box-shadow:0 0 0 4px rgba(16,185,129,.10),0 18px 30px -24px rgba(16,185,129,.72); }
+.alugueis-cliente-nome { font-size:11px; line-height:1.25; font-weight:900; color:#0f172a; text-transform:uppercase; min-height:28px; }
+.alugueis-cliente-meta { margin-top:8px; display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.alugueis-cliente-meta span { display:block; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:6px 7px; font-size:8px; font-weight:900; color:#64748b; text-transform:uppercase; }
+.alugueis-cliente-meta b { display:block; margin-top:2px; font-size:11px; color:#0f172a; }
+.alugueis-active-hint { display:none; align-items:center; justify-content:space-between; gap:10px; margin:0 0 12px; padding:10px 12px; border-radius:14px; background:#ecfdf5; border:1px solid #a7f3d0; color:#047857; font-size:10px; font-weight:900; text-transform:uppercase; }
+.alugueis-active-hint.show { display:flex; }
+.alugueis-active-hint button { color:#065f46; font-weight:900; }
+.alugueis-table-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:4px 0 8px; color:#334155; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+@media (max-width: 1180px) { .alugueis-clientes-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width: 900px) { .alugueis-table { min-width:1100px; } .alugueis-toolbar input, .alugueis-toolbar select, .alugueis-toolbar button { width:100%; } .alugueis-clientes-grid { grid-template-columns:1fr; } }
 
 </style>
 </head>
@@ -1495,18 +1513,35 @@ body.agenda-modal-open { overflow:hidden; }
                     <div class="alugueis-toolbar mb-4">
                         <input id="alugueisArquivo" class="alugueis-file-input" type="file" accept=".xlsx,.xls" onchange="alugueisImportarPlanilha(event)">
                         <button onclick="alugueisSalvarCargaBanco()" class="alugueis-action-btn alugueis-action-blue">Salvar carga no banco</button>
-                        <input id="alugueisBusca" type="text" placeholder="Buscar associação, apelido, CNPJ, CPF ou beneficiário..." oninput="alugueisRender()" class="flex-1 min-w-[260px]">
+                        <input id="alugueisBusca" type="text" placeholder="Buscar cliente, apelido, CNPJ, CPF ou beneficiário..." oninput="alugueisRender()" class="flex-1 min-w-[260px]">
                         <select id="alugueisFiltroAno" onchange="alugueisRender()"><option value="">Ano</option></select>
                         <select id="alugueisFiltroMes" onchange="alugueisRender()"><option value="">Mês</option></select>
                         <select id="alugueisFiltroStatus" onchange="alugueisRender()"><option value="">Status</option><option value="pendente">Pendente</option><option value="pago">Pago</option><option value="atrasado">Atrasado</option><option value="dispensado">Dispensado</option></select>
                         <button onclick="alugueisLimparFiltros()" class="alugueis-action-btn">Limpar</button>
                     </div>
 
+                    <div class="alugueis-quick-filters">
+                        <button id="alugueis-filtro-todos" onclick="alugueisSetFiltroRapido('todos')" class="alugueis-filter-btn active">Todos</button>
+                        <button id="alugueis-filtro-pendentes" onclick="alugueisSetFiltroRapido('pendentes')" class="alugueis-filter-btn">Pendentes</button>
+                        <button id="alugueis-filtro-pagos" onclick="alugueisSetFiltroRapido('pagos')" class="alugueis-filter-btn">Pagos</button>
+                        <button id="alugueis-filtro-atrasados" onclick="alugueisSetFiltroRapido('atrasados')" class="alugueis-filter-btn">Atrasados</button>
+                        <button id="alugueis-filtro-mes" onclick="alugueisSetFiltroRapido('mes_atual')" class="alugueis-filter-btn">Este mês</button>
+                        <button id="alugueis-filtro-proximo" onclick="alugueisSetFiltroRapido('proximo_mes')" class="alugueis-filter-btn">Próximo mês</button>
+                    </div>
+
+                    <div class="alugueis-clientes-head">
+                        <div class="alugueis-clientes-title">Clientes</div>
+                        <button onclick="alugueisSelecionarCliente('')" class="alugueis-action-btn">Ver todos</button>
+                    </div>
+                    <div id="alugueisClientesCards" class="alugueis-clientes-grid"></div>
+                    <div id="alugueisClienteAtivoHint" class="alugueis-active-hint"></div>
+
                     <div id="alugueisSqlBoxWrap" class="hidden mb-4">
                         <div class="flex items-center justify-between mb-2"><h3 class="text-[10px] font-black uppercase text-slate-500">SQL sugerido para criar a tabela no Supabase</h3><button onclick="alugueisMostrarSQL(false)" class="alugueis-action-btn alugueis-action-red">Fechar</button></div>
                         <div id="alugueisSqlBox" class="alugueis-sql-box"></div>
                     </div>
 
+                    <div class="alugueis-table-title"><span id="alugueisTabelaTitulo">Registros de aluguéis</span><span id="alugueisTabelaResumo"></span></div>
                     <div class="scroll-container">
                         <table class="w-full text-left alugueis-table">
                             <thead>
@@ -6268,6 +6303,8 @@ body.agenda-modal-open { overflow:hidden; }
         let alugueisData = [];
         let alugueisFonte = 'vazio';
         let alugueisCarregadoBanco = false;
+        let alugueisClienteAtivo = '';
+        let alugueisFiltroRapido = 'todos';
 
         function alugueisSQLTabela() {
             return `create table if not exists public.alugueis_darf (
@@ -6350,6 +6387,116 @@ create index if not exists alugueis_darf_status_idx on public.alugueis_darf (sta
 
         function alugueisUniqueKey(r) {
             return [r.ano, r.competencia, r.apelido, r.cnpj, r.cpf_beneficiario, r.nome_beneficiario].map(v => String(v || '').trim().toLowerCase()).join('|');
+        }
+
+
+        function alugueisNomeCliente(r) {
+            return String((r && (r.associacao || r.apelido || r.nome_beneficiario)) || 'Sem cliente informado').trim();
+        }
+
+        function alugueisEscapeHtml(txt) {
+            return String(txt || '').replace(/[&<>"']/g, function(c) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+            });
+        }
+
+        function alugueisMesAtualInfo(delta) {
+            const d = new Date();
+            d.setMonth(d.getMonth() + (delta || 0));
+            return { ano: d.getFullYear(), mes: d.getMonth() + 1 };
+        }
+
+        function alugueisPassaFiltroRapido(r) {
+            const st = alugueisNormalizarStatus(r.status);
+            if (alugueisFiltroRapido === 'pendentes') return st === 'pendente' || st === 'atrasado';
+            if (alugueisFiltroRapido === 'pagos') return st === 'pago';
+            if (alugueisFiltroRapido === 'atrasados') return st === 'atrasado';
+            if (alugueisFiltroRapido === 'mes_atual') {
+                const m = alugueisMesAtualInfo(0);
+                return Number(r.ano) === m.ano && Number(r.mes) === m.mes;
+            }
+            if (alugueisFiltroRapido === 'proximo_mes') {
+                const m = alugueisMesAtualInfo(1);
+                return Number(r.ano) === m.ano && Number(r.mes) === m.mes;
+            }
+            return true;
+        }
+
+        function alugueisSetFiltroRapido(tipo) {
+            alugueisFiltroRapido = tipo || 'todos';
+            const statusSel = document.getElementById('alugueisFiltroStatus');
+            if (statusSel) {
+                if (tipo === 'pagos') statusSel.value = 'pago';
+                else if (tipo === 'atrasados') statusSel.value = 'atrasado';
+                else if (tipo === 'pendentes') statusSel.value = '';
+                else statusSel.value = '';
+            }
+            alugueisRender();
+        }
+
+        function alugueisSelecionarCliente(cliente) {
+            try { cliente = decodeURIComponent(String(cliente || '')); } catch(e) {}
+            alugueisClienteAtivo = String(cliente || '').trim();
+            alugueisRender();
+        }
+
+        function alugueisAtualizarBotoesRapidos() {
+            ['todos','pendentes','pagos','atrasados','mes','proximo'].forEach(function(id) {
+                const el = document.getElementById('alugueis-filtro-' + id);
+                if (el) el.classList.remove('active');
+            });
+            const mapa = { todos:'todos', pendentes:'pendentes', pagos:'pagos', atrasados:'atrasados', mes_atual:'mes', proximo_mes:'proximo' };
+            const ativo = document.getElementById('alugueis-filtro-' + (mapa[alugueisFiltroRapido] || 'todos'));
+            if (ativo) ativo.classList.add('active');
+        }
+
+        function alugueisRenderClientesCards(listaBase) {
+            const wrap = document.getElementById('alugueisClientesCards');
+            const hint = document.getElementById('alugueisClienteAtivoHint');
+            if (!wrap) return;
+            const mapa = new Map();
+            (listaBase || []).forEach(function(r) {
+                const nome = alugueisNomeCliente(r);
+                if (!mapa.has(nome)) mapa.set(nome, { nome, registros:0, irrf:0, bruto:0, pendentes:0, pagos:0, atrasados:0, ultima:null });
+                const item = mapa.get(nome);
+                const st = alugueisNormalizarStatus(r.status);
+                item.registros += 1;
+                item.irrf += Number(r.valor_irrf) || 0;
+                item.bruto += Number(r.valor_bruto) || 0;
+                if (st === 'pago') item.pagos += 1;
+                if (st === 'atrasado') item.atrasados += 1;
+                if (st === 'pendente' || st === 'atrasado') item.pendentes += 1;
+                const atualizado = r.atualizado_em ? new Date(r.atualizado_em) : null;
+                if (atualizado && !isNaN(atualizado.getTime()) && (!item.ultima || atualizado > item.ultima)) item.ultima = atualizado;
+            });
+            const clientes = Array.from(mapa.values()).sort(function(a,b) { return b.pendentes - a.pendentes || a.nome.localeCompare(b.nome); });
+            if (!clientes.length) {
+                wrap.innerHTML = '<div class="alugueis-note">Nenhum cliente encontrado para os filtros atuais.</div>';
+            } else {
+                wrap.innerHTML = clientes.slice(0, 24).map(function(c) {
+                    const key = encodeURIComponent(c.nome);
+                    const active = alugueisClienteAtivo === c.nome ? ' active' : '';
+                    const ult = c.ultima ? c.ultima.toLocaleDateString('pt-BR') : '-';
+                    return `<button class="alugueis-cliente-card${active}" onclick="alugueisSelecionarCliente('${key}')">
+                        <div class="alugueis-cliente-nome">${alugueisEscapeHtml(c.nome)}</div>
+                        <div class="alugueis-cliente-meta">
+                            <span>DARFs<b>${c.registros}</b></span>
+                            <span>IRRF<b>${alugueisFormatarMoeda(c.irrf)}</b></span>
+                            <span>Pendentes<b>${c.pendentes}</b></span>
+                            <span>Últ. mov.<b>${ult}</b></span>
+                        </div>
+                    </button>`;
+                }).join('') + (clientes.length > 24 ? `<div class="alugueis-note">Mostrando 24 de ${clientes.length} clientes. Use a busca para encontrar os demais.</div>` : '');
+            }
+            if (hint) {
+                if (alugueisClienteAtivo) {
+                    hint.classList.add('show');
+                    hint.innerHTML = `<span>Cliente filtrado: ${alugueisEscapeHtml(alugueisClienteAtivo)}</span><button onclick="alugueisSelecionarCliente('')">Limpar cliente</button>`;
+                } else {
+                    hint.classList.remove('show');
+                    hint.innerHTML = '';
+                }
+            }
         }
 
         function alugueisRegistroVazio(raw) {
@@ -6481,7 +6628,8 @@ create index if not exists alugueis_darf_status_idx on public.alugueis_darf (sta
             if (mesSel) mesSel.innerHTML = '<option value="">Mês</option>' + meses.map(m => `<option value="${m}">${String(m).padStart(2,'0')}</option>`).join('');
         }
 
-        function alugueisFiltrados() {
+        function alugueisFiltrados(opcoes) {
+            opcoes = opcoes || {};
             const busca = String(document.getElementById('alugueisBusca')?.value || '').toLowerCase().trim();
             const ano = document.getElementById('alugueisFiltroAno')?.value || '';
             const mes = document.getElementById('alugueisFiltroMes')?.value || '';
@@ -6490,8 +6638,10 @@ create index if not exists alugueis_darf_status_idx on public.alugueis_darf (sta
                 if (ano && String(r.ano) !== String(ano)) return false;
                 if (mes && String(r.mes) !== String(mes)) return false;
                 if (status && alugueisNormalizarStatus(r.status) !== status) return false;
+                if (!alugueisPassaFiltroRapido(r)) return false;
+                if (!opcoes.ignorarCliente && alugueisClienteAtivo && alugueisNomeCliente(r) !== alugueisClienteAtivo) return false;
                 if (busca) {
-                    const hay = [r.apelido,r.associacao,r.cnpj,r.cpf_beneficiario,r.nome_beneficiario,r.observacoes].join(' ').toLowerCase();
+                    const hay = [alugueisNomeCliente(r),r.apelido,r.associacao,r.cnpj,r.cpf_beneficiario,r.nome_beneficiario,r.observacoes].join(' ').toLowerCase();
                     if (!hay.includes(busca)) return false;
                 }
                 return true;
@@ -6501,6 +6651,9 @@ create index if not exists alugueis_darf_status_idx on public.alugueis_darf (sta
         function alugueisRender() {
             const tbody = document.getElementById('alugueisBody');
             if (!tbody) return;
+            alugueisAtualizarBotoesRapidos();
+            const listaClientes = alugueisFiltrados({ ignorarCliente:true });
+            alugueisRenderClientesCards(listaClientes);
             const lista = alugueisFiltrados();
             const bruto = lista.reduce((s,r)=>s+(Number(r.valor_bruto)||0),0);
             const irrf = lista.reduce((s,r)=>s+(Number(r.valor_irrf)||0),0);
@@ -6511,6 +6664,10 @@ create index if not exists alugueis_darf_status_idx on public.alugueis_darf (sta
             document.getElementById('alugueis-kpi-irrf').textContent = alugueisFormatarMoeda(irrf);
             document.getElementById('alugueis-kpi-pendentes').textContent = pend;
             document.getElementById('alugueis-kpi-pagos').textContent = pagos;
+            const titulo = document.getElementById('alugueisTabelaTitulo');
+            const resumo = document.getElementById('alugueisTabelaResumo');
+            if (titulo) titulo.textContent = alugueisClienteAtivo ? `Registros de ${alugueisClienteAtivo}` : 'Registros de aluguéis';
+            if (resumo) resumo.textContent = `${lista.length} registro(s) | IRRF ${alugueisFormatarMoeda(irrf)}`;
             if (!lista.length) {
                 tbody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-slate-400 font-bold">Nenhum aluguel encontrado para os filtros atuais.</td></tr>';
                 return;
@@ -6574,6 +6731,8 @@ create index if not exists alugueis_darf_status_idx on public.alugueis_darf (sta
 
         function alugueisLimparFiltros() {
             ['alugueisBusca','alugueisFiltroAno','alugueisFiltroMes','alugueisFiltroStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            alugueisClienteAtivo = '';
+            alugueisFiltroRapido = 'todos';
             alugueisRender();
         }
 
