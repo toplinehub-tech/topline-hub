@@ -3562,6 +3562,31 @@ body.agenda-modal-open { overflow:hidden; }
             return 'topline_login_registrado_' + String(usuario || '').trim().toUpperCase();
         }
 
+        // ============================================
+        // PERMISSAO - ABA ALUGUEIS
+        // Visivel somente para: Ingrid, Nikolas, Patricia, Brenda e Dev
+        // ============================================
+        function usuarioPodeVerAlugueis(usuario) {
+            const nome = String(usuario || window.currentUser || currentUser || '').trim().toLowerCase();
+            return ['ingrid', 'nikolas', 'patricia', 'brenda', 'dev'].includes(nome);
+        }
+
+        function aplicarPermissaoMenuAlugueis() {
+            const tabAlugueis = document.getElementById('tab-alugueis');
+            if (!tabAlugueis) return;
+
+            if (usuarioPodeVerAlugueis()) {
+                tabAlugueis.classList.remove('hidden');
+                tabAlugueis.style.display = '';
+            } else {
+                tabAlugueis.classList.add('hidden');
+                tabAlugueis.style.display = 'none';
+
+                const viewAlugueis = document.getElementById('view-alugueis');
+                if (viewAlugueis) viewAlugueis.classList.add('hidden');
+            }
+        }
+
         function login(userName, isAuto = false) {
             const usuarioEntrada = userName || usuarioSelecionado || currentUser || 'Sistema';
             const usuarioLogin = Object.keys(USUARIOS_SENHAS).find(u => String(u).trim().toLowerCase() === String(usuarioEntrada).trim().toLowerCase()) || String(usuarioEntrada).trim();
@@ -3584,6 +3609,8 @@ body.agenda-modal-open { overflow:hidden; }
             
             const tabFinanceiro = document.getElementById('tab-financeiro');
             if (PERFIS_FINANCEIRO.includes(currentUser)) { tabFinanceiro.classList.remove('hidden'); } else { tabFinanceiro.classList.add('hidden'); }
+
+            aplicarPermissaoMenuAlugueis();
             
             const avisosControls = document.getElementById('admin-avisos-controls');
             if (PERFIS_LOGS.includes(currentUser)) { avisosControls.classList.remove('hidden'); } else { avisosControls.classList.add('hidden'); }
@@ -6832,6 +6859,11 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
+            if (tab === 'alugueis' && !usuarioPodeVerAlugueis()) {
+                showNotification('Acesso restrito à aba Aluguéis.', true);
+                tab = 'dash';
+            }
+
             const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
@@ -6841,8 +6873,11 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             });
             const targetView = document.getElementById('view-'+tab);
             if (targetView) targetView.classList.remove('hidden');
-            document.getElementById('tab-'+tab).classList.add('tab-active');
-            document.getElementById('tab-'+tab).classList.remove('text-slate-400');
+            const activeBtn = document.getElementById('tab-'+tab);
+            if (activeBtn) {
+                activeBtn.classList.add('tab-active');
+                activeBtn.classList.remove('text-slate-400');
+            }
 
             // Barra de pesquisa: visível apenas no Painel
             const searchBar = document.getElementById('search-bar-wrapper');
