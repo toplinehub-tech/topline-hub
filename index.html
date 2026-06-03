@@ -1280,10 +1280,12 @@ body.agenda-modal-open { overflow:hidden; }
 .alugueis-active-hint.show { display:flex; }
 .alugueis-active-hint button { color:#065f46; font-weight:900; }
 .alugueis-table-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:4px 0 8px; color:#334155; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
-.alugueis-table-wrap { background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; }
-.alugueis-table th { font-size:8px; text-transform:uppercase; letter-spacing:.06em; color:#64748b; background:#f8fafc; }
-.alugueis-table td { font-size:10px; vertical-align:middle; }
-.alugueis-table input, .alugueis-table select { width:100%; min-width:90px; border:1px solid #dbe4ee; border-radius:10px; padding:7px 8px; font-size:10px; font-weight:800; color:#334155; background:#fff; outline:none; }
+.alugueis-table-wrap { background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:auto; max-width:100%; }
+.alugueis-table { table-layout:fixed; min-width:1120px; }
+.alugueis-table th { font-size:7.5px; text-transform:uppercase; letter-spacing:.04em; color:#64748b; background:#f8fafc; padding:7px 5px; white-space:normal; }
+.alugueis-table td { font-size:9.5px; vertical-align:middle; padding:6px 5px; }
+.alugueis-col-competencia{width:76px;} .alugueis-col-cliente{width:170px;} .alugueis-col-beneficiario{width:145px;} .alugueis-col-cpf{width:100px;} .alugueis-col-cnpj{width:112px;} .alugueis-col-valor{width:82px;} .alugueis-col-data{width:92px;} .alugueis-col-status{width:94px;} .alugueis-col-obs{width:120px;} .alugueis-col-acoes{width:76px;}
+.alugueis-table input, .alugueis-table select { width:100%; min-width:0; border:1px solid #dbe4ee; border-radius:10px; padding:7px 8px; font-size:10px; font-weight:800; color:#334155; background:#fff; outline:none; }
 .alugueis-table input:focus, .alugueis-table select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.10); }
 .aluguel-status-pill { display:inline-flex; align-items:center; justify-content:center; padding:4px 8px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; white-space:nowrap; }
 .aluguel-status-pendente { background:#fffbeb; color:#92400e; border-color:#fde68a; }
@@ -1510,8 +1512,7 @@ body.agenda-modal-open { overflow:hidden; }
                         <div class="alugueis-head-actions">
                             <input id="alugueisArquivo" class="alugueis-import-input" type="file" accept=".xlsx,.xls" onchange="alugueisImportarPlanilha(event)">
                             <button onclick="document.getElementById('alugueisArquivo').click()" class="alugueis-action-btn alugueis-action-primary">Importar planilha</button>
-                            <button onclick="alugueisCarregarBanco(true)" class="alugueis-action-btn">Atualizar banco</button>
-                            <button onclick="alugueisMostrarSQL()" class="alugueis-action-btn">SQL Supabase</button>
+                            <button onclick="alugueisCarregarBanco(true)" class="alugueis-action-btn">Atualizar dados</button>
                         </div>
                     </div>
 
@@ -1542,11 +1543,6 @@ body.agenda-modal-open { overflow:hidden; }
                         <button onclick="alugueisLimparFiltros()" class="alugueis-action-btn">Limpar filtros</button>
                     </div>
 
-                    <div id="alugueisSqlBoxWrap" class="hidden mb-4">
-                        <div class="flex items-center justify-between mb-2"><h3 class="text-[10px] font-black uppercase text-slate-500">SQL para criar/atualizar a tabela no Supabase</h3><button onclick="alugueisMostrarSQL(false)" class="alugueis-action-btn alugueis-action-red">Fechar</button></div>
-                        <div id="alugueisSqlBox" class="alugueis-sql-box"></div>
-                    </div>
-
                     <div class="alugueis-clientes-head">
                         <div class="alugueis-clientes-title">Clientes <span id="alugueisClientesTotal">(0)</span></div>
                         <div class="alugueis-clientes-tools"><button onclick="alugueisSelecionarCliente('')" class="alugueis-action-btn">Ver todos</button></div>
@@ -1557,6 +1553,7 @@ body.agenda-modal-open { overflow:hidden; }
                     <div class="alugueis-table-title"><span id="alugueisTabelaTitulo">Lançamentos de aluguéis</span><span id="alugueisTabelaResumo"></span></div>
                     <div class="scroll-container alugueis-table-wrap">
                         <table class="w-full text-left alugueis-table">
+                            <colgroup><col class="alugueis-col-competencia"><col class="alugueis-col-cliente"><col class="alugueis-col-beneficiario"><col class="alugueis-col-cpf"><col class="alugueis-col-cnpj"><col class="alugueis-col-valor"><col class="alugueis-col-valor"><col class="alugueis-col-valor"><col class="alugueis-col-valor"><col class="alugueis-col-valor"><col class="alugueis-col-data"><col class="alugueis-col-data"><col class="alugueis-col-status"><col class="alugueis-col-obs"><col class="alugueis-col-acoes"></colgroup>
                             <thead>
                                 <tr>
                                     <th>Competência</th><th>Cliente/Associação</th><th>Locador/Beneficiário</th><th>CPF Beneficiário</th><th>CNPJ</th><th>Bruto</th><th>Tributável</th><th>IRRF</th><th>Dedução</th><th>Líquido</th><th>Vencimento</th><th>Pagamento</th><th>Status</th><th>Observações</th><th>Ações</th>
@@ -6422,14 +6419,15 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
         }
 
         function alugueisCompetenciaISO(valor, anoFallback, colIndex) {
+            const anoBase = Number(anoFallback) || new Date().getFullYear();
             const d = alugueisExcelSerialParaData(valor);
-            if (d) {
+            if (d && d.getUTCFullYear() === anoBase) {
                 const ano = d.getUTCFullYear();
                 const mes = d.getUTCMonth() + 1;
                 return { iso: `${ano}-${String(mes).padStart(2,'0')}-01`, ano, mes, label: `${String(mes).padStart(2,'0')}/${ano}` };
             }
             const mes = Math.max(1, Math.min(12, (colIndex - 5)));
-            const ano = Number(anoFallback) || new Date().getFullYear();
+            const ano = anoBase;
             return { iso: `${ano}-${String(mes).padStart(2,'0')}-01`, ano, mes, label: `${String(mes).padStart(2,'0')}/${ano}` };
         }
 
@@ -6643,7 +6641,8 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
 
         async function alugueisCarregarBanco(forcarAviso) {
             const tbody = document.getElementById('alugueisBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-slate-400 font-bold">Carregando dados do banco...</td></tr>';
+            const tinhaDados = Array.isArray(alugueisData) && alugueisData.length > 0;
+            if (tbody && !tinhaDados) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-slate-400 font-bold">Carregando dados do banco...</td></tr>';
             try {
                 const { data, error } = await supabaseClient.from('alugueis_darf').select('*').order('competencia', { ascending:false }).order('cliente', { ascending:true }).limit(5000);
                 if (error) throw error;
@@ -6654,11 +6653,14 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 alugueisRender();
                 if (forcarAviso) showNotification(`Dados de aluguéis carregados do banco: ${alugueisData.length} registros.`);
             } catch (e) {
-                console.warn('Tabela alugueis_darf indisponível ou vazia.', e);
-                alugueisData = [];
-                alugueisPreencherFiltros();
-                alugueisRender();
-                if (tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-amber-500 font-bold">Tabela alugueis_darf ainda não encontrada. Rode o SQL no Supabase e importe a planilha uma única vez.</td></tr>';
+                console.warn('Não foi possível carregar alugueis_darf.', e);
+                if (!tinhaDados) {
+                    alugueisData = [];
+                    alugueisPreencherFiltros();
+                    alugueisRender();
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-amber-500 font-bold">Não foi possível carregar a tabela alugueis_darf. Rode o SQL enviado no Supabase.</td></tr>';
+                }
+                if (forcarAviso) showNotification('Não foi possível atualizar do banco. Os dados em tela foram mantidos.', true);
             }
         }
 
@@ -6754,8 +6756,8 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 const liquido = (Number(r.valor_bruto)||0) - (Number(r.valor_irrf)||0);
                 return `<tr>
                     <td class="font-black text-slate-700">${r.mes_label || formatDateBR(r.competencia) || '-'}</td>
-                    <td class="min-w-[260px] font-bold text-slate-700">${alugueisEscapeHtml(alugueisNomeCliente(r))}</td>
-                    <td class="min-w-[190px]">${alugueisEscapeHtml(r.nome_beneficiario || '-')}</td>
+                    <td class="font-bold text-slate-700 break-words">${alugueisEscapeHtml(alugueisNomeCliente(r))}</td>
+                    <td class="break-words">${alugueisEscapeHtml(r.nome_beneficiario || '-')}</td>
                     <td>${alugueisEscapeHtml(r.cpf_beneficiario || '-')}</td>
                     <td>${alugueisEscapeHtml(r.cnpj || '-')}</td>
                     <td><input type="number" step="0.01" value="${Number(r.valor_bruto)||0}" onchange="alugueisAtualizarCampo('${key}','valor_bruto',this.value)"></td>
