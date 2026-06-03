@@ -1229,6 +1229,39 @@ body.agenda-modal-open { overflow:hidden; }
 @media (max-width: 900px) { .agenda-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .agenda-item { grid-template-columns:1fr; } .agenda-actions { justify-content:flex-start; } .agenda-calendar-grid { gap:5px; } .agenda-calendar-day { min-height:64px; padding:6px; } }
 @media (max-width: 560px) { .agenda-form-grid { grid-template-columns:1fr; } .agenda-toolbar input, .agenda-toolbar select { width:100%; } }
 
+
+
+/* ALUGUEIS - DARF DE ALUGUEL */
+.alugueis-page-card { background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98)); }
+.alugueis-hero { background: linear-gradient(135deg,#0f172a 0%,#1e3a8a 48%,#047857 100%); color:#fff; border-radius:22px; padding:22px; position:relative; overflow:hidden; box-shadow:0 18px 42px -26px rgba(15,23,42,.65); }
+.alugueis-hero::after { content:''; position:absolute; right:-60px; bottom:-80px; width:240px; height:240px; border-radius:999px; background:rgba(255,255,255,.12); }
+.alugueis-hero h2 { font-size:20px; font-weight:900; text-transform:uppercase; letter-spacing:.06em; }
+.alugueis-hero p { color:rgba(219,234,254,.86); font-size:11px; max-width:860px; margin-top:6px; }
+.alugueis-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:14px; box-shadow:0 8px 20px -18px rgba(15,23,42,.35); }
+.alugueis-kpi strong { display:block; font-size:22px; line-height:1; font-weight:900; color:#0f172a; }
+.alugueis-kpi span { display:block; margin-top:5px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.alugueis-toolbar { display:flex; align-items:center; gap:9px; flex-wrap:wrap; background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:10px; }
+.alugueis-toolbar input, .alugueis-toolbar select { background:#fff; border:1px solid #dbe4ee; border-radius:12px; padding:10px 12px; font-size:11px; font-weight:800; color:#334155; outline:none; min-height:38px; }
+.alugueis-toolbar input:focus, .alugueis-toolbar select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
+.alugueis-file-input { max-width:270px; }
+.alugueis-table th { font-size:8px; text-transform:uppercase; letter-spacing:.06em; color:#64748b; background:#f8fafc; }
+.alugueis-table td { font-size:10px; vertical-align:middle; }
+.alugueis-table input, .alugueis-table select { width:100%; min-width:86px; border:1px solid #dbe4ee; border-radius:10px; padding:7px 8px; font-size:10px; font-weight:800; color:#334155; background:#fff; outline:none; }
+.alugueis-table input:focus, .alugueis-table select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.10); }
+.aluguel-status-pill { display:inline-flex; align-items:center; justify-content:center; padding:4px 8px; border-radius:999px; font-size:8px; font-weight:900; text-transform:uppercase; border:1px solid #e2e8f0; white-space:nowrap; }
+.aluguel-status-pendente { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.aluguel-status-pago { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+.aluguel-status-dispensado { background:#f1f5f9; color:#475569; border-color:#cbd5e1; }
+.aluguel-status-atrasado { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+.alugueis-note { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; border-radius:14px; padding:11px 13px; font-size:10px; font-weight:800; line-height:1.45; }
+.alugueis-sql-box { white-space:pre-wrap; background:#0f172a; color:#e2e8f0; border-radius:16px; padding:14px; font-size:10px; overflow:auto; max-height:260px; }
+.alugueis-action-btn { padding:9px 12px; border-radius:12px; font-size:9px; font-weight:900; text-transform:uppercase; border:1px solid #dbe4ee; background:white; transition:all .18s ease; }
+.alugueis-action-btn:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(15,23,42,.08); }
+.alugueis-action-primary { background:#10b981; color:white; border-color:#059669; }
+.alugueis-action-blue { background:#2563eb; color:white; border-color:#1d4ed8; }
+.alugueis-action-red { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+@media (max-width: 900px) { .alugueis-table { min-width:1100px; } .alugueis-toolbar input, .alugueis-toolbar select, .alugueis-toolbar button { width:100%; } }
+
 </style>
 </head>
 <body>
@@ -1354,6 +1387,7 @@ body.agenda-modal-open { overflow:hidden; }
                             <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
                             <button onclick="switchTab('avisos')" id="tab-avisos" class="text-[10px] font-bold uppercase pb-1 text-slate-400 relative">Avisos<span id="avisos-badge" class="badge-avisos badge-blue">0</span></button>
                             <button onclick="switchTab('financeiro')" id="tab-financeiro" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Financeiro</button>
+                            <button onclick="switchTab('alugueis')" id="tab-alugueis" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Aluguéis</button>
                             <button onclick="switchTab('empresasparcelamentos')" id="tab-empresasparcelamentos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Empresas/Parcelamentos</button>
                             <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
                             <button onclick="switchTab('logs')" id="tab-logs" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
@@ -1429,6 +1463,63 @@ body.agenda-modal-open { overflow:hidden; }
             </div>
 
             
+
+            <!-- ALUGUÉIS -->
+            <div id="view-alugueis" class="hidden">
+                <div class="white-card p-6 alugueis-page-card">
+                    <div class="alugueis-hero mb-5">
+                        <div class="relative z-[1] flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                            <div>
+                                <h2>Aluguéis</h2>
+                                <p>Gestão dos DARFs de aluguel por organização, beneficiário, competência, valores, IRRF e deduções. A planilha serve apenas como carga inicial; depois disso, edição e armazenamento ficam no Supabase.</p>
+                            </div>
+                            <div class="flex gap-2 flex-wrap">
+                                <button onclick="alugueisCarregarBanco()" class="alugueis-action-btn alugueis-action-primary">Atualizar do banco</button>
+                                <button onclick="alugueisMostrarSQL()" class="alugueis-action-btn">SQL da tabela</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                        <div class="alugueis-kpi"><strong id="alugueis-kpi-registros">0</strong><span>Registros</span></div>
+                        <div class="alugueis-kpi"><strong id="alugueis-kpi-bruto">R$ 0,00</strong><span>Valor bruto</span></div>
+                        <div class="alugueis-kpi"><strong id="alugueis-kpi-irrf">R$ 0,00</strong><span>IRRF</span></div>
+                        <div class="alugueis-kpi"><strong id="alugueis-kpi-pendentes">0</strong><span>Pendentes</span></div>
+                        <div class="alugueis-kpi"><strong id="alugueis-kpi-pagos">0</strong><span>Pagos</span></div>
+                    </div>
+
+                    <div class="alugueis-note mb-4">
+                        Fluxo sugerido: 1) importe a planilha DARF DE ALUGUEL 2026; 2) revise a prévia; 3) clique em “Salvar carga no banco”. Depois disso, use apenas o banco para editar status, observações e valores.
+                    </div>
+
+                    <div class="alugueis-toolbar mb-4">
+                        <input id="alugueisArquivo" class="alugueis-file-input" type="file" accept=".xlsx,.xls" onchange="alugueisImportarPlanilha(event)">
+                        <button onclick="alugueisSalvarCargaBanco()" class="alugueis-action-btn alugueis-action-blue">Salvar carga no banco</button>
+                        <input id="alugueisBusca" type="text" placeholder="Buscar associação, apelido, CNPJ, CPF ou beneficiário..." oninput="alugueisRender()" class="flex-1 min-w-[260px]">
+                        <select id="alugueisFiltroAno" onchange="alugueisRender()"><option value="">Ano</option></select>
+                        <select id="alugueisFiltroMes" onchange="alugueisRender()"><option value="">Mês</option></select>
+                        <select id="alugueisFiltroStatus" onchange="alugueisRender()"><option value="">Status</option><option value="pendente">Pendente</option><option value="pago">Pago</option><option value="atrasado">Atrasado</option><option value="dispensado">Dispensado</option></select>
+                        <button onclick="alugueisLimparFiltros()" class="alugueis-action-btn">Limpar</button>
+                    </div>
+
+                    <div id="alugueisSqlBoxWrap" class="hidden mb-4">
+                        <div class="flex items-center justify-between mb-2"><h3 class="text-[10px] font-black uppercase text-slate-500">SQL sugerido para criar a tabela no Supabase</h3><button onclick="alugueisMostrarSQL(false)" class="alugueis-action-btn alugueis-action-red">Fechar</button></div>
+                        <div id="alugueisSqlBox" class="alugueis-sql-box"></div>
+                    </div>
+
+                    <div class="scroll-container">
+                        <table class="w-full text-left alugueis-table">
+                            <thead>
+                                <tr>
+                                    <th>Competência</th><th>Apelido</th><th>Associação/Organização</th><th>CNPJ</th><th>CPF Beneficiário</th><th>Nome Beneficiário</th><th>Bruto</th><th>Tributável</th><th>IRRF</th><th>Dedução</th><th>Status</th><th>Observações</th><th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alugueisBody"><tr><td colspan="13" class="text-center py-8 text-slate-400 font-bold">Importe a planilha ou carregue os dados do banco.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- AVISOS -->
             <div id="view-avisos" class="hidden">
                 <div class="white-card p-6">
@@ -2400,6 +2491,7 @@ body.agenda-modal-open { overflow:hidden; }
     'view-monitor',
     'view-logs',
     'view-financeiro',
+    'view-alugueis',
     'view-empresasparcelamentos',
     'view-avisos',
     'view-pontuais',
@@ -2416,6 +2508,7 @@ body.agenda-modal-open { overflow:hidden; }
     monitor: 'view-monitor',
     logs: 'view-logs',
     financeiro: 'view-financeiro',
+    alugueis: 'view-alugueis',
     empresasparcelamentos: 'view-empresasparcelamentos',
     avisos: 'view-avisos',
     pontuais: 'view-pontuais',
@@ -2441,6 +2534,8 @@ body.agenda-modal-open { overflow:hidden; }
     carregarLogs: 'view-logs',
     filtrarLogs: 'view-logs',
     carregarFinanceiro: 'view-financeiro',
+    alugueisCarregarBanco: 'view-alugueis',
+    alugueisRender: 'view-alugueis',
     filtrarFinanceiro: 'view-financeiro',
     carregarAtrasadosFinanceiro: 'view-financeiro',
     carregarLogsFinanceiro: 'view-financeiro',
@@ -6165,11 +6260,328 @@ body.agenda-modal-open { overflow:hidden; }
 
         function abrirTarefaPontual(t) { if (t && t.id) abrirModalPontual(t.id); }
 
+
+
+        // ============================================
+        // ALUGUÉIS - DARF DE ALUGUEL
+        // ============================================
+        let alugueisData = [];
+        let alugueisFonte = 'vazio';
+        let alugueisCarregadoBanco = false;
+
+        function alugueisSQLTabela() {
+            return `create table if not exists public.alugueis_darf (
+  id bigserial primary key,
+  unique_key text unique not null,
+  ano int,
+  competencia date,
+  mes int,
+  mes_label text,
+  apelido text,
+  associacao text,
+  cnpj text,
+  cpf_beneficiario text,
+  nome_beneficiario text,
+  valor_bruto numeric default 0,
+  valor_tributavel numeric default 0,
+  valor_irrf numeric default 0,
+  valor_deducao numeric default 0,
+  status text default 'pendente',
+  observacoes text,
+  origem_planilha text,
+  atualizado_por text,
+  atualizado_em timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+create index if not exists alugueis_darf_competencia_idx on public.alugueis_darf (competencia);
+create index if not exists alugueis_darf_cnpj_idx on public.alugueis_darf (cnpj);
+create index if not exists alugueis_darf_status_idx on public.alugueis_darf (status);`;
+        }
+
+        function alugueisMostrarSQL(forcar) {
+            const wrap = document.getElementById('alugueisSqlBoxWrap');
+            const box = document.getElementById('alugueisSqlBox');
+            if (!wrap || !box) return;
+            if (forcar === false) { wrap.classList.add('hidden'); return; }
+            box.textContent = alugueisSQLTabela();
+            wrap.classList.toggle('hidden');
+        }
+
+        function alugueisNumero(v) {
+            if (v === null || v === undefined || v === '') return 0;
+            if (typeof v === 'number') return isFinite(v) ? v : 0;
+            const s = String(v).replace(/R\$/g,'').replace(/\./g,'').replace(',', '.').trim();
+            const n = Number(s);
+            return isFinite(n) ? n : 0;
+        }
+
+        function alugueisFormatarMoeda(v) {
+            return (Number(v) || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+        }
+
+        function alugueisExcelSerialParaData(valor) {
+            if (valor instanceof Date) return valor;
+            if (typeof valor === 'number') {
+                const utc = Math.round((valor - 25569) * 86400 * 1000);
+                return new Date(utc);
+            }
+            const d = new Date(valor);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function alugueisCompetenciaISO(valor, anoFallback, colIndex) {
+            const d = alugueisExcelSerialParaData(valor);
+            if (d) {
+                const ano = d.getUTCFullYear();
+                const mes = d.getUTCMonth() + 1;
+                return { iso: `${ano}-${String(mes).padStart(2,'0')}-01`, ano, mes, label: d.toLocaleDateString('pt-BR', { month:'short', year:'numeric', timeZone:'UTC' }) };
+            }
+            const mes = Math.max(1, Math.min(12, (colIndex - 5)));
+            const ano = Number(anoFallback) || new Date().getFullYear();
+            return { iso: `${ano}-${String(mes).padStart(2,'0')}-01`, ano, mes, label: `${String(mes).padStart(2,'0')}/${ano}` };
+        }
+
+        function alugueisNormalizarStatus(status) {
+            const s = String(status || 'pendente').toLowerCase().trim().replace(/\s+/g,'_');
+            if (['pago','atrasado','dispensado','pendente'].includes(s)) return s;
+            return 'pendente';
+        }
+
+        function alugueisUniqueKey(r) {
+            return [r.ano, r.competencia, r.apelido, r.cnpj, r.cpf_beneficiario, r.nome_beneficiario].map(v => String(v || '').trim().toLowerCase()).join('|');
+        }
+
+        function alugueisRegistroVazio(raw) {
+            return {
+                unique_key: '', ano: raw.ano, competencia: raw.competencia, mes: raw.mes, mes_label: raw.mes_label,
+                apelido: raw.apelido || '', associacao: raw.associacao || '', cnpj: raw.cnpj || '', cpf_beneficiario: raw.cpf_beneficiario || '', nome_beneficiario: raw.nome_beneficiario || '',
+                valor_bruto: 0, valor_tributavel: 0, valor_irrf: 0, valor_deducao: 0,
+                status: raw.status || 'pendente', observacoes: raw.observacoes || '', origem_planilha: raw.origem_planilha || '', atualizado_por: window.currentUser || 'Sistema', atualizado_em: new Date().toISOString()
+            };
+        }
+
+        function alugueisExtrairDaWorkbook(workbook) {
+            const registros = [];
+            (workbook.SheetNames || []).forEach(sheetName => {
+                if (String(sheetName).toUpperCase().trim() === 'UNIDADES') return;
+                const ws = workbook.Sheets[sheetName];
+                const linhas = XLSX.utils.sheet_to_json(ws, { header:1, defval:null, raw:true });
+                for (let r = 0; r < linhas.length - 1; r++) {
+                    const ano = Number(linhas[r] && linhas[r][0]);
+                    const header = linhas[r + 1] || [];
+                    const h0 = String(header[0] || '').toUpperCase();
+                    if (!ano || !h0.includes('APELIDO')) continue;
+                    const meta = linhas[r + 2] || [];
+                    if (!meta[0] && !meta[1] && !meta[2] && !meta[3] && !meta[4]) continue;
+                    const base = {
+                        ano,
+                        apelido: meta[0] || '', associacao: meta[1] || '', cnpj: meta[2] || '', cpf_beneficiario: meta[3] || '', nome_beneficiario: meta[4] || '', origem_planilha: sheetName
+                    };
+                    const metricas = {};
+                    let fim = r + 2;
+                    for (let rr = r + 2; rr < Math.min(linhas.length, r + 8); rr++) {
+                        const linha = linhas[rr] || [];
+                        if (rr > r + 2 && linha[0]) break;
+                        const nome = String(linha[5] || '').toUpperCase().trim();
+                        if (!nome) continue;
+                        let campo = null;
+                        if (nome.includes('BRUTO')) campo = 'valor_bruto';
+                        else if (nome.includes('TRIBUT')) campo = 'valor_tributavel';
+                        else if (nome.includes('IRRF')) campo = 'valor_irrf';
+                        else if (nome.includes('DEDU')) campo = 'valor_deducao';
+                        if (campo) metricas[campo] = linha;
+                        fim = rr;
+                    }
+                    for (let c = 6; c <= 17; c++) {
+                        const comp = alugueisCompetenciaISO(header[c], ano, c);
+                        const raw = alugueisRegistroVazio({ ...base, ano: comp.ano, competencia: comp.iso, mes: comp.mes, mes_label: comp.label });
+                        raw.valor_bruto = alugueisNumero(metricas.valor_bruto && metricas.valor_bruto[c]);
+                        raw.valor_tributavel = alugueisNumero(metricas.valor_tributavel && metricas.valor_tributavel[c]);
+                        raw.valor_irrf = alugueisNumero(metricas.valor_irrf && metricas.valor_irrf[c]);
+                        raw.valor_deducao = alugueisNumero(metricas.valor_deducao && metricas.valor_deducao[c]);
+                        const temAlgum = [raw.valor_bruto, raw.valor_tributavel, raw.valor_irrf, raw.valor_deducao].some(v => Number(v) !== 0) || (metricas.valor_bruto && metricas.valor_bruto[c] !== null && metricas.valor_bruto[c] !== undefined);
+                        if (!temAlgum) continue;
+                        raw.unique_key = alugueisUniqueKey(raw);
+                        registros.push(raw);
+                    }
+                    r = fim;
+                }
+            });
+            return registros;
+        }
+
+        async function alugueisImportarPlanilha(event) {
+            const file = event && event.target && event.target.files ? event.target.files[0] : null;
+            if (!file) return;
+            try {
+                if (typeof setSaveStatus === 'function') setSaveStatus('saving','Lendo planilha de aluguéis...');
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer, { type:'array', cellDates:false });
+                alugueisData = alugueisExtrairDaWorkbook(workbook);
+                alugueisFonte = 'planilha';
+                alugueisCarregadoBanco = false;
+                alugueisPreencherFiltros();
+                alugueisRender();
+                if (typeof setSaveStatus === 'function') setSaveStatus('saved','Planilha importada');
+                showNotification(`✅ Planilha importada: ${alugueisData.length} competências encontradas.`);
+            } catch (e) {
+                console.error('Erro ao importar aluguéis:', e);
+                if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro na importação');
+                showNotification('Erro ao importar a planilha de aluguéis.', true);
+            }
+        }
+
+        async function alugueisCarregarBanco() {
+            const tbody = document.getElementById('alugueisBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-slate-400 font-bold">Carregando dados do banco...</td></tr>';
+            try {
+                const { data, error } = await supabaseClient.from('alugueis_darf').select('*').order('competencia', { ascending:false }).order('associacao', { ascending:true }).limit(2500);
+                if (error) throw error;
+                alugueisData = (data || []).map(r => ({ ...r, status: alugueisNormalizarStatus(r.status), unique_key: r.unique_key || alugueisUniqueKey(r) }));
+                alugueisFonte = 'banco';
+                alugueisCarregadoBanco = true;
+                alugueisPreencherFiltros();
+                alugueisRender();
+            } catch (e) {
+                console.warn('Tabela alugueis_darf indisponível ou vazia.', e);
+                alugueisRender();
+                if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-amber-500 font-bold">Tabela alugueis_darf ainda não encontrada. Use o botão SQL da tabela, crie no Supabase e importe a planilha.</td></tr>';
+            }
+        }
+
+        async function alugueisSalvarCargaBanco() {
+            if (!alugueisData.length) { showNotification('Importe a planilha antes de salvar no banco.', true); return; }
+            try {
+                if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando aluguéis no banco...');
+                const lote = alugueisData.map(r => ({ ...r, status: alugueisNormalizarStatus(r.status), unique_key: r.unique_key || alugueisUniqueKey(r), atualizado_por: window.currentUser || 'Sistema', atualizado_em: new Date().toISOString() }));
+                for (let i = 0; i < lote.length; i += 500) {
+                    const pedaco = lote.slice(i, i + 500);
+                    const { error } = await supabaseClient.from('alugueis_darf').upsert(pedaco, { onConflict:'unique_key' });
+                    if (error) throw error;
+                }
+                alugueisFonte = 'banco';
+                alugueisCarregadoBanco = true;
+                if (typeof setSaveStatus === 'function') setSaveStatus('saved','Aluguéis salvos');
+                showNotification(`✅ ${lote.length} registros de aluguéis salvos/atualizados no banco.`);
+            } catch (e) {
+                console.error('Erro ao salvar aluguéis:', e);
+                if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro ao salvar aluguéis');
+                showNotification('Erro ao salvar aluguéis. Confirme se a tabela alugueis_darf existe no Supabase.', true);
+            }
+        }
+
+        function alugueisPreencherFiltros() {
+            const anos = [...new Set((alugueisData || []).map(r => r.ano).filter(Boolean))].sort((a,b)=>b-a);
+            const meses = [...new Set((alugueisData || []).map(r => r.mes).filter(Boolean))].sort((a,b)=>a-b);
+            const anoSel = document.getElementById('alugueisFiltroAno');
+            const mesSel = document.getElementById('alugueisFiltroMes');
+            if (anoSel) anoSel.innerHTML = '<option value="">Ano</option>' + anos.map(a => `<option value="${a}">${a}</option>`).join('');
+            if (mesSel) mesSel.innerHTML = '<option value="">Mês</option>' + meses.map(m => `<option value="${m}">${String(m).padStart(2,'0')}</option>`).join('');
+        }
+
+        function alugueisFiltrados() {
+            const busca = String(document.getElementById('alugueisBusca')?.value || '').toLowerCase().trim();
+            const ano = document.getElementById('alugueisFiltroAno')?.value || '';
+            const mes = document.getElementById('alugueisFiltroMes')?.value || '';
+            const status = document.getElementById('alugueisFiltroStatus')?.value || '';
+            return (alugueisData || []).filter(r => {
+                if (ano && String(r.ano) !== String(ano)) return false;
+                if (mes && String(r.mes) !== String(mes)) return false;
+                if (status && alugueisNormalizarStatus(r.status) !== status) return false;
+                if (busca) {
+                    const hay = [r.apelido,r.associacao,r.cnpj,r.cpf_beneficiario,r.nome_beneficiario,r.observacoes].join(' ').toLowerCase();
+                    if (!hay.includes(busca)) return false;
+                }
+                return true;
+            });
+        }
+
+        function alugueisRender() {
+            const tbody = document.getElementById('alugueisBody');
+            if (!tbody) return;
+            const lista = alugueisFiltrados();
+            const bruto = lista.reduce((s,r)=>s+(Number(r.valor_bruto)||0),0);
+            const irrf = lista.reduce((s,r)=>s+(Number(r.valor_irrf)||0),0);
+            const pend = lista.filter(r=>alugueisNormalizarStatus(r.status)==='pendente' || alugueisNormalizarStatus(r.status)==='atrasado').length;
+            const pagos = lista.filter(r=>alugueisNormalizarStatus(r.status)==='pago').length;
+            document.getElementById('alugueis-kpi-registros').textContent = lista.length;
+            document.getElementById('alugueis-kpi-bruto').textContent = alugueisFormatarMoeda(bruto);
+            document.getElementById('alugueis-kpi-irrf').textContent = alugueisFormatarMoeda(irrf);
+            document.getElementById('alugueis-kpi-pendentes').textContent = pend;
+            document.getElementById('alugueis-kpi-pagos').textContent = pagos;
+            if (!lista.length) {
+                tbody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-slate-400 font-bold">Nenhum aluguel encontrado para os filtros atuais.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = lista.slice(0, 350).map((r, idx) => {
+                const key = encodeURIComponent(r.unique_key || alugueisUniqueKey(r));
+                const st = alugueisNormalizarStatus(r.status);
+                return `<tr>
+                    <td class="font-black text-slate-700">${r.mes_label || formatDateBR(r.competencia) || '-'}</td>
+                    <td>${r.apelido || '-'}</td>
+                    <td class="min-w-[260px] font-bold text-slate-700">${r.associacao || '-'}</td>
+                    <td>${r.cnpj || '-'}</td>
+                    <td>${r.cpf_beneficiario || '-'}</td>
+                    <td class="min-w-[190px]">${r.nome_beneficiario || '-'}</td>
+                    <td><input type="number" step="0.01" value="${Number(r.valor_bruto)||0}" onchange="alugueisAtualizarCampo('${key}','valor_bruto',this.value)"></td>
+                    <td><input type="number" step="0.01" value="${Number(r.valor_tributavel)||0}" onchange="alugueisAtualizarCampo('${key}','valor_tributavel',this.value)"></td>
+                    <td><input type="number" step="0.01" value="${Number(r.valor_irrf)||0}" onchange="alugueisAtualizarCampo('${key}','valor_irrf',this.value)"></td>
+                    <td><input type="number" step="0.01" value="${Number(r.valor_deducao)||0}" onchange="alugueisAtualizarCampo('${key}','valor_deducao',this.value)"></td>
+                    <td><select onchange="alugueisAtualizarCampo('${key}','status',this.value)"><option value="pendente" ${st==='pendente'?'selected':''}>Pendente</option><option value="pago" ${st==='pago'?'selected':''}>Pago</option><option value="atrasado" ${st==='atrasado'?'selected':''}>Atrasado</option><option value="dispensado" ${st==='dispensado'?'selected':''}>Dispensado</option></select><div class="mt-1"><span class="aluguel-status-pill aluguel-status-${st}">${st.replace('_',' ')}</span></div></td>
+                    <td><input type="text" value="${String(r.observacoes || '').replace(/"/g,'&quot;')}" placeholder="Observações" onchange="alugueisAtualizarCampo('${key}','observacoes',this.value)"></td>
+                    <td><button onclick="alugueisSalvarLinha('${key}')" class="alugueis-action-btn alugueis-action-primary">Salvar</button></td>
+                </tr>`;
+            }).join('') + (lista.length > 350 ? `<tr><td colspan="13" class="text-center py-4 text-slate-400 font-bold">Mostrando 350 de ${lista.length} registros. Use os filtros para refinar.</td></tr>` : '');
+        }
+
+        function alugueisEncontrarPorKey(keyEncoded) {
+            const key = decodeURIComponent(keyEncoded || '');
+            return (alugueisData || []).find(r => (r.unique_key || alugueisUniqueKey(r)) === key);
+        }
+
+        function alugueisAtualizarCampo(keyEncoded, campo, valor) {
+            const r = alugueisEncontrarPorKey(keyEncoded);
+            if (!r) return;
+            if (['valor_bruto','valor_tributavel','valor_irrf','valor_deducao'].includes(campo)) r[campo] = alugueisNumero(valor);
+            else if (campo === 'status') r[campo] = alugueisNormalizarStatus(valor);
+            else r[campo] = valor;
+            r.atualizado_por = window.currentUser || 'Sistema';
+            r.atualizado_em = new Date().toISOString();
+            alugueisRender();
+        }
+
+        async function alugueisSalvarLinha(keyEncoded) {
+            const r = alugueisEncontrarPorKey(keyEncoded);
+            if (!r) return;
+            try {
+                if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando aluguel...');
+                r.unique_key = r.unique_key || alugueisUniqueKey(r);
+                r.atualizado_por = window.currentUser || 'Sistema';
+                r.atualizado_em = new Date().toISOString();
+                const { error } = await supabaseClient.from('alugueis_darf').upsert([r], { onConflict:'unique_key' });
+                if (error) throw error;
+                if (typeof registrarLog === 'function') registrarLog('Alteração aluguel', r.associacao || r.apelido || null, 'ALUGUEIS', `${r.mes_label || r.competencia} - ${r.nome_beneficiario || ''}`);
+                if (typeof setSaveStatus === 'function') setSaveStatus('saved','Aluguel salvo');
+                showNotification('Aluguel salvo no banco.');
+            } catch (e) {
+                console.error('Erro ao salvar aluguel:', e);
+                if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro no aluguel');
+                showNotification('Erro ao salvar aluguel no banco.', true);
+            }
+        }
+
+        function alugueisLimparFiltros() {
+            ['alugueisBusca','alugueisFiltroAno','alugueisFiltroMes','alugueisFiltroStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            alugueisRender();
+        }
+
         // ============================================
         // SWITCH TAB
         // ============================================
         function switchTab(tab) {
-            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -6203,6 +6615,7 @@ body.agenda-modal-open { overflow:hidden; }
                 carregarLogs();
             }
             if (tab === 'historico') carregarHistorico();
+            if (tab === 'alugueis') alugueisCarregarBanco();
             if (tab === 'empresasparcelamentos') { carregarPGDASMensalSilencioso(); renderEmpresasParcelamentos(); carregarHistoricoParcelamentosSilencioso(); }
             if (tab === 'financeiro') {
                 if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
