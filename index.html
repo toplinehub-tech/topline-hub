@@ -1660,8 +1660,9 @@ body.agenda-modal-open { overflow:hidden; }
                         <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-sky-200/20 rounded-full blur-2xl"></div>
                     </div>
                 </div>
-                <div class="grid grid-cols-7 gap-4 mb-6" id="statusCards">
+                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-6" id="statusCards">
                     <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
+                    <button onclick="abrirModalPosicionamentoMensal()" id="btn-posicionamento-mensal" class="white-card border-l-8 border-slate-500 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-slate-500 uppercase">Relatório</span><span class="text-xs font-bold text-slate-700">Extrair posicionamento mensal</span></button>
                     <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
                     <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
                     <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span><span class="text-xs font-bold text-slate-700">90 Dias</span></button>
@@ -11909,5 +11910,171 @@ function montarCelulaObservacaoHistorico(item) {
     document.addEventListener('DOMContentLoaded', function(){
         setTimeout(function(){ try { window.atualizarDashboardDesempenho(); } catch(e) {} }, 1400);
     });
+})();
+</script>
+
+
+<!-- POSICIONAMENTO MENSAL - Modal e Exportação -->
+<div id="posicionamentoMensalModal" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center p-4" style="z-index:13000;">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col">
+        <div class="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-black uppercase text-slate-800">Extrair posicionamento mensal</h2>
+                <p class="text-[10px] text-slate-500 font-bold">Pesquise por CNPJ ou nome da empresa para gerar o relatório.</p>
+            </div>
+            <button onclick="fecharModalPosicionamentoMensal()" class="btn-mini bg-slate-50 text-slate-600">Fechar</button>
+        </div>
+        <div class="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-2">
+            <input id="posicionamentoBusca" type="text" class="flex-1 p-3 rounded-xl border text-xs font-bold" placeholder="Digite o CNPJ ou nome da empresa">
+            <button onclick="pesquisarPosicionamentoMensal()" class="btn-mini bg-emerald-500 text-white border-emerald-600 justify-center">Pesquisar</button>
+            <button onclick="exportarPosicionamentoMensalPDF()" class="btn-mini bg-red-500 text-white border-red-600 justify-center">Exportar PDF</button>
+            <button onclick="exportarPosicionamentoMensalJPG()" class="btn-mini bg-sky-500 text-white border-sky-600 justify-center">Exportar JPG</button>
+        </div>
+        <div class="p-4 overflow-auto bg-white">
+            <div id="posicionamentoResultado" class="posicionamento-page">
+                <p class="text-center text-slate-400 text-xs font-bold py-10">Informe um CNPJ ou nome e clique em pesquisar.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .posicionamento-page { width: 1120px; max-width: 100%; margin: 0 auto; background: #fff; color: #111; font-family: Arial, sans-serif; padding: 10px 22px 28px; }
+    .pos-title { text-align:center; font-weight:800; font-size:16px; margin:0; }
+    .pos-highlight { background:#eadb9c; padding:0 3px; }
+    .pos-sub { text-align:center; font-style:italic; font-weight:800; font-size:16px; margin:8px 0; }
+    .pos-mes { text-align:center; text-decoration:underline; font-weight:800; font-size:13px; margin:8px 0 34px; }
+    .pos-text { font-size:13px; line-height:1.35; margin:0 0 10px; text-align:left; }
+    .pos-table { border-collapse:collapse; width:580px; margin:30px 0 0; font-size:10px; font-weight:800; text-align:center; }
+    .pos-table th { background:#7f7f7f !important; color:white; border:1px solid #111; padding:7px; font-size:9px; position:static; }
+    .pos-table td { border:1px solid #111; padding:6px 8px; background:#d9d9d9; cursor:default; font-size:10px; }
+    .pos-status-regular { background:#92d050 !important; color:#111; }
+    .pos-status-analise { background:#00b0f0 !important; color:#111; }
+    .pos-status-pendente, .pos-status-vencido { background:#f4b183 !important; color:#111; }
+    .pos-feedback { min-width:160px; outline:1px dashed transparent; }
+    .pos-feedback:focus { outline-color:#10b981; background:#fff !important; }
+    @media print { body * { visibility:hidden !important; } #posicionamentoResultado, #posicionamentoResultado * { visibility:visible !important; } #posicionamentoResultado { position:absolute; left:0; top:0; width:100% !important; } }
+</style>
+
+<script>
+(function(){
+    const POS_DOCS = ['ATA','ESTATUTO','RELATÓRIO DE ATIVIDADES','RELATORIO DE ATIVIDADES'];
+    const POS_CERTIFICADOS = ['CENTS','CMDCA','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','CRCE','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL'];
+    const POS_CERTIDOES = ['CTM','CND'];
+
+    function posNorm(v){ return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase(); }
+    function posEscape(v){ return String(v ?? '').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+    function posDataBR(v){
+        if (!v || v === '-') return '-';
+        if (v instanceof Date && !isNaN(v)) return v.toLocaleDateString('pt-BR');
+        const s = String(v).trim();
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s.substring(0,10)+'T12:00:00').toLocaleDateString('pt-BR');
+        return s;
+    }
+    function posMesReferencia(){
+        return new Date().toLocaleDateString('pt-BR', { month:'long' }).toUpperCase();
+    }
+    function posStatusLabel(valor, row, col){
+        const n = posNorm(valor);
+        if (!valor || n === '-') return '-';
+        if (n.includes('ANALISE')) return 'ANÁLISE';
+        if (n.includes('ANDAMENTO')) return 'ANDAMENTO';
+        if (n.includes('PENDENTE')) return 'PENDENTE';
+        if (n.includes('VENCID')) return 'VENCIDO';
+        if (n.includes('REGULAR') || n.includes('CONCLUID') || n === 'OK') return 'REGULAR';
+        if (typeof getStatus === 'function') {
+            const st = getStatus(valor, row, col);
+            if (st === 'vencido') return 'VENCIDO';
+            if (st === 'analise') return 'ANÁLISE';
+            if (st === 'andamento') return 'ANDAMENTO';
+            if (st === 'concluido' || st === 'ok' || st === '30' || st === '60' || st === '90') return 'REGULAR';
+        }
+        if (valor instanceof Date) return 'REGULAR';
+        return n;
+    }
+    function posStatusClass(label){
+        const n = posNorm(label);
+        if (n === 'REGULAR') return 'pos-status-regular';
+        if (n.includes('ANALISE')) return 'pos-status-analise';
+        if (n.includes('VENCID')) return 'pos-status-vencido';
+        if (n.includes('PENDENTE') || n.includes('ANDAMENTO')) return 'pos-status-pendente';
+        return '';
+    }
+    function posFindCol(nome){
+        const alvo = posNorm(nome);
+        return (headers || []).find(h => posNorm(h) === alvo) || Object.keys((rawData || [])[0] || {}).find(h => posNorm(h) === alvo);
+    }
+    function posFeedback(row, col){
+        if (!col) return '-';
+        return row[col + '_OBS'] || row[col + '_FEEDBACK'] || row[col + '_OBSERVACAO'] || '-';
+    }
+    function posLinha(row, nome){
+        const col = posFindCol(nome);
+        const valor = col ? row[col] : '';
+        const feedback = col ? posFeedback(row, col) : '-';
+        const status = posStatusLabel(valor, row, col);
+        return { nome, vencimento: valor instanceof Date || /^\d{2}\/\d{2}\/\d{4}$/.test(String(valor)) || /^\d{4}-\d{2}-\d{2}/.test(String(valor)) ? posDataBR(valor) : '-', status, feedback, col };
+    }
+    function posTabela(titulo, itens, row){
+        const linhas = itens.map(nome => posLinha(row, nome)).filter(l => l.col || l.status !== '-');
+        if (!linhas.length) return '';
+        return `<table class="pos-table"><thead><tr><th>${titulo}</th><th>VENCIMENTO</th><th>STATUS</th><th>FEEDBACK:</th></tr></thead><tbody>` +
+            linhas.map(l => `<tr><td>${posEscape(l.nome)}</td><td>${posEscape(l.vencimento)}</td><td class="${posStatusClass(l.status)}">${posEscape(l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`).join('') +
+            `</tbody></table>`;
+    }
+    window.abrirModalPosicionamentoMensal = function(){
+        const m = document.getElementById('posicionamentoMensalModal');
+        if (m) { m.classList.remove('hidden'); m.classList.add('flex'); setTimeout(()=>document.getElementById('posicionamentoBusca')?.focus(),80); }
+    };
+    window.fecharModalPosicionamentoMensal = function(){
+        const m = document.getElementById('posicionamentoMensalModal');
+        if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+    };
+    window.pesquisarPosicionamentoMensal = function(){
+        const termo = posNorm(document.getElementById('posicionamentoBusca')?.value || '');
+        const out = document.getElementById('posicionamentoResultado');
+        if (!termo) { out.innerHTML = '<p class="text-center text-red-500 text-xs font-bold py-10">Digite o CNPJ ou nome da empresa.</p>'; return; }
+        const row = (rawData || []).find(r => posNorm(r.CLIENTE).includes(termo) || String(r.CNPJ || '').replace(/\D/g,'').includes(termo.replace(/\D/g,'')));
+        if (!row) { out.innerHTML = '<p class="text-center text-red-500 text-xs font-bold py-10">Empresa não encontrada na base.</p>'; return; }
+        const cliente = row.CLIENTE || 'EMPRESA';
+        out.innerHTML = `
+            <p class="pos-title"><span class="pos-highlight">POSICIONAMENTO</span> MENSAL:</p>
+            <p class="pos-sub">${posEscape(cliente)}</p>
+            <p class="pos-mes">MÊS DE REFERÊNCIA: ${posMesReferencia()}</p>
+            <p class="pos-text">Prezados, esse <span class="pos-highlight">posicionamento</span> será disponibilizado mensalmente com o intuito de mantê-los atualizados referente aos certificados e certidões de sua OSC, com isso, se tornará mais fácil o processo para acompanhamento de vencimentos, renovações e status do processo.</p>
+            <p class="pos-text">Caso haja dúvidas, por favor nos contatar via e-mail ou diretamente via WhatsApp, estamos à disposição.</p>
+            <p class="pos-text">Pedimos gentilmente, que confirme o recebimento deste e-mail, obrigada.</p>
+            ${posTabela('DOCUMENTO', POS_DOCS, row)}
+            ${posTabela('CERTIFICADO', POS_CERTIFICADOS, row)}
+            ${posTabela('CERTIDÃO', POS_CERTIDOES, row)}
+        `;
+    };
+    function posNomeArquivo(ext){
+        const cliente = (document.querySelector('.pos-sub')?.textContent || 'posicionamento').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        return `posicionamento-mensal-${cliente || 'empresa'}.${ext}`;
+    }
+    function carregarScript(src){ return new Promise((resolve,reject)=>{ if ([...document.scripts].some(s=>s.src===src)) return resolve(); const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
+    window.exportarPosicionamentoMensalJPG = async function(){
+        const el = document.getElementById('posicionamentoResultado');
+        if (!el || !el.querySelector('.pos-title')) return showNotification ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
+        await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+        const canvas = await html2canvas(el, { scale:2, backgroundColor:'#ffffff' });
+        const a=document.createElement('a'); a.download=posNomeArquivo('jpg'); a.href=canvas.toDataURL('image/jpeg', .95); a.click();
+    };
+    window.exportarPosicionamentoMensalPDF = async function(){
+        const el = document.getElementById('posicionamentoResultado');
+        if (!el || !el.querySelector('.pos-title')) return showNotification ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
+        await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+        await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        const canvas = await html2canvas(el, { scale:2, backgroundColor:'#ffffff' });
+        const img = canvas.toDataURL('image/jpeg', .95);
+        const pdf = new window.jspdf.jsPDF('l','mm','a4');
+        const pageW = pdf.internal.pageSize.getWidth(), pageH = pdf.internal.pageSize.getHeight();
+        const ratio = Math.min(pageW / canvas.width, pageH / canvas.height) * 0.98;
+        const w = canvas.width * ratio, h = canvas.height * ratio;
+        pdf.addImage(img, 'JPEG', (pageW-w)/2, 6, w, h);
+        pdf.save(posNomeArquivo('pdf'));
+    };
 })();
 </script>
