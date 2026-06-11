@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v11-imagem-maior";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v12-doc-cert-ajustes";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -11966,15 +11966,19 @@ function montarCelulaObservacaoHistorico(item) {
     .pos-status-pendente { background:#fff9db !important; color:#92400e !important; }
     .pos-feedback { min-width:260px; outline:1px dashed transparent; font-size:18px !important; line-height:1.4; font-weight:800; }
     .pos-feedback:focus { outline-color:#10b981; background:#fff !important; }
+    .pos-editavel { outline:1px dashed transparent; }
+    .pos-editavel:focus { outline-color:#10b981; background:#fff !important; }
+    .pos-status-manual-cinza { background:#e5e7eb !important; color:#374151 !important; }
+    .pos-status-manual-verde { background:#d1fae5 !important; color:#065f46 !important; }
     @media print { body * { visibility:hidden !important; } #posicionamentoResultado, #posicionamentoResultado * { visibility:visible !important; } #posicionamentoResultado { position:absolute; left:0; top:0; width:100% !important; } }
 </style>
 
 <script>
 (function(){
-    const POS_CERTIFICADOS_FIXOS = ['CENTS','CMDCA','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','CRCE','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL'];
+    const POS_CERTIFICADOS_FIXOS = ['CENTS','CMDCA','UTILIDADE','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','CRCE','CRED.','CRED','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL','COMAS','COVISA'];
     const POS_CERTIDOES_FIXAS = ['CTM','CND','CND FEDERAL','CERTIDÃO FEDERAL','CERTIDAO FEDERAL','CERTIDÃO MUNICIPAL','CERTIDAO MUNICIPAL','CERTIDÃO ESTADUAL','CERTIDAO ESTADUAL','CADIN','FGTS','CRF','TRABALHISTA','CNDT'];
     let posicionamentoRowAtual = null;
-    const POS_IGNORAR = ['CLIENTE','CNPJ','RAZÃO SOCIAL','RAZAO SOCIAL','NOME','EMPRESA','ID','WHATSAPP','WHATSSAPP','TELEFONE','EMAIL','E-MAIL','E_MAIL','MAIL'];
+    const POS_IGNORAR = ['CLIENTE','CNPJ','RAZÃO SOCIAL','RAZAO SOCIAL','NOME','EMPRESA','ID','WHATSAPP','WHATSSAPP','TELEFONE','EMAIL','E-MAIL','E_MAIL','MAIL','SETOR','PARCELAMENTO','PARCELAMENTOS'];
 
     function posNorm(v){ return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase(); }
     function posEscape(v){ return String(v ?? '').replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
@@ -12048,7 +12052,7 @@ function montarCelulaObservacaoHistorico(item) {
         if (POS_CERTIFICADOS_FIXOS.some(x => n === posNorm(x))) return 'certificado';
         if (POS_CERTIDOES_FIXAS.some(x => n === posNorm(x) || n.includes(posNorm(x)))) return 'certidao';
         if (n.includes('CERTIDAO') || n.includes('CERTIDÃO') || n === 'CND' || n === 'CTM') return 'certidao';
-        if (n.includes('CERTIFICADO') || n.includes('CREDENCIAMENTO') || n === 'CENTS' || n === 'CMDCA' || n === 'CRCE') return 'certificado';
+        if (n.includes('CERTIFICADO') || n.includes('CREDENCIAMENTO') || n === 'CENTS' || n === 'CMDCA' || n === 'CRCE' || n === 'UTILIDADE' || n === 'CRED' || n === 'CRED.' || n === 'COMAS' || n === 'COVISA') return 'certificado';
         return 'documento';
     }
     function posListasCampos(row){
@@ -12074,11 +12078,29 @@ function montarCelulaObservacaoHistorico(item) {
         // Mostra todos os campos do painel padrão dentro do grupo correspondente.
         // O que não for certificado nem certidão entra em DOCUMENTO.
         const linhas = (campos || []).map(col => posLinha(row, col));
+        if (titulo === 'DOCUMENTO') {
+            linhas.push({ nome:'Relatório de atividade', vencimento:'-', status:'-', statusKey:'manual-cinza', feedback:'-' });
+        }
         if (!linhas.length) return '';
         return `<table class="pos-table"><thead><tr><th>${titulo}</th><th>VENCIMENTO</th><th>STATUS</th><th>FEEDBACK:</th></tr></thead><tbody>` +
-            linhas.map(l => `<tr><td>${posEscape(l.nome)}</td><td>${posEscape(l.vencimento)}</td><td class="${posStatusClassFromKey(l.statusKey)}">${posEscape(l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`).join('') +
+            linhas.map(l => {
+                if (l.nome === 'Relatório de atividade') {
+                    return `<tr class="pos-relatorio-atividade"><td class="pos-editavel" contenteditable="true">Relatório de atividade</td><td>-</td><td class="pos-status-manual-cinza pos-editavel" contenteditable="true" onclick="alternarStatusRelatorioAtividade(this)" title="Clique para alternar entre cinza e verde">-</td><td class="pos-feedback" contenteditable="true">-</td></tr>`;
+                }
+                return `<tr><td>${posEscape(l.nome)}</td><td>${posEscape(l.vencimento)}</td><td class="${posStatusClassFromKey(l.statusKey)}">${posEscape(l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`;
+            }).join('') +
             `</tbody></table>`;
     }
+
+    window.alternarStatusRelatorioAtividade = function(el){
+        if (!el) return;
+        const verde = el.classList.contains('pos-status-manual-verde');
+        el.classList.toggle('pos-status-manual-verde', !verde);
+        el.classList.toggle('pos-status-manual-cinza', verde);
+        if (!verde && (!el.textContent || el.textContent.trim() === '-')) el.textContent = 'REGULAR';
+        if (verde && (!el.textContent || el.textContent.trim().toUpperCase() === 'REGULAR')) el.textContent = '-';
+    };
+
     function posTelaInicial(){
         return '<div class="text-center text-slate-400 text-xs font-bold py-12">Digite o CNPJ ou nome da empresa e clique em pesquisar.</div>';
     }
