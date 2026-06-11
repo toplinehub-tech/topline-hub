@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v10-tabelas-maiores";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v11-imagem-maior";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -11944,14 +11944,14 @@ function montarCelulaObservacaoHistorico(item) {
 <style>
     .posicionamento-page { width: 1500px; max-width: none; margin: 0 auto; background: #fff; color: #111; font-family: Arial, sans-serif; padding: 10px 22px 28px; }
     .pos-title { text-align:center; font-weight:800; font-size:18px; margin:0; }
-    .pos-highlight { background:linear-gradient(to bottom, transparent 14%, #eadb9c 14%, #eadb9c 82%, transparent 82%); padding:0 1px; line-height:1; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+    .pos-highlight { background:none !important; padding:0; line-height:1; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
     .pos-sub { text-align:center; font-style:italic; font-weight:800; font-size:18px; margin:8px 0; }
     .pos-mes { text-align:center; text-decoration:underline; font-weight:800; font-size:15px; margin:8px 0 34px; }
     .pos-text { font-size:15px; line-height:1.4; margin:0 0 12px; text-align:left; }
-    #posicionamentoTabelas { width: 900px; max-width: none; }
-    .pos-table { border-collapse:collapse; width:900px !important; min-width:900px !important; max-width:900px !important; table-layout:fixed; margin:30px 0 0; font-size:14px; font-weight:800; text-align:center; }
-    .pos-table th { background:#7f7f7f !important; color:white; border:1px solid #111; padding:10px 12px; font-size:12px; position:static; line-height:1.2; }
-    .pos-table td { border:1px solid #111; padding:10px 12px; background:#d9d9d9; cursor:default; font-size:14px; line-height:1.25; vertical-align:middle; word-wrap:break-word; overflow-wrap:break-word; }
+    #posicionamentoTabelas { width: 1200px; max-width: none; }
+    .pos-table { border-collapse:collapse; width:1200px !important; min-width:1200px !important; max-width:1200px !important; table-layout:fixed; margin:30px 0 0; font-size:16px; font-weight:800; text-align:center; }
+    .pos-table th { background:#7f7f7f !important; color:white; border:1px solid #111; padding:14px 16px; font-size:18px !important; position:static; line-height:1.25; letter-spacing:.02em; }
+    .pos-table td { border:1px solid #111; padding:13px 16px; background:#d9d9d9; cursor:default; font-size:16px; line-height:1.3; vertical-align:middle; word-wrap:break-word; overflow-wrap:break-word; }
     .pos-table th:nth-child(1), .pos-table td:nth-child(1) { width: 36%; }
     .pos-table th:nth-child(2), .pos-table td:nth-child(2) { width: 18%; }
     .pos-table th:nth-child(3), .pos-table td:nth-child(3) { width: 18%; }
@@ -11964,7 +11964,7 @@ function montarCelulaObservacaoHistorico(item) {
     .pos-status-andamento { background:#f5f3ff !important; color:#5b21b6 !important; }
     .pos-status-analise { background:#fff7ed !important; color:#c2410c !important; }
     .pos-status-pendente { background:#fff9db !important; color:#92400e !important; }
-    .pos-feedback { min-width:220px; outline:1px dashed transparent; font-size:16px !important; line-height:1.35; font-weight:800; }
+    .pos-feedback { min-width:260px; outline:1px dashed transparent; font-size:18px !important; line-height:1.4; font-weight:800; }
     .pos-feedback:focus { outline-color:#10b981; background:#fff !important; }
     @media print { body * { visibility:hidden !important; } #posicionamentoResultado, #posicionamentoResultado * { visibility:visible !important; } #posicionamentoResultado { position:absolute; left:0; top:0; width:100% !important; } }
 </style>
@@ -12226,27 +12226,27 @@ function montarCelulaObservacaoHistorico(item) {
         clone.removeAttribute('id');
         clone.style.cssText = 'display:inline-block;width:auto;max-width:none;background:#fff;padding:0;margin:0;overflow:hidden;';
 
-        clone.style.width = '900px';
-        clone.style.maxWidth = '900px';
+        clone.style.width = '1350px';
+        clone.style.maxWidth = '1350px';
         clone.querySelectorAll('.pos-table').forEach(function(tbl){
-            tbl.style.width = '900px';
-            tbl.style.minWidth = '900px';
-            tbl.style.maxWidth = '900px';
+            tbl.style.width = '1350px';
+            tbl.style.minWidth = '1350px';
+            tbl.style.maxWidth = '1350px';
             tbl.style.margin = '0 0 24px 0';
             tbl.style.borderCollapse = 'collapse';
             tbl.style.tableLayout = 'fixed';
-            tbl.style.fontSize = '14px';
+            tbl.style.fontSize = '18px';
             tbl.style.fontWeight = '800';
         });
         clone.querySelectorAll('th').forEach(function(th){
-            th.style.fontSize = '12px';
-            th.style.padding = '10px 12px';
-            th.style.lineHeight = '1.2';
+            th.style.fontSize = '20px';
+            th.style.padding = '16px 18px';
+            th.style.lineHeight = '1.25';
         });
         clone.querySelectorAll('td').forEach(function(td){
-            td.style.fontSize = '14px';
-            td.style.padding = '10px 12px';
-            td.style.lineHeight = '1.25';
+            td.style.fontSize = '18px';
+            td.style.padding = '15px 18px';
+            td.style.lineHeight = '1.35';
             td.style.wordWrap = 'break-word';
             td.style.overflowWrap = 'break-word';
         });
@@ -12255,8 +12255,8 @@ function montarCelulaObservacaoHistorico(item) {
         clone.querySelectorAll('th:nth-child(3), td:nth-child(3)').forEach(el => el.style.width = '18%');
         clone.querySelectorAll('th:nth-child(4), td:nth-child(4)').forEach(el => el.style.width = '28%');
         clone.querySelectorAll('.pos-feedback').forEach(function(td){
-            td.style.fontSize = '16px';
-            td.style.minWidth = '220px';
+            td.style.fontSize = '20px';
+            td.style.minWidth = '300px';
             td.style.fontWeight = '900';
             td.style.lineHeight = '1.35';
         });
@@ -12267,7 +12267,7 @@ function montarCelulaObservacaoHistorico(item) {
 
         const rect = clone.getBoundingClientRect();
         const canvas = await html2canvas(clone, {
-            scale: 3,
+            scale: 4,
             backgroundColor: '#ffffff',
             useCORS: true,
             scrollX: 0,
@@ -12315,7 +12315,7 @@ function montarCelulaObservacaoHistorico(item) {
         const el = document.getElementById('posicionamentoResultado');
         if (!el || !el.querySelector('.pos-title')) return (typeof showNotification === 'function') ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-        const canvas = await html2canvas(el, { scale:3, backgroundColor:'#ffffff', useCORS:true, width:el.scrollWidth, height:el.scrollHeight, windowWidth:el.scrollWidth, windowHeight:el.scrollHeight });
+        const canvas = await html2canvas(el, { scale:4, backgroundColor:'#ffffff', useCORS:true, width:el.scrollWidth, height:el.scrollHeight, windowWidth:el.scrollWidth, windowHeight:el.scrollHeight });
         const a=document.createElement('a'); a.download=posNomeArquivo('jpg'); a.href=canvas.toDataURL('image/jpeg', .95); a.click();
     };
     window.exportarPosicionamentoMensalPDF = async function(){
@@ -12323,7 +12323,7 @@ function montarCelulaObservacaoHistorico(item) {
         if (!el || !el.querySelector('.pos-title')) return (typeof showNotification === 'function') ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-        const canvas = await html2canvas(el, { scale:3, backgroundColor:'#ffffff', useCORS:true, width:el.scrollWidth, height:el.scrollHeight, windowWidth:el.scrollWidth, windowHeight:el.scrollHeight });
+        const canvas = await html2canvas(el, { scale:4, backgroundColor:'#ffffff', useCORS:true, width:el.scrollWidth, height:el.scrollHeight, windowWidth:el.scrollWidth, windowHeight:el.scrollHeight });
         const img = canvas.toDataURL('image/jpeg', .95);
         const pdf = new window.jspdf.jsPDF('l','mm','a4');
         const pageW = pdf.internal.pageSize.getWidth(), pageH = pdf.internal.pageSize.getHeight();
