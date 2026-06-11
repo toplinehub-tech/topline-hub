@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.01.2";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v3";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -211,6 +211,7 @@ function montarTextoHistorico(item) {
 }
 
 </script>
+<!-- POSICIONAMENTO_MENSAL_ATUALIZADO_V3: card em primeiro, limpar pesquisa, documentos inclui todos os campos não classificados como certificado/certidão -->
 
 
     <!-- Performance: conexoes antecipadas para imagens e CDNs usados na tela inicial -->
@@ -1661,8 +1662,8 @@ body.agenda-modal-open { overflow:hidden; }
                     </div>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-6" id="statusCards">
+                    <button onclick="abrirModalPosicionamentoMensal()" id="btn-posicionamento-mensal" class="white-card border-l-8 border-emerald-500 p-4 text-left hover:scale-[1.02]" style="order:-999;"><span class="block text-[8px] font-black text-emerald-600 uppercase">Relatório</span><span class="text-xs font-bold text-slate-700">Posicionamento mensal</span></button>
                     <button onclick="toggleStatusFilter('vencido')" id="btn-vencido" class="white-card border-l-8 border-red-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-red-500 uppercase">Urgente</span><span class="text-xs font-bold text-slate-700">Vencidos</span></button>
-                    <button onclick="abrirModalPosicionamentoMensal()" id="btn-posicionamento-mensal" class="white-card border-l-8 border-slate-500 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-slate-500 uppercase">Relatório</span><span class="text-xs font-bold text-slate-700">Extrair posicionamento mensal</span></button>
                     <button onclick="toggleStatusFilter('30')" id="btn-30" class="white-card border-l-8 border-amber-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-amber-500 uppercase">Atenção</span><span class="text-xs font-bold text-slate-700">30 Dias</span></button>
                     <button onclick="toggleStatusFilter('60')" id="btn-60" class="white-card border-l-8 border-emerald-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-emerald-500 uppercase">Normal</span><span class="text-xs font-bold text-slate-700">60 Dias</span></button>
                     <button onclick="toggleStatusFilter('90')" id="btn-90" class="white-card border-l-8 border-sky-400 p-4 text-left hover:scale-[1.02]"><span class="block text-[8px] font-black text-sky-500 uppercase">Planejar</span><span class="text-xs font-bold text-slate-700">90 Dias</span></button>
@@ -11919,7 +11920,7 @@ function montarCelulaObservacaoHistorico(item) {
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col">
         <div class="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-                <h2 class="text-sm font-black uppercase text-slate-800">Extrair posicionamento mensal</h2>
+                <h2 class="text-sm font-black uppercase text-slate-800">Posicionamento mensal</h2>
                 <p class="text-[10px] text-slate-500 font-bold">Pesquise por CNPJ ou nome da empresa para gerar o relatório.</p>
             </div>
             <button onclick="fecharModalPosicionamentoMensal()" class="btn-mini bg-slate-50 text-slate-600">Fechar</button>
@@ -11927,6 +11928,7 @@ function montarCelulaObservacaoHistorico(item) {
         <div class="p-4 border-b bg-slate-50 flex flex-col md:flex-row gap-2">
             <input id="posicionamentoBusca" type="text" class="flex-1 p-3 rounded-xl border text-xs font-bold" placeholder="Digite o CNPJ ou nome da empresa">
             <button onclick="pesquisarPosicionamentoMensal()" class="btn-mini bg-emerald-500 text-white border-emerald-600 justify-center">Pesquisar</button>
+            <button onclick="limparPesquisaPosicionamentoMensal()" class="btn-mini bg-slate-100 text-slate-600 border-slate-300 justify-center">Limpar pesquisa</button>
             <button onclick="exportarPosicionamentoMensalPDF()" class="btn-mini bg-red-500 text-white border-red-600 justify-center">Exportar PDF</button>
             <button onclick="exportarPosicionamentoMensalJPG()" class="btn-mini bg-sky-500 text-white border-sky-600 justify-center">Exportar JPG</button>
         </div>
@@ -11958,12 +11960,12 @@ function montarCelulaObservacaoHistorico(item) {
 
 <script>
 (function(){
-    const POS_DOCS = ['ATA','ESTATUTO','RELATÓRIO DE ATIVIDADES','RELATORIO DE ATIVIDADES'];
-    const POS_CERTIFICADOS = ['CENTS','CMDCA','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','CRCE','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL'];
-    const POS_CERTIDOES = ['CTM','CND'];
+    const POS_CERTIFICADOS_FIXOS = ['CENTS','CMDCA','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','CRCE','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL'];
+    const POS_CERTIDOES_FIXAS = ['CTM','CND','CND FEDERAL','CERTIDÃO FEDERAL','CERTIDAO FEDERAL','CERTIDÃO MUNICIPAL','CERTIDAO MUNICIPAL','CERTIDÃO ESTADUAL','CERTIDAO ESTADUAL','CADIN','FGTS','CRF','TRABALHISTA','CNDT'];
+    const POS_IGNORAR = ['CLIENTE','CNPJ','RAZÃO SOCIAL','RAZAO SOCIAL','NOME','EMPRESA'];
 
     function posNorm(v){ return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase(); }
-    function posEscape(v){ return String(v ?? '').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+    function posEscape(v){ return String(v ?? '').replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
     function posDataBR(v){
         if (!v || v === '-') return '-';
         if (v instanceof Date && !isNaN(v)) return v.toLocaleDateString('pt-BR');
@@ -11972,12 +11974,19 @@ function montarCelulaObservacaoHistorico(item) {
         if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s.substring(0,10)+'T12:00:00').toLocaleDateString('pt-BR');
         return s;
     }
-    function posMesReferencia(){
-        return new Date().toLocaleDateString('pt-BR', { month:'long' }).toUpperCase();
+    function posMesReferencia(){ return new Date().toLocaleDateString('pt-BR', { month:'long' }).toUpperCase(); }
+    function posEhData(v){
+        if (v instanceof Date && !isNaN(v)) return true;
+        const s = String(v || '').trim();
+        return /^\d{2}\/\d{2}\/\d{4}$/.test(s) || /^\d{4}-\d{2}-\d{2}/.test(s);
+    }
+    function posValorVazio(v){
+        const n = posNorm(v);
+        return !n || ['-','--','---','N/A','NA','NULL','UNDEFINED','SEM INFORMACAO','SEM INFORMAÇÃO'].includes(n);
     }
     function posStatusLabel(valor, row, col){
         const n = posNorm(valor);
-        if (!valor || n === '-') return '-';
+        if (posValorVazio(valor)) return '-';
         if (n.includes('ANALISE')) return 'ANÁLISE';
         if (n.includes('ANDAMENTO')) return 'ANDAMENTO';
         if (n.includes('PENDENTE')) return 'PENDENTE';
@@ -11990,8 +11999,8 @@ function montarCelulaObservacaoHistorico(item) {
             if (st === 'andamento') return 'ANDAMENTO';
             if (st === 'concluido' || st === 'ok' || st === '30' || st === '60' || st === '90') return 'REGULAR';
         }
-        if (valor instanceof Date) return 'REGULAR';
-        return n;
+        if (posEhData(valor)) return 'REGULAR';
+        return String(valor || '-').trim().toUpperCase();
     }
     function posStatusClass(label){
         const n = posNorm(label);
@@ -12001,27 +12010,55 @@ function montarCelulaObservacaoHistorico(item) {
         if (n.includes('PENDENTE') || n.includes('ANDAMENTO')) return 'pos-status-pendente';
         return '';
     }
-    function posFindCol(nome){
-        const alvo = posNorm(nome);
-        return (headers || []).find(h => posNorm(h) === alvo) || Object.keys((rawData || [])[0] || {}).find(h => posNorm(h) === alvo);
-    }
     function posFeedback(row, col){
-        if (!col) return '-';
-        return row[col + '_OBS'] || row[col + '_FEEDBACK'] || row[col + '_OBSERVACAO'] || '-';
+        if (!row || !col) return '-';
+        const candidatos = [col + '_OBS', col + '_FEEDBACK', col + '_OBSERVACAO', col + '_OBSERVAÇÃO'];
+        const colNorm = posNorm(col);
+        Object.keys(row).forEach(k => {
+            const nk = posNorm(k);
+            if (nk === colNorm + ' OBS' || nk === colNorm + ' FEEDBACK' || nk === colNorm + ' OBSERVACAO') candidatos.push(k);
+        });
+        for (const c of candidatos) if (!posValorVazio(row[c])) return row[c];
+        return '-';
     }
-    function posLinha(row, nome){
-        const col = posFindCol(nome);
-        const valor = col ? row[col] : '';
-        const feedback = col ? posFeedback(row, col) : '-';
+    function posClassificarColuna(h){
+        const n = posNorm(h);
+        if (POS_IGNORAR.includes(n) || n.endsWith('_DONE') || n.endsWith('_OBS') || n.endsWith('_FEEDBACK') || n.endsWith('_OBSERVACAO')) return 'ignorar';
+        if (POS_CERTIFICADOS_FIXOS.some(x => n === posNorm(x))) return 'certificado';
+        if (POS_CERTIDOES_FIXAS.some(x => n === posNorm(x) || n.includes(posNorm(x)))) return 'certidao';
+        if (n.includes('CERTIDAO') || n.includes('CERTIDÃO') || n === 'CND' || n === 'CTM') return 'certidao';
+        if (n.includes('CERTIFICADO') || n.includes('CREDENCIAMENTO') || n === 'CENTS' || n === 'CMDCA' || n === 'CRCE') return 'certificado';
+        return 'documento';
+    }
+    function posListasCampos(row){
+        const baseHeaders = (Array.isArray(headers) && headers.length ? headers : Object.keys(row || {}));
+        const unicos = [];
+        baseHeaders.forEach(h => { if (h && !unicos.includes(h)) unicos.push(h); });
+        const grupos = { documento: [], certificado: [], certidao: [] };
+        unicos.forEach(h => {
+            const tipo = posClassificarColuna(h);
+            if (tipo === 'documento' || tipo === 'certificado' || tipo === 'certidao') grupos[tipo].push(h);
+        });
+        return grupos;
+    }
+    function posLinha(row, col){
+        const valor = row ? row[col] : '';
+        const feedback = posFeedback(row, col);
         const status = posStatusLabel(valor, row, col);
-        return { nome, vencimento: valor instanceof Date || /^\d{2}\/\d{2}\/\d{4}$/.test(String(valor)) || /^\d{4}-\d{2}-\d{2}/.test(String(valor)) ? posDataBR(valor) : '-', status, feedback, col };
+        const vencimento = posEhData(valor) ? posDataBR(valor) : '-';
+        return { nome: col, vencimento, status, feedback };
     }
-    function posTabela(titulo, itens, row){
-        const linhas = itens.map(nome => posLinha(row, nome)).filter(l => l.col || l.status !== '-');
+    function posTabela(titulo, campos, row){
+        // Mostra todos os campos do painel padrão dentro do grupo correspondente.
+        // O que não for certificado nem certidão entra em DOCUMENTO.
+        const linhas = (campos || []).map(col => posLinha(row, col));
         if (!linhas.length) return '';
         return `<table class="pos-table"><thead><tr><th>${titulo}</th><th>VENCIMENTO</th><th>STATUS</th><th>FEEDBACK:</th></tr></thead><tbody>` +
             linhas.map(l => `<tr><td>${posEscape(l.nome)}</td><td>${posEscape(l.vencimento)}</td><td class="${posStatusClass(l.status)}">${posEscape(l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`).join('') +
             `</tbody></table>`;
+    }
+    function posTelaInicial(){
+        return '<div class="text-center text-slate-400 text-xs font-bold py-12">Digite o CNPJ ou nome da empresa e clique em pesquisar.</div>';
     }
     window.abrirModalPosicionamentoMensal = function(){
         const m = document.getElementById('posicionamentoMensalModal');
@@ -12031,13 +12068,27 @@ function montarCelulaObservacaoHistorico(item) {
         const m = document.getElementById('posicionamentoMensalModal');
         if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
     };
+    window.limparPesquisaPosicionamentoMensal = function(){
+        const busca = document.getElementById('posicionamentoBusca');
+        const out = document.getElementById('posicionamentoResultado');
+        if (busca) busca.value = '';
+        if (out) out.innerHTML = posTelaInicial();
+        setTimeout(()=>busca?.focus(),50);
+    };
     window.pesquisarPosicionamentoMensal = function(){
-        const termo = posNorm(document.getElementById('posicionamentoBusca')?.value || '');
+        const termoOriginal = document.getElementById('posicionamentoBusca')?.value || '';
+        const termo = posNorm(termoOriginal);
+        const termoCnpj = String(termoOriginal).replace(/\D/g,'');
         const out = document.getElementById('posicionamentoResultado');
         if (!termo) { out.innerHTML = '<p class="text-center text-red-500 text-xs font-bold py-10">Digite o CNPJ ou nome da empresa.</p>'; return; }
-        const row = (rawData || []).find(r => posNorm(r.CLIENTE).includes(termo) || String(r.CNPJ || '').replace(/\D/g,'').includes(termo.replace(/\D/g,'')));
+        const row = (rawData || []).find(r => {
+            const nome = posNorm([r.CLIENTE, r['RAZÃO SOCIAL'], r['RAZAO SOCIAL'], r.EMPRESA, r.NOME].filter(Boolean).join(' '));
+            const cnpj = String(r.CNPJ || '').replace(/\D/g,'');
+            return (nome && nome.includes(termo)) || (termoCnpj && cnpj.includes(termoCnpj));
+        });
         if (!row) { out.innerHTML = '<p class="text-center text-red-500 text-xs font-bold py-10">Empresa não encontrada na base.</p>'; return; }
-        const cliente = row.CLIENTE || 'EMPRESA';
+        const cliente = row.CLIENTE || row['RAZÃO SOCIAL'] || row['RAZAO SOCIAL'] || row.EMPRESA || row.NOME || 'EMPRESA';
+        const grupos = posListasCampos(row);
         out.innerHTML = `
             <p class="pos-title"><span class="pos-highlight">POSICIONAMENTO</span> MENSAL:</p>
             <p class="pos-sub">${posEscape(cliente)}</p>
@@ -12045,9 +12096,9 @@ function montarCelulaObservacaoHistorico(item) {
             <p class="pos-text">Prezados, esse <span class="pos-highlight">posicionamento</span> será disponibilizado mensalmente com o intuito de mantê-los atualizados referente aos certificados e certidões de sua OSC, com isso, se tornará mais fácil o processo para acompanhamento de vencimentos, renovações e status do processo.</p>
             <p class="pos-text">Caso haja dúvidas, por favor nos contatar via e-mail ou diretamente via WhatsApp, estamos à disposição.</p>
             <p class="pos-text">Pedimos gentilmente, que confirme o recebimento deste e-mail, obrigada.</p>
-            ${posTabela('DOCUMENTO', POS_DOCS, row)}
-            ${posTabela('CERTIFICADO', POS_CERTIFICADOS, row)}
-            ${posTabela('CERTIDÃO', POS_CERTIDOES, row)}
+            ${posTabela('DOCUMENTO', grupos.documento, row)}
+            ${posTabela('CERTIFICADO', grupos.certificado, row)}
+            ${posTabela('CERTIDÃO', grupos.certidao, row)}
         `;
     };
     function posNomeArquivo(ext){
@@ -12076,5 +12127,13 @@ function montarCelulaObservacaoHistorico(item) {
         pdf.addImage(img, 'JPEG', (pageW-w)/2, 6, w, h);
         pdf.save(posNomeArquivo('pdf'));
     };
+
+    function posicionarCardMensalPrimeiro(){
+        const card = document.getElementById('btn-posicionamento-mensal');
+        const wrap = document.getElementById('statusCards');
+        if (card && wrap && wrap.firstElementChild !== card) wrap.insertBefore(card, wrap.firstElementChild);
+    }
+    document.addEventListener('DOMContentLoaded', posicionarCardMensalPrimeiro);
+    setTimeout(posicionarCardMensalPrimeiro, 500);
 })();
 </script>
