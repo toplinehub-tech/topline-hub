@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v5-email";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v6-email-imagem";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -12180,6 +12180,21 @@ function montarCelulaObservacaoHistorico(item) {
             `Pedimos gentilmente, que confirme o recebimento deste e-mail, obrigada.`
         ].join('\n');
     }
+    function canvasParaBlob(canvas, tipo, qualidade){
+        return new Promise(resolve => canvas.toBlob(resolve, tipo || 'image/png', qualidade || 0.95));
+    }
+    async function copiarImagemTabelaParaAreaTransferencia(canvas){
+        try {
+            if (!navigator.clipboard || typeof ClipboardItem === 'undefined') return false;
+            const blob = await canvasParaBlob(canvas, 'image/png', 0.95);
+            if (!blob) return false;
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            return true;
+        } catch(e) {
+            console.warn('Não foi possível copiar a imagem para a área de transferência:', e);
+            return false;
+        }
+    }
     window.enviarPosicionamentoMensalEmail = async function(){
         const el = document.getElementById('posicionamentoResultado');
         const tabelas = document.getElementById('posicionamentoTabelas');
@@ -12191,18 +12206,26 @@ function montarCelulaObservacaoHistorico(item) {
             return (typeof showNotification === 'function') ? showNotification('E-mail não localizado na linha deste cliente. Confira se a coluna de e-mail está preenchida na planilha.', true) : alert('E-mail não localizado na linha deste cliente. Confira se a coluna de e-mail está preenchida na planilha.');
         }
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-        const canvas = await html2canvas(tabelas, { scale:2, backgroundColor:'#ffffff' });
-        const a = document.createElement('a');
-        a.download = posNomeArquivo('jpg').replace('.jpg','-tabelas.jpg');
-        a.href = canvas.toDataURL('image/jpeg', .95);
-        a.click();
+        const canvas = await html2canvas(tabelas, { scale:2, backgroundColor:'#ffffff', useCORS:true });
+        const imagemCopiada = await copiarImagemTabelaParaAreaTransferencia(canvas);
+        if (!imagemCopiada) {
+            const a = document.createElement('a');
+            a.download = posNomeArquivo('jpg').replace('.jpg','-tabelas.jpg');
+            a.href = canvas.toDataURL('image/jpeg', .95);
+            a.click();
+        }
         const cliente = document.querySelector('.pos-sub')?.textContent || (posicionamentoRowAtual.CLIENTE || 'Cliente');
         const assunto = `Posicionamento mensal - ${cliente}`;
-        const corpo = posTextoEmail(cliente);
+        const corpo = posTextoEmail(cliente) + '
+
+[COLE A IMAGEM DA TABELA AQUI]';
         const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
         window.open(url, 'gmail_window');
-        if (typeof registrarLog === 'function') registrarLog('Envio E-mail', cliente, 'Posicionamento mensal', `Gmail aberto para ${email}; imagem das tabelas baixada para anexar.`);
-        if (typeof showNotification === 'function') showNotification('Gmail aberto com o texto. A imagem da tabela foi baixada para anexar ao e-mail.');
+        if (typeof registrarLog === 'function') registrarLog('Envio E-mail', cliente, 'Posicionamento mensal', imagemCopiada ? `Gmail aberto para ${email}; imagem das tabelas copiada para colar no corpo do e-mail.` : `Gmail aberto para ${email}; imagem das tabelas baixada para anexar/colar.`);
+        const msg = imagemCopiada
+            ? 'Gmail aberto com o texto. A imagem da tabela foi copiada; cole abaixo do texto usando Ctrl+V.'
+            : 'Gmail aberto com o texto. A imagem da tabela foi baixada; insira/anexe abaixo do texto.';
+        if (typeof showNotification === 'function') showNotification(msg); else alert(msg);
     };
 
     window.exportarPosicionamentoMensalJPG = async function(){
