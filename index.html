@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v8-card-funcionando";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v9-imagem-recortada";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -12195,6 +12195,76 @@ function montarCelulaObservacaoHistorico(item) {
             return false;
         }
     }
+
+    async function gerarCanvasTabelasPosicionamentoEmail(){
+        const tabelasOriginais = document.getElementById('posicionamentoTabelas');
+        if (!tabelasOriginais) throw new Error('Tabelas não encontradas.');
+
+        const area = document.createElement('div');
+        area.id = 'posicionamentoTabelasEmailCapture';
+        area.style.cssText = [
+            'position:fixed',
+            'left:-12000px',
+            'top:0',
+            'z-index:-1',
+            'background:#ffffff',
+            'display:inline-block',
+            'width:max-content',
+            'max-width:none',
+            'padding:0',
+            'margin:0',
+            'overflow:hidden',
+            'font-family:Arial,sans-serif'
+        ].join(';');
+
+        const clone = tabelasOriginais.cloneNode(true);
+        clone.removeAttribute('id');
+        clone.style.cssText = 'display:inline-block;width:auto;max-width:none;background:#fff;padding:0;margin:0;overflow:hidden;';
+
+        clone.querySelectorAll('.pos-table').forEach(function(tbl){
+            tbl.style.width = '760px';
+            tbl.style.maxWidth = '760px';
+            tbl.style.margin = '0 0 24px 0';
+            tbl.style.borderCollapse = 'collapse';
+            tbl.style.tableLayout = 'auto';
+            tbl.style.fontSize = '13px';
+            tbl.style.fontWeight = '800';
+        });
+        clone.querySelectorAll('th').forEach(function(th){
+            th.style.fontSize = '11px';
+            th.style.padding = '9px 10px';
+            th.style.lineHeight = '1.2';
+        });
+        clone.querySelectorAll('td').forEach(function(td){
+            td.style.fontSize = '13px';
+            td.style.padding = '8px 10px';
+            td.style.lineHeight = '1.25';
+        });
+        clone.querySelectorAll('.pos-feedback').forEach(function(td){
+            td.style.fontSize = '14px';
+            td.style.minWidth = '220px';
+            td.style.fontWeight = '900';
+        });
+
+        area.appendChild(clone);
+        document.body.appendChild(area);
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const rect = clone.getBoundingClientRect();
+        const canvas = await html2canvas(clone, {
+            scale: 3,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            scrollX: 0,
+            scrollY: 0,
+            width: Math.ceil(rect.width),
+            height: Math.ceil(rect.height),
+            windowWidth: Math.ceil(rect.width),
+            windowHeight: Math.ceil(rect.height)
+        });
+        area.remove();
+        return canvas;
+    }
     window.enviarPosicionamentoMensalEmail = async function(){
         const el = document.getElementById('posicionamentoResultado');
         const tabelas = document.getElementById('posicionamentoTabelas');
@@ -12206,7 +12276,7 @@ function montarCelulaObservacaoHistorico(item) {
             return (typeof showNotification === 'function') ? showNotification('E-mail não localizado na linha deste cliente. Confira se a coluna de e-mail está preenchida na planilha.', true) : alert('E-mail não localizado na linha deste cliente. Confira se a coluna de e-mail está preenchida na planilha.');
         }
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-        const canvas = await html2canvas(tabelas, { scale:2, backgroundColor:'#ffffff', useCORS:true });
+        const canvas = await gerarCanvasTabelasPosicionamentoEmail();
         const imagemCopiada = await copiarImagemTabelaParaAreaTransferencia(canvas);
         if (!imagemCopiada) {
             const a = document.createElement('a');
