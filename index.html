@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v7-card-corrigido";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v8-card-funcionando";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -12216,9 +12216,7 @@ function montarCelulaObservacaoHistorico(item) {
         }
         const cliente = document.querySelector('.pos-sub')?.textContent || (posicionamentoRowAtual.CLIENTE || 'Cliente');
         const assunto = `Posicionamento mensal - ${cliente}`;
-        const corpo = posTextoEmail(cliente) + '
-
-[COLE A IMAGEM DA TABELA AQUI]';
+        const corpo = posTextoEmail(cliente) + '\n\n[COLE A IMAGEM DA TABELA AQUI]';
         const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
         window.open(url, 'gmail_window');
         if (typeof registrarLog === 'function') registrarLog('Envio E-mail', cliente, 'Posicionamento mensal', imagemCopiada ? `Gmail aberto para ${email}; imagem das tabelas copiada para colar no corpo do e-mail.` : `Gmail aberto para ${email}; imagem das tabelas baixada para anexar/colar.`);
