@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v6-email-imagem";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v7-card-corrigido";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -12257,5 +12257,19 @@ function montarCelulaObservacaoHistorico(item) {
     }
     document.addEventListener('DOMContentLoaded', posicionarCardMensalPrimeiro);
     setTimeout(posicionarCardMensalPrimeiro, 500);
+
+    function garantirCliqueCardPosicionamento(){
+        const card = document.getElementById('btn-posicionamento-mensal');
+        if (!card) return;
+        card.onclick = function(ev){
+            ev.preventDefault();
+            ev.stopPropagation();
+            window.abrirModalPosicionamentoMensal();
+            return false;
+        };
+    }
+    document.addEventListener('DOMContentLoaded', garantirCliqueCardPosicionamento);
+    setTimeout(garantirCliqueCardPosicionamento, 300);
+    setTimeout(garantirCliqueCardPosicionamento, 1200);
 })();
 </script>
