@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v3";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v4";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -11929,6 +11929,7 @@ function montarCelulaObservacaoHistorico(item) {
             <input id="posicionamentoBusca" type="text" class="flex-1 p-3 rounded-xl border text-xs font-bold" placeholder="Digite o CNPJ ou nome da empresa">
             <button onclick="pesquisarPosicionamentoMensal()" class="btn-mini bg-emerald-500 text-white border-emerald-600 justify-center">Pesquisar</button>
             <button onclick="limparPesquisaPosicionamentoMensal()" class="btn-mini bg-slate-100 text-slate-600 border-slate-300 justify-center">Limpar pesquisa</button>
+            <button onclick="enviarPosicionamentoMensalEmail()" class="btn-mini bg-red-50 text-red-600 border-red-300 justify-center">Enviar por e-mail</button>
             <button onclick="exportarPosicionamentoMensalPDF()" class="btn-mini bg-red-500 text-white border-red-600 justify-center">Exportar PDF</button>
             <button onclick="exportarPosicionamentoMensalJPG()" class="btn-mini bg-sky-500 text-white border-sky-600 justify-center">Exportar JPG</button>
         </div>
@@ -11943,17 +11944,22 @@ function montarCelulaObservacaoHistorico(item) {
 <style>
     .posicionamento-page { width: 1120px; max-width: 100%; margin: 0 auto; background: #fff; color: #111; font-family: Arial, sans-serif; padding: 10px 22px 28px; }
     .pos-title { text-align:center; font-weight:800; font-size:16px; margin:0; }
-    .pos-highlight { background:#eadb9c; padding:0 3px; }
+    .pos-highlight { background:linear-gradient(to bottom, transparent 14%, #eadb9c 14%, #eadb9c 82%, transparent 82%); padding:0 1px; line-height:1; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
     .pos-sub { text-align:center; font-style:italic; font-weight:800; font-size:16px; margin:8px 0; }
     .pos-mes { text-align:center; text-decoration:underline; font-weight:800; font-size:13px; margin:8px 0 34px; }
     .pos-text { font-size:13px; line-height:1.35; margin:0 0 10px; text-align:left; }
     .pos-table { border-collapse:collapse; width:580px; margin:30px 0 0; font-size:10px; font-weight:800; text-align:center; }
     .pos-table th { background:#7f7f7f !important; color:white; border:1px solid #111; padding:7px; font-size:9px; position:static; }
     .pos-table td { border:1px solid #111; padding:6px 8px; background:#d9d9d9; cursor:default; font-size:10px; }
-    .pos-status-regular { background:#92d050 !important; color:#111; }
-    .pos-status-analise { background:#00b0f0 !important; color:#111; }
-    .pos-status-pendente, .pos-status-vencido { background:#f4b183 !important; color:#111; }
-    .pos-feedback { min-width:160px; outline:1px dashed transparent; }
+    .pos-status-regular, .pos-status-ok, .pos-status-concluido { background:#d1fae5 !important; color:#065f46 !important; }
+    .pos-status-vencido { background:#ffe5e5 !important; color:#b91c1c !important; }
+    .pos-status-30 { background:#fff9db !important; color:#92400e !important; }
+    .pos-status-60 { background:#e6fffa !important; color:#047481 !important; }
+    .pos-status-90 { background:#f0f9ff !important; color:#0369a1 !important; }
+    .pos-status-andamento { background:#f5f3ff !important; color:#5b21b6 !important; }
+    .pos-status-analise { background:#fff7ed !important; color:#c2410c !important; }
+    .pos-status-pendente { background:#fff9db !important; color:#92400e !important; }
+    .pos-feedback { min-width:160px; outline:1px dashed transparent; font-size:11.5px !important; line-height:1.25; }
     .pos-feedback:focus { outline-color:#10b981; background:#fff !important; }
     @media print { body * { visibility:hidden !important; } #posicionamentoResultado, #posicionamentoResultado * { visibility:visible !important; } #posicionamentoResultado { position:absolute; left:0; top:0; width:100% !important; } }
 </style>
@@ -11962,7 +11968,8 @@ function montarCelulaObservacaoHistorico(item) {
 (function(){
     const POS_CERTIFICADOS_FIXOS = ['CENTS','CMDCA','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','CRCE','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL'];
     const POS_CERTIDOES_FIXAS = ['CTM','CND','CND FEDERAL','CERTIDÃO FEDERAL','CERTIDAO FEDERAL','CERTIDÃO MUNICIPAL','CERTIDAO MUNICIPAL','CERTIDÃO ESTADUAL','CERTIDAO ESTADUAL','CADIN','FGTS','CRF','TRABALHISTA','CNDT'];
-    const POS_IGNORAR = ['CLIENTE','CNPJ','RAZÃO SOCIAL','RAZAO SOCIAL','NOME','EMPRESA'];
+    let posicionamentoRowAtual = null;
+    const POS_IGNORAR = ['CLIENTE','CNPJ','RAZÃO SOCIAL','RAZAO SOCIAL','NOME','EMPRESA','ID','WHATSAPP','WHATSSAPP','TELEFONE','EMAIL','E-MAIL','E_MAIL','MAIL'];
 
     function posNorm(v){ return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase(); }
     function posEscape(v){ return String(v ?? '').replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
@@ -11984,6 +11991,20 @@ function montarCelulaObservacaoHistorico(item) {
         const n = posNorm(v);
         return !n || ['-','--','---','N/A','NA','NULL','UNDEFINED','SEM INFORMACAO','SEM INFORMAÇÃO'].includes(n);
     }
+    function posStatusKey(valor, row, col){
+        if (posValorVazio(valor)) return '';
+        if (typeof getStatus === 'function') {
+            try { const st = getStatus(valor, row, col); if (st) return String(st); } catch(e) {}
+        }
+        const n = posNorm(valor);
+        if (n.includes('ANALISE')) return 'analise';
+        if (n.includes('ANDAMENTO')) return 'andamento';
+        if (n.includes('PENDENTE')) return 'pendente';
+        if (n.includes('VENCID')) return 'vencido';
+        if (n.includes('REGULAR') || n.includes('CONCLUID') || n === 'OK') return 'concluido';
+        if (posEhData(valor)) return 'ok';
+        return '';
+    }
     function posStatusLabel(valor, row, col){
         const n = posNorm(valor);
         if (posValorVazio(valor)) return '-';
@@ -11992,23 +12013,18 @@ function montarCelulaObservacaoHistorico(item) {
         if (n.includes('PENDENTE')) return 'PENDENTE';
         if (n.includes('VENCID')) return 'VENCIDO';
         if (n.includes('REGULAR') || n.includes('CONCLUID') || n === 'OK') return 'REGULAR';
-        if (typeof getStatus === 'function') {
-            const st = getStatus(valor, row, col);
-            if (st === 'vencido') return 'VENCIDO';
-            if (st === 'analise') return 'ANÁLISE';
-            if (st === 'andamento') return 'ANDAMENTO';
-            if (st === 'concluido' || st === 'ok' || st === '30' || st === '60' || st === '90') return 'REGULAR';
-        }
+        const st = posStatusKey(valor, row, col);
+        if (st === 'vencido') return 'VENCIDO';
+        if (st === 'analise') return 'ANÁLISE';
+        if (st === 'andamento') return 'ANDAMENTO';
+        if (st === 'pendente') return 'PENDENTE';
+        if (st === 'concluido' || st === 'ok' || st === '30' || st === '60' || st === '90') return 'REGULAR';
         if (posEhData(valor)) return 'REGULAR';
         return String(valor || '-').trim().toUpperCase();
     }
-    function posStatusClass(label){
-        const n = posNorm(label);
-        if (n === 'REGULAR') return 'pos-status-regular';
-        if (n.includes('ANALISE')) return 'pos-status-analise';
-        if (n.includes('VENCID')) return 'pos-status-vencido';
-        if (n.includes('PENDENTE') || n.includes('ANDAMENTO')) return 'pos-status-pendente';
-        return '';
+    function posStatusClassFromKey(key){
+        if (!key) return '';
+        return 'pos-status-' + String(key).replace(/[^a-z0-9_-]/gi,'').toLowerCase();
     }
     function posFeedback(row, col){
         if (!row || !col) return '-';
@@ -12045,8 +12061,9 @@ function montarCelulaObservacaoHistorico(item) {
         const valor = row ? row[col] : '';
         const feedback = posFeedback(row, col);
         const status = posStatusLabel(valor, row, col);
+        const statusKey = posStatusKey(valor, row, col);
         const vencimento = posEhData(valor) ? posDataBR(valor) : '-';
-        return { nome: col, vencimento, status, feedback };
+        return { nome: col, vencimento, status, statusKey, feedback };
     }
     function posTabela(titulo, campos, row){
         // Mostra todos os campos do painel padrão dentro do grupo correspondente.
@@ -12054,7 +12071,7 @@ function montarCelulaObservacaoHistorico(item) {
         const linhas = (campos || []).map(col => posLinha(row, col));
         if (!linhas.length) return '';
         return `<table class="pos-table"><thead><tr><th>${titulo}</th><th>VENCIMENTO</th><th>STATUS</th><th>FEEDBACK:</th></tr></thead><tbody>` +
-            linhas.map(l => `<tr><td>${posEscape(l.nome)}</td><td>${posEscape(l.vencimento)}</td><td class="${posStatusClass(l.status)}">${posEscape(l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`).join('') +
+            linhas.map(l => `<tr><td>${posEscape(l.nome)}</td><td>${posEscape(l.vencimento)}</td><td class="${posStatusClassFromKey(l.statusKey)}">${posEscape(l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`).join('') +
             `</tbody></table>`;
     }
     function posTelaInicial(){
@@ -12073,6 +12090,7 @@ function montarCelulaObservacaoHistorico(item) {
         const out = document.getElementById('posicionamentoResultado');
         if (busca) busca.value = '';
         if (out) out.innerHTML = posTelaInicial();
+        posicionamentoRowAtual = null;
         setTimeout(()=>busca?.focus(),50);
     };
     window.pesquisarPosicionamentoMensal = function(){
@@ -12086,7 +12104,8 @@ function montarCelulaObservacaoHistorico(item) {
             const cnpj = String(r.CNPJ || '').replace(/\D/g,'');
             return (nome && nome.includes(termo)) || (termoCnpj && cnpj.includes(termoCnpj));
         });
-        if (!row) { out.innerHTML = '<p class="text-center text-red-500 text-xs font-bold py-10">Empresa não encontrada na base.</p>'; return; }
+        if (!row) { posicionamentoRowAtual = null; out.innerHTML = '<p class="text-center text-red-500 text-xs font-bold py-10">Empresa não encontrada na base.</p>'; return; }
+        posicionamentoRowAtual = row;
         const cliente = row.CLIENTE || row['RAZÃO SOCIAL'] || row['RAZAO SOCIAL'] || row.EMPRESA || row.NOME || 'EMPRESA';
         const grupos = posListasCampos(row);
         out.innerHTML = `
@@ -12096,9 +12115,11 @@ function montarCelulaObservacaoHistorico(item) {
             <p class="pos-text">Prezados, esse <span class="pos-highlight">posicionamento</span> será disponibilizado mensalmente com o intuito de mantê-los atualizados referente aos certificados e certidões de sua OSC, com isso, se tornará mais fácil o processo para acompanhamento de vencimentos, renovações e status do processo.</p>
             <p class="pos-text">Caso haja dúvidas, por favor nos contatar via e-mail ou diretamente via WhatsApp, estamos à disposição.</p>
             <p class="pos-text">Pedimos gentilmente, que confirme o recebimento deste e-mail, obrigada.</p>
-            ${posTabela('DOCUMENTO', grupos.documento, row)}
-            ${posTabela('CERTIFICADO', grupos.certificado, row)}
-            ${posTabela('CERTIDÃO', grupos.certidao, row)}
+            <div id="posicionamentoTabelas">
+                ${posTabela('DOCUMENTO', grupos.documento, row)}
+                ${posTabela('CERTIFICADO', grupos.certificado, row)}
+                ${posTabela('CERTIDÃO', grupos.certidao, row)}
+            </div>
         `;
     };
     function posNomeArquivo(ext){
@@ -12106,16 +12127,59 @@ function montarCelulaObservacaoHistorico(item) {
         return `posicionamento-mensal-${cliente || 'empresa'}.${ext}`;
     }
     function carregarScript(src){ return new Promise((resolve,reject)=>{ if ([...document.scripts].some(s=>s.src===src)) return resolve(); const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
+
+    function posEmailCliente(row){
+        if (!row) return '';
+        if (typeof getEmailCol === 'function') {
+            try { const c = getEmailCol(row); if (c && row[c]) return String(row[c]).trim(); } catch(e) {}
+        }
+        const k = Object.keys(row).find(ch => posNorm(ch).includes('EMAIL') || posNorm(ch).includes('MAIL'));
+        return k ? String(row[k] || '').trim() : '';
+    }
+    function posTextoEmail(cliente){
+        return [
+            `Prezados, esse posicionamento será disponibilizado mensalmente com o intuito de mantê-los atualizados referente aos certificados e certidões de sua OSC, com isso, se tornará mais fácil o processo para acompanhamento de vencimentos, renovações e status do processo.`,
+            ``,
+            `Caso haja dúvidas, por favor nos contatar via e-mail ou diretamente via WhatsApp, estamos à disposição.`,
+            ``,
+            `Pedimos gentilmente, que confirme o recebimento deste e-mail, obrigada.`
+        ].join('\n');
+    }
+    window.enviarPosicionamentoMensalEmail = async function(){
+        const el = document.getElementById('posicionamentoResultado');
+        const tabelas = document.getElementById('posicionamentoTabelas');
+        if (!el || !tabelas || !el.querySelector('.pos-title') || !posicionamentoRowAtual) {
+            return (typeof showNotification === 'function') ? showNotification('Pesquise uma empresa antes de enviar por e-mail.', true) : alert('Pesquise uma empresa antes de enviar por e-mail.');
+        }
+        const email = posEmailCliente(posicionamentoRowAtual);
+        if (!email || !email.includes('@')) {
+            return (typeof showNotification === 'function') ? showNotification('E-mail não cadastrado para este cliente na planilha.', true) : alert('E-mail não cadastrado para este cliente na planilha.');
+        }
+        await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+        const canvas = await html2canvas(tabelas, { scale:2, backgroundColor:'#ffffff' });
+        const a = document.createElement('a');
+        a.download = posNomeArquivo('jpg').replace('.jpg','-tabelas.jpg');
+        a.href = canvas.toDataURL('image/jpeg', .95);
+        a.click();
+        const cliente = document.querySelector('.pos-sub')?.textContent || (posicionamentoRowAtual.CLIENTE || 'Cliente');
+        const assunto = `Posicionamento mensal - ${cliente}`;
+        const corpo = posTextoEmail(cliente);
+        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+        window.open(url, 'gmail_window');
+        if (typeof registrarLog === 'function') registrarLog('Envio E-mail', cliente, 'Posicionamento mensal', `Gmail aberto para ${email}; imagem das tabelas baixada para anexar.`);
+        if (typeof showNotification === 'function') showNotification('Gmail aberto com o texto. A imagem da tabela foi baixada para anexar ao e-mail.');
+    };
+
     window.exportarPosicionamentoMensalJPG = async function(){
         const el = document.getElementById('posicionamentoResultado');
-        if (!el || !el.querySelector('.pos-title')) return showNotification ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
+        if (!el || !el.querySelector('.pos-title')) return (typeof showNotification === 'function') ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
         const canvas = await html2canvas(el, { scale:2, backgroundColor:'#ffffff' });
         const a=document.createElement('a'); a.download=posNomeArquivo('jpg'); a.href=canvas.toDataURL('image/jpeg', .95); a.click();
     };
     window.exportarPosicionamentoMensalPDF = async function(){
         const el = document.getElementById('posicionamentoResultado');
-        if (!el || !el.querySelector('.pos-title')) return showNotification ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
+        if (!el || !el.querySelector('.pos-title')) return (typeof showNotification === 'function') ? showNotification('Pesquise uma empresa antes de exportar.', true) : alert('Pesquise uma empresa antes de exportar.');
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
         const canvas = await html2canvas(el, { scale:2, backgroundColor:'#ffffff' });
