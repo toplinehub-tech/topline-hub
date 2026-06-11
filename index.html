@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v12-doc-cert-ajustes";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v11-imagem-maior";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -11964,21 +11964,21 @@ function montarCelulaObservacaoHistorico(item) {
     .pos-status-andamento { background:#f5f3ff !important; color:#5b21b6 !important; }
     .pos-status-analise { background:#fff7ed !important; color:#c2410c !important; }
     .pos-status-pendente { background:#fff9db !important; color:#92400e !important; }
+    .pos-status-neutro { background:#e5e7eb !important; color:#374151 !important; }
+    .pos-status-irregular { background:#ffe5e5 !important; color:#b91c1c !important; }
+    .pos-status-editavel { cursor:pointer !important; outline:1px dashed transparent; }
+    .pos-status-editavel:focus { outline-color:#10b981; background:#fff !important; }
     .pos-feedback { min-width:260px; outline:1px dashed transparent; font-size:18px !important; line-height:1.4; font-weight:800; }
     .pos-feedback:focus { outline-color:#10b981; background:#fff !important; }
-    .pos-editavel { outline:1px dashed transparent; }
-    .pos-editavel:focus { outline-color:#10b981; background:#fff !important; }
-    .pos-status-manual-cinza { background:#e5e7eb !important; color:#374151 !important; }
-    .pos-status-manual-verde { background:#d1fae5 !important; color:#065f46 !important; }
     @media print { body * { visibility:hidden !important; } #posicionamentoResultado, #posicionamentoResultado * { visibility:visible !important; } #posicionamentoResultado { position:absolute; left:0; top:0; width:100% !important; } }
 </style>
 
 <script>
 (function(){
-    const POS_CERTIFICADOS_FIXOS = ['CENTS','CMDCA','UTILIDADE','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','CRCE','CRED.','CRED','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL','COMAS','COVISA'];
+    const POS_CERTIFICADOS_FIXOS = ['CENTS','CMDCA','COMAS','COVISA','UTILIDADE PÚBLICA','UTILIDADE PUBLICA','UTILIDADE','CRCE','CRED','CRED.','CREDENCIAMENTO','CREDENCIAMENTO EDUCACIONAL','CERTIFICADO DIGITAL'];
     const POS_CERTIDOES_FIXAS = ['CTM','CND','CND FEDERAL','CERTIDÃO FEDERAL','CERTIDAO FEDERAL','CERTIDÃO MUNICIPAL','CERTIDAO MUNICIPAL','CERTIDÃO ESTADUAL','CERTIDAO ESTADUAL','CADIN','FGTS','CRF','TRABALHISTA','CNDT'];
     let posicionamentoRowAtual = null;
-    const POS_IGNORAR = ['CLIENTE','CNPJ','RAZÃO SOCIAL','RAZAO SOCIAL','NOME','EMPRESA','ID','WHATSAPP','WHATSSAPP','TELEFONE','EMAIL','E-MAIL','E_MAIL','MAIL','SETOR','PARCELAMENTO','PARCELAMENTOS'];
+    const POS_IGNORAR = ['CLIENTE','CNPJ','RAZÃO SOCIAL','RAZAO SOCIAL','NOME','EMPRESA','ID','WHATSAPP','WHATSSAPP','TELEFONE','EMAIL','E-MAIL','E_MAIL','MAIL'];
 
     function posNorm(v){ return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase(); }
     function posEscape(v){ return String(v ?? '').replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
@@ -12035,6 +12035,18 @@ function montarCelulaObservacaoHistorico(item) {
         if (!key) return '';
         return 'pos-status-' + String(key).replace(/[^a-z0-9_-]/gi,'').toLowerCase();
     }
+    window.alternarStatusRelatorioAtividade = function(el){
+        if (!el) return;
+        const estaRegular = el.classList.contains('pos-status-regular') || posNorm(el.textContent) === 'REGULAR';
+        el.classList.remove('pos-status-neutro', 'pos-status-regular', 'pos-status-ok', 'pos-status-concluido', 'pos-status-irregular');
+        if (estaRegular) {
+            el.classList.add('pos-status-irregular');
+            el.textContent = 'IRREGULAR';
+        } else {
+            el.classList.add('pos-status-regular');
+            el.textContent = 'REGULAR';
+        }
+    };
     function posFeedback(row, col){
         if (!row || !col) return '-';
         const candidatos = [col + '_OBS', col + '_FEEDBACK', col + '_OBSERVACAO', col + '_OBSERVAÇÃO'];
@@ -12049,10 +12061,22 @@ function montarCelulaObservacaoHistorico(item) {
     function posClassificarColuna(h){
         const n = posNorm(h);
         if (POS_IGNORAR.includes(n) || n.endsWith('_DONE') || n.endsWith('_OBS') || n.endsWith('_FEEDBACK') || n.endsWith('_OBSERVACAO')) return 'ignorar';
-        if (POS_CERTIFICADOS_FIXOS.some(x => n === posNorm(x))) return 'certificado';
+
+        // Estes campos não devem aparecer na tabela DOCUMENTO do modal.
+        if (n === 'SETOR' || n.includes('PARCELAMENTO') || n === 'PGDAS') return 'ignorar';
+
+        // Utilidade, CRED., COMAS e COVISA devem aparecer em CERTIFICADO.
+        if (
+            POS_CERTIFICADOS_FIXOS.some(x => n === posNorm(x)) ||
+            n.includes('UTILIDADE') ||
+            n === 'CRED' || n === 'CRED.' || n.includes('CREDENCIAMENTO') ||
+            n.includes('COMAS') ||
+            n.includes('COVISA')
+        ) return 'certificado';
+
         if (POS_CERTIDOES_FIXAS.some(x => n === posNorm(x) || n.includes(posNorm(x)))) return 'certidao';
         if (n.includes('CERTIDAO') || n.includes('CERTIDÃO') || n === 'CND' || n === 'CTM') return 'certidao';
-        if (n.includes('CERTIFICADO') || n.includes('CREDENCIAMENTO') || n === 'CENTS' || n === 'CMDCA' || n === 'CRCE' || n === 'UTILIDADE' || n === 'CRED' || n === 'CRED.' || n === 'COMAS' || n === 'COVISA') return 'certificado';
+        if (n.includes('CERTIFICADO') || n === 'CENTS' || n === 'CMDCA' || n === 'CRCE') return 'certificado';
         return 'documento';
     }
     function posListasCampos(row){
@@ -12078,29 +12102,28 @@ function montarCelulaObservacaoHistorico(item) {
         // Mostra todos os campos do painel padrão dentro do grupo correspondente.
         // O que não for certificado nem certidão entra em DOCUMENTO.
         const linhas = (campos || []).map(col => posLinha(row, col));
-        if (titulo === 'DOCUMENTO') {
-            linhas.push({ nome:'Relatório de atividade', vencimento:'-', status:'-', statusKey:'manual-cinza', feedback:'-' });
+
+        // Linha manual solicitada na tabela DOCUMENTO.
+        // A data permanece com "-" e os demais campos podem ser editados no modal.
+        if (String(titulo || '').toUpperCase().includes('DOCUMENTO')) {
+            linhas.push({
+                nome: 'RELATÓRIO DE ATIVIDADE',
+                vencimento: '-',
+                status: 'IRREGULAR',
+                statusKey: 'irregular',
+                feedback: '-'
+            });
         }
+
         if (!linhas.length) return '';
         return `<table class="pos-table"><thead><tr><th>${titulo}</th><th>VENCIMENTO</th><th>STATUS</th><th>FEEDBACK:</th></tr></thead><tbody>` +
             linhas.map(l => {
-                if (l.nome === 'Relatório de atividade') {
-                    return `<tr class="pos-relatorio-atividade"><td class="pos-editavel" contenteditable="true">Relatório de atividade</td><td>-</td><td class="pos-status-manual-cinza pos-editavel" contenteditable="true" onclick="alternarStatusRelatorioAtividade(this)" title="Clique para alternar entre cinza e verde">-</td><td class="pos-feedback" contenteditable="true">-</td></tr>`;
-                }
-                return `<tr><td>${posEscape(l.nome)}</td><td>${posEscape(l.vencimento)}</td><td class="${posStatusClassFromKey(l.statusKey)}">${posEscape(l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`;
+                const ehRelatorio = posNorm(l.nome) === 'RELATORIO DE ATIVIDADE';
+                const classeStatus = ehRelatorio ? 'pos-status-editavel pos-status-irregular' : posStatusClassFromKey(l.statusKey);
+                return `<tr data-pos-row="${ehRelatorio ? 'relatorio-atividade' : ''}"><td ${ehRelatorio ? 'contenteditable="true"' : ''}>${posEscape(ehRelatorio ? 'RELATÓRIO DE ATIVIDADE' : l.nome)}</td><td ${ehRelatorio ? 'contenteditable="true"' : ''}>${posEscape(l.vencimento)}</td><td class="${classeStatus}" ${ehRelatorio ? 'onclick="alternarStatusRelatorioAtividade(this)" title="Clique para alternar entre REGULAR e IRREGULAR"' : ''}>${posEscape(ehRelatorio ? 'IRREGULAR' : l.status)}</td><td class="pos-feedback" contenteditable="true">${posEscape(l.feedback)}</td></tr>`;
             }).join('') +
             `</tbody></table>`;
     }
-
-    window.alternarStatusRelatorioAtividade = function(el){
-        if (!el) return;
-        const verde = el.classList.contains('pos-status-manual-verde');
-        el.classList.toggle('pos-status-manual-verde', !verde);
-        el.classList.toggle('pos-status-manual-cinza', verde);
-        if (!verde && (!el.textContent || el.textContent.trim() === '-')) el.textContent = 'REGULAR';
-        if (verde && (!el.textContent || el.textContent.trim().toUpperCase() === 'REGULAR')) el.textContent = '-';
-    };
-
     function posTelaInicial(){
         return '<div class="text-center text-slate-400 text-xs font-bold py-12">Digite o CNPJ ou nome da empresa e clique em pesquisar.</div>';
     }
