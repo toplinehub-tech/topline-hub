@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v4";
+        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v5-email";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -12128,13 +12128,48 @@ function montarCelulaObservacaoHistorico(item) {
     }
     function carregarScript(src){ return new Promise((resolve,reject)=>{ if ([...document.scripts].some(s=>s.src===src)) return resolve(); const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
 
+    function posExtrairEmailTexto(v){
+        const m = String(v || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+        return m ? m[0].trim() : '';
+    }
     function posEmailCliente(row){
         if (!row) return '';
-        if (typeof getEmailCol === 'function') {
-            try { const c = getEmailCol(row); if (c && row[c]) return String(row[c]).trim(); } catch(e) {}
+        const chaves = Object.keys(row || {});
+        const preferidas = chaves.filter(ch => {
+            const n = posNorm(ch);
+            return n.includes('EMAIL') || n.includes('E MAIL') || n.includes('MAIL') || n.includes('CORREIO');
+        });
+        for (const ch of preferidas) {
+            const email = posExtrairEmailTexto(row[ch]);
+            if (email) return email;
         }
-        const k = Object.keys(row).find(ch => posNorm(ch).includes('EMAIL') || posNorm(ch).includes('MAIL'));
-        return k ? String(row[k] || '').trim() : '';
+        if (typeof getEmailCol === 'function') {
+            try {
+                const c = getEmailCol(row);
+                const email = c ? posExtrairEmailTexto(row[c]) : '';
+                if (email) return email;
+            } catch(e) {}
+        }
+        for (const ch of chaves) {
+            const email = posExtrairEmailTexto(row[ch]);
+            if (email) return email;
+        }
+        // Caso a linha filtrada tenha vindo sem o e-mail, procura novamente na base pelo mesmo CNPJ/nome.
+        try {
+            const cnpjAtual = String(row.CNPJ || row['CNPJ'] || '').replace(/\D/g,'');
+            const nomeAtual = posNorm([row.CLIENTE, row['RAZÃO SOCIAL'], row['RAZAO SOCIAL'], row.EMPRESA, row.NOME].filter(Boolean).join(' '));
+            const base = Array.isArray(rawData) ? rawData : [];
+            for (const r of base) {
+                if (r === row) continue;
+                const cnpj = String(r.CNPJ || r['CNPJ'] || '').replace(/\D/g,'');
+                const nome = posNorm([r.CLIENTE, r['RAZÃO SOCIAL'], r['RAZAO SOCIAL'], r.EMPRESA, r.NOME].filter(Boolean).join(' '));
+                if ((cnpjAtual && cnpj === cnpjAtual) || (nomeAtual && nome && (nome === nomeAtual || nome.includes(nomeAtual) || nomeAtual.includes(nome)))) {
+                    const email = posEmailCliente(r);
+                    if (email) return email;
+                }
+            }
+        } catch(e) {}
+        return '';
     }
     function posTextoEmail(cliente){
         return [
@@ -12153,7 +12188,7 @@ function montarCelulaObservacaoHistorico(item) {
         }
         const email = posEmailCliente(posicionamentoRowAtual);
         if (!email || !email.includes('@')) {
-            return (typeof showNotification === 'function') ? showNotification('E-mail não cadastrado para este cliente na planilha.', true) : alert('E-mail não cadastrado para este cliente na planilha.');
+            return (typeof showNotification === 'function') ? showNotification('E-mail não localizado na linha deste cliente. Confira se a coluna de e-mail está preenchida na planilha.', true) : alert('E-mail não localizado na linha deste cliente. Confira se a coluna de e-mail está preenchida na planilha.');
         }
         await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
         const canvas = await html2canvas(tabelas, { scale:2, backgroundColor:'#ffffff' });
