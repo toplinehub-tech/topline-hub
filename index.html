@@ -12401,3 +12401,115 @@ function montarCelulaObservacaoHistorico(item) {
     setTimeout(garantirCliqueCardPosicionamento, 1200);
 })();
 </script>
+
+<script>
+/* =========================================================
+   HOTFIX - Empresas/Parcelamentos: filtro ATIVOS + modal salvar
+   - Resolve nomes de colunas por equivalência, evitando erro quando
+     a planilha usa variações como DATA ENVIO PARC ou DT.ENVIO.PARC.
+   - Campos auxiliares de data são opcionais: se não existirem na planilha,
+     o sistema não interrompe o salvamento principal do parcelamento/PGDAS.
+   ========================================================= */
+(function(){
+    if (window.__TOPLINE_HOTFIX_EMP_PARC_COLUNAS_20260619__) return;
+    window.__TOPLINE_HOTFIX_EMP_PARC_COLUNAS_20260619__ = true;
+
+    function normalizarColunaHotfix(valor){
+        return String(valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '');
+    }
+
+    function obterHeadersHotfix(){
+        const lista = [];
+        try { if (Array.isArray(headers)) lista.push.apply(lista, headers); } catch(e) {}
+        try {
+            if (Array.isArray(rawData)) {
+                rawData.forEach(function(row){
+                    Object.keys(row || {}).forEach(function(k){ lista.push(k); });
+                });
+            }
+        } catch(e) {}
+        return Array.from(new Set(lista.filter(Boolean).map(function(h){ return String(h).trim(); })));
+    }
+
+    function resolverColunaPlanilhaHotfix(coluna){
+        const alvo = String(coluna || '').trim();
+        if (!alvo) return '';
+
+        const disponiveis = obterHeadersHotfix();
+        if (disponiveis.includes(alvo)) return alvo;
+
+        const alvoNorm = normalizarColunaHotfix(alvo);
+        const direta = disponiveis.find(function(h){ return normalizarColunaHotfix(h) === alvoNorm; });
+        if (direta) return direta;
+
+        const grupos = {
+            PARCELAMENTOS: ['PARCELAMENTOS', 'PARCELAMENTO', 'PARCEL', 'INFO PARCELAMENTOS', 'INFORMACOES PARCELAMENTOS'],
+            PGDAS: ['PGDAS', 'PGDAS STATUS', 'STATUS PGDAS'],
+            DTENVIOPARC: ['DT.ENVIO.PARC', 'DT ENVIO PARC', 'DATA_ENVIO_PARC', 'DATA ENVIO PARC', 'DATA ENVIO PARCELAMENTO', 'DT ENVIO PARCELAMENTO'],
+            DTENVIOPGDAS: ['DT.ENVIO.PGDAS', 'DT ENVIO PGDAS', 'DATA_ENVIO_PGDAS', 'DATA ENVIO PGDAS', 'DATA ENVIO']
+        };
+
+        const chaveGrupo = Object.keys(grupos).find(function(chave){
+            return grupos[chave].some(function(alias){ return normalizarColunaHotfix(alias) === alvoNorm; });
+        });
+
+        if (chaveGrupo) {
+            const aliasesNorm = grupos[chaveGrupo].map(normalizarColunaHotfix);
+            const encontrada = disponiveis.find(function(h){ return aliasesNorm.includes(normalizarColunaHotfix(h)); });
+            if (encontrada) return encontrada;
+        }
+
+        return alvo;
+    }
+
+    function colunaExisteHotfix(coluna){
+        const resolvida = resolverColunaPlanilhaHotfix(coluna);
+        const disponiveisNorm = obterHeadersHotfix().map(normalizarColunaHotfix);
+        return disponiveisNorm.includes(normalizarColunaHotfix(resolvida));
+    }
+
+    function colunaOpcionalHotfix(coluna){
+        const n = normalizarColunaHotfix(coluna);
+        return n === 'DTENVIOPARC' || n === 'DATAENVIOPARC' || n === 'DTENVIOPGDAS' || n === 'DATAENVIOPGDAS';
+    }
+
+    if (typeof enviarParaGoogleSheets === 'function' && !window.__TOPLINE_ENVIAR_SHEETS_ORIGINAL_COL_HOTFIX__) {
+        window.__TOPLINE_ENVIAR_SHEETS_ORIGINAL_COL_HOTFIX__ = enviarParaGoogleSheets;
+        enviarParaGoogleSheets = function(cliente, coluna, tipo, valor){
+            const colunaResolvida = resolverColunaPlanilhaHotfix(coluna);
+
+            if (colunaOpcionalHotfix(coluna) && !colunaExisteHotfix(coluna)) {
+                console.warn('[TopLineHotfix] Coluna opcional ausente na planilha; salvamento principal continuará:', coluna);
+                return Promise.resolve({ success: true, skipped: true, coluna: coluna, motivo: 'coluna_opcional_ausente' });
+            }
+
+            return window.__TOPLINE_ENVIAR_SHEETS_ORIGINAL_COL_HOTFIX__(cliente, colunaResolvida, tipo, valor)
+                .catch(function(error){
+                    const msg = String(error && error.message ? error.message : error || '');
+                    if (colunaOpcionalHotfix(coluna) && /coluna|column/i.test(msg) && /encontr|not found/i.test(msg)) {
+                        console.warn('[TopLineHotfix] Coluna opcional não encontrada pelo Apps Script; salvamento principal mantido:', coluna, msg);
+                        return { success: true, skipped: true, coluna: coluna, motivo: msg };
+                    }
+                    throw error;
+                });
+        };
+    }
+
+    // Garante que o modal de Empresas/Parcelamentos sempre guarde o índice real da linha,
+    // mesmo após filtrar por ATIVOS/INATIVOS e ordenar a tabela.
+    if (typeof openParcelamentoInfoModal === 'function' && !window.__TOPLINE_OPEN_PARC_ORIGINAL_COL_HOTFIX__) {
+        window.__TOPLINE_OPEN_PARC_ORIGINAL_COL_HOTFIX__ = openParcelamentoInfoModal;
+        openParcelamentoInfoModal = function(r){
+            const idx = Number(r);
+            if (!Number.isNaN(idx) && rawData && rawData[idx]) {
+                return window.__TOPLINE_OPEN_PARC_ORIGINAL_COL_HOTFIX__(idx);
+            }
+            return window.__TOPLINE_OPEN_PARC_ORIGINAL_COL_HOTFIX__(r);
+        };
+    }
+})();
+</script>
