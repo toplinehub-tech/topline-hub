@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.07.14.senhas-ccm-agenda-nikolas-v1";
+        window.TOPLINE_APP_VERSION = "2026.07.14.darf-alugueis-sheets.v2";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -6451,6 +6451,12 @@ body.agenda-modal-open { overflow:hidden; }
         }
 
         function alugueisLinhasRespostaSheet(resposta) {
+            // Formato recomendado pelo Apps Script DARF ALUGUEIS: matriz completa da aba.
+            if (Array.isArray(resposta?.matrix)) return resposta.matrix;
+            if (Array.isArray(resposta?.matriz)) return resposta.matriz;
+            if (Array.isArray(resposta?.values)) return resposta.values;
+
+            // Compatibilidade com a versão anterior do Apps Script.
             const headers = Array.isArray(resposta?.headers) ? resposta.headers : [];
             const rows = Array.isArray(resposta?.rows) ? resposta.rows : (Array.isArray(resposta?.data) ? resposta.data : []);
             return [headers].concat(rows.map(row => headers.map((header, index) => {
@@ -6467,14 +6473,17 @@ body.agenda-modal-open { overflow:hidden; }
             const abasResp = await alugueisJsonp({ action:'listarAbas' });
             if (!abasResp || abasResp.success === false) throw new Error(abasResp?.error || 'Não foi possível listar as abas.');
             const abas = (abasResp.abas || []).map(a => typeof a === 'string' ? a : a.nome).filter(Boolean).filter(n => String(n).toUpperCase().trim() !== 'UNIDADES');
+            if (!abas.length) throw new Error('O Apps Script não retornou nenhuma aba da planilha DARF ALUGUEIS.');
             const workbook = { SheetNames: [], Sheets: {} };
             for (const aba of abas) {
                 const resposta = await alugueisJsonp({ action:'lerAba', aba });
                 if (!resposta || resposta.success === false) { console.warn('Aba ignorada:', aba, resposta?.error); continue; }
                 const linhas = alugueisLinhasRespostaSheet(resposta);
+                if (!Array.isArray(linhas) || !linhas.length) { console.warn('Aba vazia ou sem matriz:', aba); continue; }
                 workbook.SheetNames.push(aba);
                 workbook.Sheets[aba] = XLSX.utils.aoa_to_sheet(linhas);
             }
+            if (!workbook.SheetNames.length) throw new Error('Nenhuma aba pôde ser lida no DARF ALUGUEIS. Atualize o Apps Script conforme o arquivo Code.gs fornecido.');
             const registros = alugueisExtrairDaWorkbook(workbook, DARF_ALUGUEIS_NOME_ARQUIVO);
             alugueisData = registros;
             alugueisFonte = 'google_sheets';
