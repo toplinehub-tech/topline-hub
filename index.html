@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.07.14.darf-alugueis-sheets.v2";
+        window.TOPLINE_APP_VERSION = "2026.07.14.darf-alugueis-pago-verde.v3";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -6991,7 +6991,8 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                         action:'editCell', aba, linha:String(linha),
                         colunaNumero:String(meta.coluna_numero || ((meta.col || 0) + 1)),
                         coluna:String(meta.coluna_numero || ((meta.col || 0) + 1)),
-                        valor:String(r[campo] ?? ''), tipo:'numero'
+                        valor:String(r[campo] ?? ''), tipo:'numero',
+                        statusFormato: alugueisNormalizarStatus(r.status)
                     }));
                 }
                 const respostas = await Promise.all(alteracoes);
