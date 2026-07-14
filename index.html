@@ -1508,7 +1508,7 @@ body.agenda-modal-open { overflow:hidden; }
                     <div class="alugueis-page-head">
                         <div>
                             <h2>Aluguéis</h2>
-                            <p>Gestão dos DARFs de aluguel por cliente, conectada diretamente à planilha Google Sheets DARF ALUGUEIS. As informações são carregadas sem importação manual.</p>
+                            <p>Gestão dos DARFs de aluguel por cliente, conectada diretamente à planilha Google Sheets DARF ALUGUEL. As informações são carregadas sem importação manual.</p>
                         </div>
                         <div class="alugueis-head-actions">
                             <button onclick="alugueisCarregarBanco(true)" class="alugueis-action-btn alugueis-action-primary">Atualizar do Sheets</button>
@@ -6429,13 +6429,13 @@ body.agenda-modal-open { overflow:hidden; }
         let alugueisClienteAtivo = '';
         let alugueisFiltroRapido = 'todos';
         const DARF_ALUGUEIS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-Q53JAAZw3ulqCvlZB2A1eaqGfCVHcNMhLCvza_7O1UliHlWG-0ba2IgcJtbnDzM/exec';
-        const DARF_ALUGUEIS_NOME_ARQUIVO = 'DARF ALUGUEIS';
+        const DARF_ALUGUEIS_NOME_ARQUIVO = 'DARF ALUGUEL';
 
         function alugueisJsonp(params) {
             return new Promise((resolve, reject) => {
                 const callback = '__darfAlugueis_' + Date.now() + '_' + Math.random().toString(36).slice(2);
                 const script = document.createElement('script');
-                const timeout = setTimeout(() => finalizar(new Error('Tempo esgotado ao acessar DARF ALUGUEIS.')), 30000);
+                const timeout = setTimeout(() => finalizar(new Error('Tempo esgotado ao acessar DARF ALUGUEL.')), 30000);
                 function finalizar(erro, dados) {
                     clearTimeout(timeout);
                     try { delete window[callback]; } catch(e) { window[callback] = undefined; }
@@ -6443,7 +6443,7 @@ body.agenda-modal-open { overflow:hidden; }
                     erro ? reject(erro) : resolve(dados);
                 }
                 window[callback] = dados => finalizar(null, dados);
-                script.onerror = () => finalizar(new Error('Falha de comunicação com DARF ALUGUEIS.'));
+                script.onerror = () => finalizar(new Error('Falha de comunicação com DARF ALUGUEL.'));
                 const query = new URLSearchParams({ ...(params || {}), callback, _t: Date.now().toString() });
                 script.src = DARF_ALUGUEIS_SCRIPT_URL + '?' + query.toString();
                 document.head.appendChild(script);
@@ -6451,7 +6451,7 @@ body.agenda-modal-open { overflow:hidden; }
         }
 
         function alugueisLinhasRespostaSheet(resposta) {
-            // Formato recomendado pelo Apps Script DARF ALUGUEIS: matriz completa da aba.
+            // Formato recomendado pelo Apps Script DARF ALUGUEL: matriz completa da aba.
             if (Array.isArray(resposta?.matrix)) return resposta.matrix;
             if (Array.isArray(resposta?.matriz)) return resposta.matriz;
             if (Array.isArray(resposta?.values)) return resposta.values;
@@ -6468,12 +6468,13 @@ body.agenda-modal-open { overflow:hidden; }
 
         async function alugueisCarregarDoSheets(forcarAviso) {
             const tbody = document.getElementById('alugueisBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-slate-400 font-bold">Carregando DARF ALUGUEIS do Google Sheets...</td></tr>';
-            if (typeof setSaveStatus === 'function') setSaveStatus('saving','Carregando DARF ALUGUEIS...');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-slate-400 font-bold">Carregando DARF ALUGUEL do Google Sheets...</td></tr>';
+            if (typeof setSaveStatus === 'function') setSaveStatus('saving','Carregando DARF ALUGUEL...');
             const abasResp = await alugueisJsonp({ action:'listarAbas' });
             if (!abasResp || abasResp.success === false) throw new Error(abasResp?.error || 'Não foi possível listar as abas.');
-            const abas = (abasResp.abas || []).map(a => typeof a === 'string' ? a : a.nome).filter(Boolean).filter(n => String(n).toUpperCase().trim() !== 'UNIDADES');
-            if (!abas.length) throw new Error('O Apps Script não retornou nenhuma aba da planilha DARF ALUGUEIS.');
+            const abasBrutas = abasResp.abas || abasResp.resultado?.abas || abasResp.resultado || [];
+            const abas = (Array.isArray(abasBrutas) ? abasBrutas : []).map(a => typeof a === 'string' ? a : (a.nome || a.name || a.aba)).filter(Boolean).filter(n => String(n).toUpperCase().trim() !== 'UNIDADES');
+            if (!abas.length) throw new Error('O Apps Script não retornou nenhuma aba da planilha DARF ALUGUEL.');
             const workbook = { SheetNames: [], Sheets: {} };
             for (const aba of abas) {
                 const resposta = await alugueisJsonp({ action:'lerAba', aba });
@@ -6483,15 +6484,15 @@ body.agenda-modal-open { overflow:hidden; }
                 workbook.SheetNames.push(aba);
                 workbook.Sheets[aba] = XLSX.utils.aoa_to_sheet(linhas);
             }
-            if (!workbook.SheetNames.length) throw new Error('Nenhuma aba pôde ser lida no DARF ALUGUEIS. Atualize o Apps Script conforme o arquivo Code.gs fornecido.');
+            if (!workbook.SheetNames.length) throw new Error('Nenhuma aba pôde ser lida no DARF ALUGUEL. Atualize o Apps Script conforme o arquivo Code.gs fornecido.');
             const registros = alugueisExtrairDaWorkbook(workbook, DARF_ALUGUEIS_NOME_ARQUIVO);
             alugueisData = registros;
             alugueisFonte = 'google_sheets';
             alugueisCarregadoBanco = true;
             alugueisPreencherFiltros();
             alugueisRender();
-            if (typeof setSaveStatus === 'function') setSaveStatus('saved','DARF ALUGUEIS atualizado');
-            if (forcarAviso) showNotification(`DARF ALUGUEIS atualizado: ${registros.length} registros.`);
+            if (typeof setSaveStatus === 'function') setSaveStatus('saved','DARF ALUGUEL atualizado');
+            if (forcarAviso) showNotification(`DARF ALUGUEL atualizado: ${registros.length} registros.`);
             return registros;
         }
 
@@ -6707,7 +6708,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             });
             if (totalEl) totalEl.textContent = `(${clientes.length})`;
             if (!clientes.length) {
-                wrap.innerHTML = '<div class="alugueis-empty">Nenhum cliente encontrado no DARF ALUGUEIS.</div>';
+                wrap.innerHTML = '<div class="alugueis-empty">Nenhum cliente encontrado no DARF ALUGUEL.</div>';
             } else {
                 wrap.innerHTML = clientes.slice(0, 40).map(function(c) {
                     const key = encodeURIComponent(c.nome);
@@ -6830,11 +6831,11 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             try {
                 return await alugueisCarregarDoSheets(!!forcarAviso);
             } catch (e) {
-                console.error('Erro ao carregar DARF ALUGUEIS do Sheets:', e);
-                if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro no DARF ALUGUEIS');
+                console.error('Erro ao carregar DARF ALUGUEL do Sheets:', e);
+                if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro no DARF ALUGUEL');
                 const tbody = document.getElementById('alugueisBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-red-500 font-bold">Não foi possível carregar a planilha DARF ALUGUEIS. Verifique a implantação do Apps Script e as permissões de acesso.</td></tr>';
-                if (forcarAviso) showNotification('Erro ao carregar DARF ALUGUEIS do Google Sheets.', true);
+                if (tbody) tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-red-500 font-bold">Não foi possível carregar a planilha DARF ALUGUEL. Verifique a implantação do Apps Script e as permissões de acesso.</td></tr>';
+                if (forcarAviso) showNotification('Erro ao carregar DARF ALUGUEL do Google Sheets.', true);
                 return [];
             }
         }
@@ -6929,7 +6930,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             if (titulo) titulo.textContent = alugueisClienteAtivo ? `Lançamentos do cliente: ${alugueisClienteAtivo}` : 'Lançamentos de aluguéis';
             if (resumo) resumo.textContent = `${lista.length} registro(s) | IRRF ${alugueisFormatarMoeda(irrf)}`;
             if (!lista.length) {
-                tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-slate-400 font-bold">Nenhum aluguel encontrado no DARF ALUGUEIS ou nos filtros selecionados.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-slate-400 font-bold">Nenhum aluguel encontrado no DARF ALUGUEL ou nos filtros selecionados.</td></tr>';
                 return;
             }
             tbody.innerHTML = lista.slice(0, 500).map((r) => {
@@ -6977,7 +6978,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             const r = alugueisEncontrarPorKey(keyEncoded);
             if (!r) return;
             try {
-                if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando no DARF ALUGUEIS...');
+                if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando no DARF ALUGUEL...');
                 const meta = r.raw_json || {};
                 const aba = meta.sheet || r.origem_planilha;
                 if (!aba) throw new Error('Aba de origem não identificada.');
@@ -7005,12 +7006,12 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                     await supabaseClient.from('alugueis_darf').upsert([alugueisPayloadBanco(r)], { onConflict:'unique_key' });
                 } catch (eBanco) { console.warn('Acompanhamento interno de aluguel não salvo:', eBanco); }
                 if (typeof registrarLog === 'function') registrarLog('Alteração DARF aluguel', r.cliente || null, 'ALUGUEIS', `${r.mes_label || r.competencia} - ${r.nome_beneficiario || ''}`);
-                if (typeof setSaveStatus === 'function') setSaveStatus('saved','DARF ALUGUEIS salvo');
-                showNotification('Alterações enviadas para DARF ALUGUEIS.');
+                if (typeof setSaveStatus === 'function') setSaveStatus('saved','DARF ALUGUEL salvo');
+                showNotification('Alterações enviadas para DARF ALUGUEL.');
             } catch (e) {
-                console.error('Erro ao salvar no DARF ALUGUEIS:', e);
-                if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro no DARF ALUGUEIS');
-                showNotification('Erro ao salvar no DARF ALUGUEIS: ' + (e.message || e), true);
+                console.error('Erro ao salvar no DARF ALUGUEL:', e);
+                if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro no DARF ALUGUEL');
+                showNotification('Erro ao salvar no DARF ALUGUEL: ' + (e.message || e), true);
             }
         }
 
