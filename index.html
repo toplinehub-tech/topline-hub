@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.07.14.darf-alugueis-pago-verde.v3";
+        window.TOPLINE_APP_VERSION = "2026.07.14.darf-alugueis-pago-verde.v4";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -6836,6 +6836,8 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                         raw.raw_json = {
                             sheet: sheetName, ano: comp.ano, mes: comp.mes, col: c,
                             coluna_numero: c + 1,
+                            linha_inicio: r + 3,
+                            linha_fim: fim + 1,
                             linhas: {
                                 valor_bruto: metricas.valor_bruto ? linhas.indexOf(metricas.valor_bruto) + 1 : null,
                                 valor_tributavel: metricas.valor_tributavel ? linhas.indexOf(metricas.valor_tributavel) + 1 : null,
@@ -7052,6 +7054,20 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                     }));
                 }
                 if (!alteracoes.length) throw new Error('Não foi possível identificar as células correspondentes na planilha.');
+
+                // Formata todo o bloco do mês na planilha, preservando os valores financeiros.
+                // Essa chamada usa a coluna e o intervalo exatos encontrados durante a leitura.
+                if (meta.linha_inicio && meta.linha_fim && meta.coluna_numero) {
+                    alteracoes.push(alugueisJsonp({
+                        action:'formatarCompetencia',
+                        aba,
+                        colunaNumero:String(meta.coluna_numero),
+                        linhaInicio:String(meta.linha_inicio),
+                        linhaFim:String(meta.linha_fim),
+                        status:statusAtual
+                    }));
+                }
+
                 const respostas = await Promise.all(alteracoes);
                 const falha = respostas.find(x => !x || x.success === false);
                 if (falha) throw new Error(falha?.error || 'O Apps Script não aceitou uma das alterações.');
