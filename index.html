@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.06.11.posicionamento.v11-imagem-maior";
+        window.TOPLINE_APP_VERSION = "2026.07.14.senhas-ccm-agenda-nikolas-v1";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -5115,7 +5115,11 @@ body.agenda-modal-open { overflow:hidden; }
                 return `<tr>
                     <td class="col-fixed font-bold text-slate-700">${escapeHtml(cliente || '-')}</td>
                     <td class="text-[10px] text-slate-500">${escapeHtml(cnpj || '-')}</td>
-                    <td class="text-[10px] text-slate-500">${escapeHtml(ccm || '-')}</td>
+                    <td class="text-[10px] text-slate-500 bg-sky-50/40 hover:bg-sky-100/70 cursor-text transition-colors"
+                        onclick="iniciarEdicaoCCM(this, '${escapeAttr(cliente)}', '${escapeAttr(cnpj)}')"
+                        title="Clique para editar o CCM e pressione Enter para salvar">
+                        <span class="ccm-display block w-full min-h-[20px] px-1 py-1 rounded">${escapeHtml(ccm || '-')}</span>
+                    </td>
                     ${CAMPOS_SENHAS.map(campo => {
                         const val = String(getSenhaCampo(p, campo) || '');
                         const isSenha = val.trim().length > 0;
@@ -5130,6 +5134,87 @@ body.agenda-modal-open { overflow:hidden; }
                     }).join('')}
                 </tr>`;
             }).join('');
+        }
+
+        function encontrarLinhaSenhaPorClienteCnpj(cliente, cnpj) {
+            const clienteAlvo = normalizarChaveSenha(cliente);
+            const cnpjAlvo = String(cnpj || '').replace(/\D/g, '');
+            return (passwordData || []).find(p => {
+                const mesmoCliente = normalizarChaveSenha(getSenhaCampo(p, 'CLIENTE')) === clienteAlvo;
+                const cnpjLinha = String(getSenhaCampo(p, 'CNPJ') || '').replace(/\D/g, '');
+                return mesmoCliente && (!cnpjAlvo || !cnpjLinha || cnpjLinha === cnpjAlvo);
+            }) || encontrarLinhaSenha(cliente);
+        }
+
+        function iniciarEdicaoCCM(td, cliente, cnpj) {
+            if (!td || td.querySelector('input')) return;
+            const row = encontrarLinhaSenhaPorClienteCnpj(cliente, cnpj);
+            const valorAtual = String(getSenhaCampo(row, 'CCM') || '');
+            const span = td.querySelector('.ccm-display');
+            if (span) span.classList.add('hidden');
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = valorAtual;
+            input.className = 'w-full min-w-[110px] border-2 border-sky-300 bg-white rounded-lg px-2 py-1 text-[10px] font-bold text-slate-700 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100';
+            input.setAttribute('aria-label', 'Editar CCM de ' + cliente);
+            td.appendChild(input);
+            input.focus();
+            input.select();
+
+            let finalizado = false;
+            const cancelar = () => {
+                if (finalizado) return;
+                finalizado = true;
+                input.remove();
+                if (span) span.classList.remove('hidden');
+            };
+
+            input.addEventListener('click', event => event.stopPropagation());
+            input.addEventListener('keydown', async event => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    cancelar();
+                    return;
+                }
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (finalizado) return;
+
+                const novoValor = input.value.trim();
+                if (novoValor === valorAtual.trim()) {
+                    cancelar();
+                    return;
+                }
+
+                finalizado = true;
+                input.disabled = true;
+                input.classList.add('opacity-60');
+                showSaveStatus('saving', 'Salvando CCM...');
+
+                try {
+                    await enviarSenhaParaGoogleSheets(cliente, 'CCM', novoValor);
+                    const linha = encontrarLinhaSenhaPorClienteCnpj(cliente, cnpj);
+                    if (linha) setSenhaCampoLocal(linha, 'CCM', novoValor);
+                    renderSenhas();
+                    showSaveStatus('saved', 'CCM salvo');
+                    showNotification('CCM atualizado no sistema e na planilha SENHAS!', false, cliente);
+                    setTimeout(() => fetchGoogleSheets(false, true), 1000);
+                } catch (err) {
+                    finalizado = false;
+                    input.disabled = false;
+                    input.classList.remove('opacity-60');
+                    input.focus();
+                    showSaveStatus('error', 'Erro ao salvar');
+                    showNotification('Erro ao salvar CCM: ' + err.message, true);
+                }
+            });
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (!finalizado && document.body.contains(input)) cancelar();
+                }, 120);
+            });
         }
 
         function abrirModalSenha(cliente, campo) {
@@ -7728,7 +7813,7 @@ let agendaKpiFiltroAtivo = '';
 let agendaCalendarioMesAtual = '';
 let agendaResponsavelFiltroAtivo = '';
 
-function agendaUsuarioPodeVerNikolas() { return ['Nikolas','Dev'].includes(String(currentUser || '')); }
+function agendaUsuarioPodeVerNikolas() { return true; }
 function agendaResponsavelReal(a) { const r = String(a?.responsavel || '').trim(); return ['Ingrid','Nikolas'].includes(r) ? r : 'Ingrid'; }
 function agendaItemVisivel(a) {
     const texto = agendaNormalizar([a?.titulo, a?.tipo, a?.status, a?.observacao].join(' '));
