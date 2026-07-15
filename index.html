@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.07.15.darf-alugueis-status-observacao-log.v5";
+        window.TOPLINE_APP_VERSION = "2026.07.15.darf-alugueis-status-observacao-log.v6";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -6907,8 +6907,17 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
 
         function alugueisPayloadBanco(r) {
             const payload = { ...r };
-            // valor_liquido é coluna gerada no Supabase; não pode ser enviado em insert/update.
+
+            // Campos calculados ou auxiliares existem apenas na memória do navegador
+            // e nunca devem ser enviados como colunas ao Supabase.
             delete payload.valor_liquido;
+            Object.keys(payload).forEach(function(chave) {
+                if (String(chave).startsWith('_')) delete payload[chave];
+            });
+
+            // A observação é uma coluna real da tabela e deve permanecer no payload.
+            payload.observacoes = String(r.observacoes || '').trim();
+            payload.status = alugueisNormalizarStatus(r.status);
             return payload;
         }
 
