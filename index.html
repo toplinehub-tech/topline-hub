@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.07.14.darf-alugueis-pago-verde.v4";
+        window.TOPLINE_APP_VERSION = "2026.07.15.darf-alugueis-status-observacao-log.v5";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -6525,11 +6525,17 @@ body.agenda-modal-open { overflow:hidden; }
                         r.observacoes = salvo.observacoes || r.observacoes;
                         r.atualizado_por = salvo.atualizado_por || r.atualizado_por;
                         r.atualizado_em = salvo.atualizado_em || r.atualizado_em;
+                        r._salvo_status = alugueisNormalizarStatus(salvo.status);
+                        r._salvo_observacoes = String(salvo.observacoes || '');
                     });
                 } catch (erroBanco) {
                     console.warn('Não foi possível mesclar acompanhamento dos aluguéis:', erroBanco);
                 }
 
+                registros.forEach(function(r) {
+                    if (r._salvo_status === undefined) r._salvo_status = alugueisNormalizarStatus(r.status);
+                    if (r._salvo_observacoes === undefined) r._salvo_observacoes = String(r.observacoes || '');
+                });
                 alugueisData = registros;
                 alugueisFonte = 'google_sheets';
                 alugueisCarregadoBanco = true;
@@ -6838,6 +6844,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                             coluna_numero: c + 1,
                             linha_inicio: r + 3,
                             linha_fim: fim + 1,
+                            linha_competencia: r + 2,
                             linhas: {
                                 valor_bruto: metricas.valor_bruto ? linhas.indexOf(metricas.valor_bruto) + 1 : null,
                                 valor_tributavel: metricas.valor_tributavel ? linhas.indexOf(metricas.valor_tributavel) + 1 : null,
@@ -7035,56 +7042,110 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
         async function alugueisSalvarLinha(keyEncoded) {
             const r = alugueisEncontrarPorKey(keyEncoded);
             if (!r) return;
+
+            const statusAnterior = alugueisNormalizarStatus(r._salvo_status || 'pendente');
+            const observacaoAnterior = String(r._salvo_observacoes || '');
+            const statusAtual = alugueisNormalizarStatus(r.status);
+            const observacaoAtual = String(r.observacoes || '').trim();
+            const meta = r.raw_json || {};
+            const aba = meta.sheet || r.origem_planilha;
+
             try {
-                if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando no DARF ALUGUEL...');
-                const meta = r.raw_json || {};
-                const aba = meta.sheet || r.origem_planilha;
-                if (!aba) throw new Error('Aba de origem não identificada.');
-                const statusAtual = alugueisNormalizarStatus(r.status);
-                const alteracoes = [];
-                const camposPlanilha = ['valor_bruto','valor_tributavel','valor_irrf','valor_deducao'];
-                for (const campo of camposPlanilha) {
-                    const linha = meta.linhas && meta.linhas[campo];
-                    if (!linha) continue;
-                    alteracoes.push(alugueisJsonp({
-                        action:'editCell', aba, linha:String(linha),
-                        colunaNumero:String(meta.coluna_numero || ((meta.col || 0) + 1)),
-                        valor:String(r[campo] ?? ''), tipo:'numero',
-                        statusFormato: statusAtual
-                    }));
-                }
-                if (!alteracoes.length) throw new Error('Não foi possível identificar as células correspondentes na planilha.');
-
-                // Formata todo o bloco do mês na planilha, preservando os valores financeiros.
-                // Essa chamada usa a coluna e o intervalo exatos encontrados durante a leitura.
-                if (meta.linha_inicio && meta.linha_fim && meta.coluna_numero) {
-                    alteracoes.push(alugueisJsonp({
-                        action:'formatarCompetencia',
-                        aba,
-                        colunaNumero:String(meta.coluna_numero),
-                        linhaInicio:String(meta.linha_inicio),
-                        linhaFim:String(meta.linha_fim),
-                        status:statusAtual
-                    }));
-                }
-
-                const respostas = await Promise.all(alteracoes);
-                const falha = respostas.find(x => !x || x.success === false);
-                if (falha) throw new Error(falha?.error || 'O Apps Script não aceitou uma das alterações.');
+                if (typeof setSaveStatus === 'function') setSaveStatus('saving','Salvando DARF de aluguel...');
 
                 r.unique_key = r.unique_key || alugueisUniqueKey(r);
                 r.cliente = alugueisNomeCliente(r);
                 r.status = statusAtual;
+                r.observacoes = observacaoAtual;
                 r.atualizado_por = window.currentUser || 'Sistema';
                 r.atualizado_em = new Date().toISOString();
-                const { error: erroBanco } = await supabaseClient.from('alugueis_darf').upsert([alugueisPayloadBanco(r)], { onConflict:'unique_key' });
-                if (erroBanco) throw new Error('Planilha atualizada, mas o banco recusou o salvamento: ' + erroBanco.message);
 
-                if (typeof registrarLog === 'function') registrarLog('Alteração DARF aluguel', r.cliente || null, 'ALUGUEIS', `${r.mes_label || r.competencia} - ${r.nome_beneficiario || ''} - ${statusAtual}`);
-                if (typeof setSaveStatus === 'function') setSaveStatus('saved','DARF ALUGUEL salvo');
+                // O banco é a fonte do acompanhamento. Ele é salvo primeiro para que
+                // qualquer status válido e a observação não se percam caso o Sheets falhe.
+                const { error: erroBanco } = await supabaseClient
+                    .from('alugueis_darf')
+                    .upsert([alugueisPayloadBanco(r)], { onConflict:'unique_key' });
+                if (erroBanco) throw new Error('O banco recusou o salvamento: ' + erroBanco.message);
+
+                const detalhesLog = [];
+                if (statusAnterior !== statusAtual) detalhesLog.push(`Status: ${statusAnterior} → ${statusAtual}`);
+                if (observacaoAnterior !== observacaoAtual) detalhesLog.push(`Observação: ${observacaoAtual || '(removida)'}`);
+                if (!detalhesLog.length) detalhesLog.push('Dados financeiros e cadastrais atualizados.');
+
+                if (typeof registrarLog === 'function') {
+                    await registrarLog(
+                        'Alteração DARF aluguel',
+                        r.cliente || null,
+                        'ALUGUEIS',
+                        `${r.mes_label || r.competencia} - ${r.nome_beneficiario || ''} - ${detalhesLog.join(' | ')}`
+                    );
+                }
+
+                // Registra também a observação no histórico quando ela foi incluída/alterada.
+                if (observacaoAnterior !== observacaoAtual && typeof salvarObservacao === 'function') {
+                    await salvarObservacao(
+                        r.cliente || r.nome_beneficiario || 'Sem cliente informado',
+                        `DARF ALUGUEL ${r.mes_label || r.competencia || ''}`.trim(),
+                        observacaoAtual || 'Observação removida',
+                        statusAtual
+                    );
+                }
+
+                let erroSheet = null;
+                if (aba) {
+                    try {
+                        const alteracoes = [];
+                        const camposPlanilha = ['valor_bruto','valor_tributavel','valor_irrf','valor_deducao'];
+                        for (const campo of camposPlanilha) {
+                            const linha = meta.linhas && meta.linhas[campo];
+                            if (!linha || !meta.coluna_numero) continue;
+                            alteracoes.push(alugueisJsonp({
+                                action:'editCell',
+                                aba,
+                                linha:String(linha),
+                                colunaNumero:String(meta.coluna_numero),
+                                valor:String(r[campo] ?? ''),
+                                tipo:'numero'
+                            }));
+                        }
+
+                        // Colore apenas a célula que contém a competência (mês/ano):
+                        // verde para pago, vermelho para vencido e sem cor para os demais.
+                        if (meta.linha_competencia && meta.coluna_numero) {
+                            alteracoes.push(alugueisJsonp({
+                                action:'formatarCelulaCompetencia',
+                                aba,
+                                linha:String(meta.linha_competencia),
+                                colunaNumero:String(meta.coluna_numero),
+                                status:statusAtual
+                            }));
+                        }
+
+                        if (alteracoes.length) {
+                            const respostas = await Promise.all(alteracoes);
+                            const falha = respostas.find(x => !x || x.success === false);
+                            if (falha) throw new Error(falha?.error || 'O Apps Script recusou uma alteração.');
+                        }
+                    } catch (sheetError) {
+                        erroSheet = sheetError;
+                        console.warn('Banco salvo, porém o Google Sheets não foi atualizado:', sheetError);
+                    }
+                } else {
+                    erroSheet = new Error('Aba de origem não identificada.');
+                }
+
+                r._salvo_status = statusAtual;
+                r._salvo_observacoes = observacaoAtual;
                 alugueisUltimoCarregamento = Date.now();
                 alugueisRender();
-                showNotification(statusAtual === 'pago' ? 'Salvo. As células correspondentes foram marcadas em verde na planilha.' : 'Alterações salvas no DARF ALUGUEL e no banco.');
+
+                if (erroSheet) {
+                    if (typeof setSaveStatus === 'function') setSaveStatus('saved','Salvo no banco');
+                    showNotification('Status e observação salvos no banco e no log. A planilha não foi atualizada: ' + (erroSheet.message || erroSheet), true);
+                } else {
+                    if (typeof setSaveStatus === 'function') setSaveStatus('saved','DARF ALUGUEL salvo');
+                    showNotification('Status, observação e log salvos. A célula da competência foi atualizada no Google Sheets.');
+                }
             } catch (e) {
                 console.error('Erro ao salvar no DARF ALUGUEL:', e);
                 if (typeof setSaveStatus === 'function') setSaveStatus('error','Erro no DARF ALUGUEL');
