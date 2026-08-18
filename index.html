@@ -573,6 +573,7 @@ function montarTextoHistorico(item) {
         }
         .login-btn-item.login-top { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-color: #22c55e; color: #065f46; box-shadow: 0 8px 18px rgba(34,197,94,0.12); }
         .login-btn-item.login-bottom { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac; color: #166534; }
+        .login-buttons-row .login-btn-item.login-bottom:last-of-type { grid-column: 2; }
         .login-btn-item.login-dev { grid-column: 1 / -1; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-color: #ef4444; color: #991b1b; box-shadow: 0 8px 18px rgba(239,68,68,0.14); }
         .login-btn-item.login-dev:hover { background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%); border-color: #dc2626; color: #7f1d1d; box-shadow: 0 10px 24px rgba(239,68,68,0.24); }
         .login-btn-item:hover { background: #dcfce7; border-color: #10b981; color: #065f46; transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 18px rgba(16,185,129,0.18); }
@@ -4325,11 +4326,11 @@ body.agenda-modal-open { overflow:hidden; }
                 </div>
                 <div>
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Selecione uma opção</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-lg p-2 text-center cursor-pointer"><div class="text-lg mb-1">🔍</div><div class="text-[8px] font-black text-orange-700 uppercase">Análise</div><div class="text-[7px] text-orange-500 mt-0.5">ANALISE</div></div>
-                        <div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-lg p-2 text-center cursor-pointer"><div class="text-lg mb-1">⚡</div><div class="text-[8px] font-black text-purple-700 uppercase">Andamento</div><div class="text-[7px] text-purple-500 mt-0.5">EM ANDAMENTO</div></div>
-                        <div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-lg p-2 text-center cursor-pointer"><div class="text-lg mb-1">📅</div><div class="text-[8px] font-black text-emerald-700 uppercase">Data</div><div class="text-[7px] text-emerald-500 mt-0.5">Define data</div></div>
-                        <div id="option-divida" onclick="selectOption('divida')" class="option-card bg-red-50 border-2 border-red-200 rounded-lg p-2 text-center cursor-pointer"><div class="text-lg mb-1">💰</div><div class="text-[8px] font-black text-red-700 uppercase">Dívida</div><div class="text-[7px] text-red-500 mt-0.5">Define data da dívida</div></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">🔍</div><div class="text-[8px] font-black text-orange-700 uppercase">Análise</div><div class="text-[7px] text-orange-500 mt-0.5">ANALISE</div></div>
+                        <div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">⚡</div><div class="text-[8px] font-black text-purple-700 uppercase">Andamento</div><div class="text-[7px] text-purple-500 mt-0.5">EM ANDAMENTO</div></div>
+                        <div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">📅</div><div class="text-[8px] font-black text-emerald-700 uppercase">Data</div><div class="text-[7px] text-emerald-500 mt-0.5">Define data</div></div>
+                        <div id="option-divida" onclick="selectOption('divida')" class="option-card bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">💰</div><div class="text-[8px] font-black text-red-700 uppercase">Dívida</div><div class="text-[7px] text-red-500 mt-0.5">Define data da dívida</div></div>
                     </div>
                 </div>
                 <div id="andamentoReminderContainer" class="hidden bg-purple-50 border border-purple-200 rounded-xl p-3">
@@ -7210,13 +7211,20 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 tab = 'dash';
             }
 
-            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
                 if (view) view.classList.add('hidden');
                 if (btn) { btn.classList.remove('tab-active'); btn.classList.add('text-slate-400'); }
             });
+            // Garante que apenas UM botão do menu principal permaneça selecionado,
+            // inclusive ao sair de Clientes Inativos ou Emendas.
+            document.querySelectorAll('#main-nav button.tab-active').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-slate-400');
+            });
+
             const targetView = document.getElementById('view-'+tab);
             if (targetView) targetView.classList.remove('hidden');
             const activeBtn = document.getElementById('tab-'+tab);
