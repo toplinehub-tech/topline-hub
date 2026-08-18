@@ -357,6 +357,15 @@ function montarTextoHistorico(item) {
             color: #854d0e !important;
             box-shadow: 0 12px 24px rgba(234, 179, 8, .24), 0 0 0 4px rgba(250, 204, 21, .14);
         }
+
+        /* Novos menus em linha própria para não ocultar os menus originais */
+        #main-nav .nav-row-extra button:hover {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-color: #34d399;
+            color: #065f46 !important;
+            box-shadow: 0 12px 24px rgba(16, 185, 129, .18), 0 0 0 4px rgba(52, 211, 153, .10);
+        }
+
         #main-nav button.tab-active {
             border-bottom: 0 !important;
             background: #ecfdf5;
@@ -1423,8 +1432,6 @@ body.agenda-modal-open { overflow:hidden; }
                             <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                             <button onclick="switchTab('atribuicoes')" id="tab-atribuicoes" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atribuições</button>
                             <button onclick="switchTab('pontuais')" id="tab-pontuais" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Pontuais</button>
-                            <button onclick="switchTab('inativos')" id="tab-inativos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Clientes Inativos</button>
-                            <button onclick="switchTab('emendas')" id="tab-emendas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Emendas</button>
                             <button onclick="switchTab('agendageral')" id="tab-agendageral" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Agenda Geral</button>
                             <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
                         </div>
@@ -1437,6 +1444,10 @@ body.agenda-modal-open { overflow:hidden; }
                             <button onclick="switchTab('empresasparcelamentos')" id="tab-empresasparcelamentos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Empresas/Parcelamentos</button>
                             <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
                             <button onclick="switchTab('logs')" id="tab-logs" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Logs</button>
+                        </div>
+                        <div class="nav-row nav-row-extra">
+                            <button onclick="switchTab('inativos')" id="tab-inativos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Clientes Inativos</button>
+                            <button onclick="switchTab('emendas')" id="tab-emendas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Emendas</button>
                         </div>
                     </nav>
                     <div class="flex items-center gap-2">
