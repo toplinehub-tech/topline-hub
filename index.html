@@ -4124,9 +4124,9 @@ body.agenda-modal-open { overflow:hidden; }
             if (!rodadaDistribuicaoAtual) rodadaDistribuicaoAtual = new Date().toISOString();
             const compactarTarefa = (t) => t && t.tipo === 'pontual' ? `P:${t.id}|${t.documento}` : `${t.rowIndex}|${t.documento}`;
             const dadosCompactos = {
-                J: distribuicaoAtual.Jordan.map(compactarTarefa),
-                S: distribuicaoAtual.Sirlene.map(compactarTarefa),
-                I: distribuicaoAtual.Ingrid.map(compactarTarefa),
+                J: (distribuicaoAtual.Jordan || []).map(compactarTarefa),
+                S: (distribuicaoAtual.Sirlene || []).map(compactarTarefa),
+                E: (distribuicaoAtual.Eduarda || []).map(compactarTarefa),
                 __rodada: rodadaDistribuicaoAtual,
                 __status: statusAlvo
             };
@@ -4173,9 +4173,11 @@ body.agenda-modal-open { overflow:hidden; }
                                 }
                             }
                         };
-                        mapPessoa(dados.J, distribuicao.Jordan);
-                        mapPessoa(dados.S, distribuicao.Sirlene);
-                        mapPessoa(dados.I, distribuicao.Ingrid);
+                        mapPessoa(dados.J || [], distribuicao.Jordan);
+                        mapPessoa(dados.S || [], distribuicao.Sirlene);
+                        // Formato atual: E = Eduarda. Compatibilidade: distribuições antigas usavam I = Ingrid.
+                        if (Array.isArray(dados.E)) mapPessoa(dados.E, distribuicao.Eduarda);
+                        else if (Array.isArray(dados.I)) mapPessoa(dados.I, distribuicao.Eduarda);
                     }
                     distribuicaoAtual = distribuicao;
                     renderizarTarefas();
@@ -7608,7 +7610,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 for (const [empresa, tarefas] of arr) {
                     let escolhido = 'Jordan', menor = cargas.Jordan;
                     if (cargas.Sirlene < menor) { menor = cargas.Sirlene; escolhido = 'Sirlene'; }
-                    if (cargas.Ingrid < menor) { escolhido = 'Ingrid'; }
+                    if (cargas.Eduarda < menor) { menor = cargas.Eduarda; escolhido = 'Eduarda'; }
                     novaDistribuicao[escolhido].push(...tarefas);
                     cargas[escolhido] += tarefas.length;
                 }
@@ -8765,30 +8767,102 @@ salvarAviso = async function() {
 };
 
 carregarAvisos = async function() {
+    const lista = document.getElementById('avisos-lista');
+    if (lista) lista.innerHTML = '<div class="text-center py-8 text-slate-400 text-xs">Carregando avisos...</div>';
     try {
-        const { data: avisos, error } = await supabaseClient.from('avisos').select('*').order('created_at', { ascending: false }); if (error) throw error;
-        const { data: lidos, error: lidosError } = await supabaseClient.from('avisos_lidos').select('*'); if (lidosError) throw lidosError;
-        const lidosPorAviso = {}; (lidos || []).forEach(l => { if (!lidosPorAviso[l.aviso_id]) lidosPorAviso[l.aviso_id] = []; lidosPorAviso[l.aviso_id].push(l.usuario); });
-        const lidosIds = new Set((lidos || []).filter(l => l.usuario === currentUser).map(l => l.aviso_id));
-        const filtro = document.getElementById('filtroAvisosLeitura')?.value || 'todos';
-        const hojeAviso = new Date().toISOString().slice(0,10);
-        const avisosVisiveis = (avisos || []).filter(a => {
-            const destinoOk = !a.destinatario || a.destinatario === 'todos' || a.destinatario === currentUser || ['Nikolas','Ingrid','Dev'].includes(currentUser);
-            const dataOk = !a.data_lembrete || String(a.data_lembrete).slice(0,10) <= hojeAviso;
-            return destinoOk && dataOk;
+        const { data: avisos, error } = await supabaseClient
+            .from('avisos')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+
+        // A tabela de leituras é auxiliar. Se houver falha de permissão/RLS nela,
+        // os avisos continuam sendo exibidos em vez de deixar a aba em branco.
+        let lidos = [];
+        try {
+            const respLidos = await supabaseClient.from('avisos_lidos').select('*');
+            if (!respLidos.error) lidos = respLidos.data || [];
+            else console.warn('Não foi possível carregar o histórico de leitura dos avisos:', respLidos.error);
+        } catch (erroLidos) {
+            console.warn('Não foi possível carregar o histórico de leitura dos avisos:', erroLidos);
+        }
+
+        const usuarioAtual = window.currentUser || currentUser || '';
+        const lidosPorAviso = {};
+        (lidos || []).forEach(l => {
+            if (!lidosPorAviso[l.aviso_id]) lidosPorAviso[l.aviso_id] = [];
+            if (l.usuario && !lidosPorAviso[l.aviso_id].includes(l.usuario)) lidosPorAviso[l.aviso_id].push(l.usuario);
         });
-        const listaFiltrada = avisosVisiveis.filter(a => filtro === 'todos' ? true : filtro === 'lidos' ? lidosIds.has(a.id) : !lidosIds.has(a.id));
+        const lidosIds = new Set((lidos || []).filter(l => l.usuario === usuarioAtual).map(l => l.aviso_id));
+        const filtro = document.getElementById('filtroAvisosLeitura')?.value || 'todos';
+
+        // A aba Avisos deve mostrar todo o histórico de mensagens.
+        // O filtro controla somente se serão mostradas todas, lidas ou não lidas.
+        const avisosVisiveis = avisos || [];
+        const listaFiltrada = avisosVisiveis.filter(a => {
+            if (filtro === 'lidos') return lidosIds.has(a.id);
+            if (filtro === 'nao_lidos') return !lidosIds.has(a.id);
+            return true;
+        });
+
         const naoLidosCount = avisosVisiveis.filter(a => !lidosIds.has(a.id)).length;
-        const badge = document.getElementById('avisos-badge'); if (badge) { badge.innerText = naoLidosCount; badge.className = 'badge-avisos ' + (naoLidosCount > 0 ? 'badge-red' : 'badge-blue'); }
-        const lista = document.getElementById('avisos-lista'); if (!lista) return;
-        if (!listaFiltrada.length) { lista.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs italic">Nenhum aviso neste filtro.</div>'; return; }
+        const badge = document.getElementById('avisos-badge');
+        if (badge) {
+            badge.innerText = naoLidosCount;
+            badge.className = 'badge-avisos ' + (naoLidosCount > 0 ? 'badge-red' : 'badge-blue');
+        }
+
+        if (!lista) return;
+        if (!listaFiltrada.length) {
+            lista.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs italic">Nenhum aviso neste filtro.</div>';
+            return;
+        }
+
         lista.innerHTML = listaFiltrada.map(a => {
-            const lido = lidosIds.has(a.id); const usuariosQueLeram = lidosPorAviso[a.id] || []; const isAdmin = ['Nikolas','Ingrid','Dev'].includes(currentUser); const pr = a.prioridade || 'normal';
-            const botaoLido = !lido ? `<button onclick="marcarComoLido('${a.id}')" class="text-[9px] font-black text-emerald-600 uppercase hover:underline">Marcar como lido</button>` : '<span class="text-[9px] font-bold text-slate-300 uppercase italic">Lido</span>';
-            const blocoAdmin = isAdmin ? `<div class="mb-3 p-2 bg-slate-50 rounded border border-slate-200 max-w-[50%]"><p class="text-[8px] font-bold text-slate-600 mb-1">Lido por (${usuariosQueLeram.length}):</p><div class="flex flex-wrap gap-1">${usuariosQueLeram.map(u => '<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[7px] font-bold">' + escapeHtml(u) + '</span>').join('')}</div></div>` : '';
-            return `<div class="white-card p-4 border-l-4 aviso-prioridade-${pr} ${lido ? 'opacity-75' : ''}"><div class="flex justify-between items-start mb-2"><div><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${escapeHtml(a.titulo)}</h4><span class="priority-pill priority-${pr}">${pr}</span></div><span class="text-[9px] text-slate-400 font-mono">${new Date(a.created_at).toLocaleString('pt-BR')}</span></div><p class="text-xs text-slate-600 mb-3">${escapeHtml(a.conteudo)}</p>${blocoAdmin}<div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${escapeHtml(a.autor || '-')}${a.destinatario ? ' | Para: ' + escapeHtml(a.destinatario) : ''}</span>${botaoLido}</div></div>`;
+            const lido = lidosIds.has(a.id);
+            const usuariosQueLeram = lidosPorAviso[a.id] || [];
+            const isAdmin = ['Nikolas','Ingrid','Dev'].includes(usuarioAtual);
+            const pr = a.prioridade || 'normal';
+            const criadoEm = a.created_at ? new Date(a.created_at) : null;
+            const dataTexto = criadoEm && !isNaN(criadoEm.getTime()) ? criadoEm.toLocaleString('pt-BR') : '-';
+            const botaoLido = !lido
+                ? `<button onclick="marcarComoLido('${a.id}')" class="text-[9px] font-black text-emerald-600 uppercase hover:underline">Marcar como lido</button>`
+                : '<span class="text-[9px] font-bold text-slate-300 uppercase italic">Lido</span>';
+            const blocoAdmin = isAdmin
+                ? `<div class="mb-3 p-2 bg-slate-50 rounded border border-slate-200 max-w-[50%]"><p class="text-[8px] font-bold text-slate-600 mb-1">Lido por (${usuariosQueLeram.length}):</p><div class="flex flex-wrap gap-1">${usuariosQueLeram.map(u => '<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[7px] font-bold">' + escapeHtml(u) + '</span>').join('')}</div></div>`
+                : '';
+            return `<div class="white-card p-4 border-l-4 aviso-prioridade-${escapeHtml(pr)} ${lido ? 'opacity-75' : ''}">
+                <div class="flex justify-between items-start mb-2">
+                    <div><h4 class="font-black text-xs uppercase ${lido ? 'text-slate-500' : 'text-slate-800'}">${escapeHtml(a.titulo || 'Aviso')}</h4><span class="priority-pill priority-${escapeHtml(pr)}">${escapeHtml(pr)}</span></div>
+                    <span class="text-[9px] text-slate-400 font-mono">${escapeHtml(dataTexto)}</span>
+                </div>
+                <p class="text-xs text-slate-600 mb-3 whitespace-pre-wrap">${escapeHtml(a.conteudo || '')}</p>
+                ${blocoAdmin}
+                <div class="flex justify-between items-center"><span class="text-[9px] font-bold text-slate-400 uppercase">Autor: ${escapeHtml(a.autor || '-')}</span>${botaoLido}</div>
+            </div>`;
         }).join('');
-    } catch(e) { console.error('Erro ao carregar avisos:', e); }
+    } catch(e) {
+        console.error('Erro ao carregar avisos:', e);
+        if (lista) lista.innerHTML = `<div class="text-center py-10 text-red-500 text-xs font-bold">Erro ao carregar avisos: ${escapeHtml(e.message || 'erro desconhecido')}</div>`;
+    }
+};
+
+marcarComoLido = async function(avisoId) {
+    try {
+        const usuarioAtual = window.currentUser || currentUser || '';
+        if (!usuarioAtual) throw new Error('Usuário não identificado');
+        const { error } = await supabaseClient.from('avisos_lidos').insert([{ aviso_id: avisoId, usuario: usuarioAtual }]);
+        if (error) {
+            // Duplicidade significa que o aviso já estava lido; nesse caso apenas recarrega.
+            const msg = String(error.message || '').toLowerCase();
+            if (!msg.includes('duplicate') && !msg.includes('unique')) throw error;
+        }
+        await carregarAvisos();
+        if (typeof centralPendenciasRenderAvisos === 'function') centralPendenciasRenderAvisos();
+    } catch(e) {
+        console.error('Erro ao marcar aviso como lido:', e);
+        showNotification('Não foi possível marcar o aviso como lido: ' + (e.message || 'erro desconhecido'), true);
+    }
 };
 
 const _resetAllFiltersBase = typeof resetAllFilters === 'function' ? resetAllFilters : null;
