@@ -3119,6 +3119,207 @@ body.agenda-modal-open { overflow:hidden; }
 })();
 </script>
 
+
+<script>
+/* ======================================================
+   TOPLINE - INATIVAR CLIENTE PELO PAINEL - 2026-08-20
+   Patch isolado: não altera os demais fluxos do sistema.
+   ====================================================== */
+(function(){
+  if (window.__TOPLINE_INATIVAR_CLIENTE_20260820__) return;
+  window.__TOPLINE_INATIVAR_CLIENTE_20260820__ = true;
+
+  let clienteInativacaoIndex = null;
+  let clienteInativacaoEmProcesso = false;
+
+  function escInativo(v){
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function garantirModalInativacao(){
+    if (document.getElementById('modalInativarCliente')) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'modalInativarCliente';
+    wrap.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4';
+    wrap.style.zIndex = '99999';
+    wrap.innerHTML = `
+      <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.18em]">Gerenciar cliente</p>
+            <h3 id="inativarClienteNome" class="text-base font-black text-slate-800 mt-1">-</h3>
+            <p id="inativarClienteCnpj" class="text-[10px] font-mono text-slate-400 mt-1"></p>
+          </div>
+          <button type="button" onclick="fecharModalInativarCliente()" class="w-9 h-9 rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 font-black">✕</button>
+        </div>
+        <div class="p-6">
+          <label class="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-2">Observação</label>
+          <textarea id="inativarClienteObservacao" rows="4" placeholder="Informe o motivo ou uma observação sobre a inativação..." class="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 resize-none"></textarea>
+          <p class="text-[9px] text-slate-400 mt-2">A observação será salva no banco de dados do Topline Hub.</p>
+          <div id="inativarClienteStatus" class="hidden mt-3 rounded-xl p-3 text-[10px] font-bold"></div>
+          <button id="btnConfirmarInativacao" type="button" onclick="confirmarInativacaoCliente()" class="mt-5 w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider transition shadow-lg shadow-rose-100">
+            Deixar inativo
+          </button>
+        </div>
+      </div>`;
+    wrap.addEventListener('click', window.fecharModalInativarCliente);
+    document.body.appendChild(wrap);
+  }
+
+  window.abrirModalInativarCliente = function(rowIndex){
+    garantirModalInativacao();
+    const idx = Number(rowIndex);
+    const row = Array.isArray(window.rawData) ? window.rawData[idx] : (typeof rawData !== 'undefined' ? rawData[idx] : null);
+    if (!row) {
+      if (typeof showNotification === 'function') showNotification('Cliente não encontrado no Painel.', true);
+      return;
+    }
+    clienteInativacaoIndex = idx;
+    const nome = row.CLIENTE || row.Cliente || row.cliente || '-';
+    const cnpj = row.CNPJ || row.Cnpj || row.cnpj || '';
+    document.getElementById('inativarClienteNome').textContent = nome;
+    document.getElementById('inativarClienteCnpj').textContent = cnpj ? `CNPJ: ${cnpj}` : 'CNPJ não informado';
+    document.getElementById('inativarClienteObservacao').value = '';
+    const status = document.getElementById('inativarClienteStatus');
+    status.className = 'hidden mt-3 rounded-xl p-3 text-[10px] font-bold';
+    status.textContent = '';
+    const btn = document.getElementById('btnConfirmarInativacao');
+    btn.disabled = false;
+    btn.textContent = 'Deixar inativo';
+    const modal = document.getElementById('modalInativarCliente');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => document.getElementById('inativarClienteObservacao')?.focus(), 50);
+  };
+
+  window.fecharModalInativarCliente = function(){
+    if (clienteInativacaoEmProcesso) return;
+    const modal = document.getElementById('modalInativarCliente');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    clienteInativacaoIndex = null;
+  };
+
+  function statusInativacao(msg, erro){
+    const el = document.getElementById('inativarClienteStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'mt-3 rounded-xl p-3 text-[10px] font-bold ' + (erro ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200');
+  }
+
+  function moverClienteNoGoogleSheets(cliente, cnpj){
+    return new Promise((resolve, reject) => {
+      if (typeof URL_SCRIPT_GOOGLE === 'undefined' || !URL_SCRIPT_GOOGLE) return reject(new Error('Integração do Google Sheets não configurada.'));
+      const callback = 'topline_inativar_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+      const params = new URLSearchParams({
+        action: 'inativarCliente',
+        cliente: cliente || '',
+        cnpj: cnpj || '',
+        usuario: (typeof currentUser !== 'undefined' ? currentUser : '') || 'Sistema',
+        callback
+      });
+      let script = null;
+      const timeout = setTimeout(() => cleanup(new Error('Tempo limite ao atualizar o Google Sheets.')), 30000);
+      function cleanup(err, response){
+        clearTimeout(timeout);
+        try { delete window[callback]; } catch(e) {}
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+        err ? reject(err) : resolve(response);
+      }
+      window[callback] = function(resp){
+        if (resp && resp.success) cleanup(null, resp);
+        else cleanup(new Error(resp?.error || 'Não foi possível mover o cliente no Google Sheets.'));
+      };
+      script = document.createElement('script');
+      script.src = URL_SCRIPT_GOOGLE + '?' + params.toString() + '&_v=' + Date.now();
+      script.onerror = () => cleanup(new Error('Falha de comunicação com o Google Apps Script.'));
+      document.body.appendChild(script);
+    });
+  }
+
+  async function salvarInativacaoSupabase(row, observacao){
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) throw new Error('Supabase não configurado.');
+    const nome = String(row.CLIENTE || row.Cliente || row.cliente || '').trim();
+    const cnpj = String(row.CNPJ || row.Cnpj || row.cnpj || '').trim();
+    const payload = {
+      cnpj: cnpj || null,
+      cliente: nome,
+      documento: 'CLIENTE INATIVO',
+      data_cadastro: new Date().toISOString().slice(0,10),
+      status: 'inativo',
+      situacao: 'inativo',
+      enviado: false,
+      observacao: String(observacao || '').trim(),
+      data_status: new Date().toISOString().slice(0,10),
+      criado_por: (typeof currentUser !== 'undefined' ? currentUser : '') || 'Sistema',
+      atualizado_por: (typeof currentUser !== 'undefined' ? currentUser : '') || 'Sistema',
+      updated_at: new Date().toISOString()
+    };
+    const { data, error } = await supabaseClient.from('clientes_inativos').insert([payload]).select();
+    if (error) throw error;
+    return data?.[0] || payload;
+  }
+
+  async function removerRegistroSupabaseSeNecessario(id){
+    if (!id || typeof supabaseClient === 'undefined' || !supabaseClient) return;
+    try { await supabaseClient.from('clientes_inativos').delete().eq('id', id); } catch(e) { console.warn('Não foi possível desfazer o registro de inativação.', e); }
+  }
+
+  window.confirmarInativacaoCliente = async function(){
+    if (clienteInativacaoEmProcesso || clienteInativacaoIndex === null) return;
+    const row = (typeof rawData !== 'undefined' && rawData[clienteInativacaoIndex]) ? rawData[clienteInativacaoIndex] : null;
+    if (!row) return statusInativacao('Cliente não encontrado no Painel.', true);
+
+    const nome = String(row.CLIENTE || row.Cliente || row.cliente || '').trim();
+    const cnpj = String(row.CNPJ || row.Cnpj || row.cnpj || '').trim();
+    const observacao = String(document.getElementById('inativarClienteObservacao')?.value || '').trim();
+    if (!nome) return statusInativacao('O cliente não possui nome válido para a inativação.', true);
+
+    clienteInativacaoEmProcesso = true;
+    const btn = document.getElementById('btnConfirmarInativacao');
+    if (btn) { btn.disabled = true; btn.textContent = 'Inativando...'; }
+    statusInativacao('Registrando a inativação...', false);
+    let registroBanco = null;
+
+    try {
+      // 1) grava observação no banco. Se o Sheets falhar, o registro é desfeito para não deixar estados divergentes.
+      registroBanco = await salvarInativacaoSupabase(row, observacao);
+      statusInativacao('Movendo o cliente para CLIENTES INATIVOS no Google Sheets...', false);
+
+      // 2) o Apps Script copia a linha inteira e só depois exclui da aba VENCIMENTOS.
+      await moverClienteNoGoogleSheets(nome, cnpj);
+
+      // 3) retira da memória do Painel somente após banco + Sheets concluírem.
+      if (typeof rawData !== 'undefined' && Array.isArray(rawData)) {
+        const pos = rawData.indexOf(row);
+        if (pos >= 0) rawData.splice(pos, 1);
+      }
+      clienteInativacaoIndex = null;
+      if (typeof renderTable === 'function') renderTable();
+      if (typeof updateAnalytics === 'function') updateAnalytics();
+      if (typeof carregarCadastroExtra === 'function') {
+        try { await carregarCadastroExtra('inativos'); } catch(e) { console.warn(e); }
+      }
+      statusInativacao('Cliente inativado com sucesso.', false);
+      if (typeof showNotification === 'function') showNotification('Cliente movido para Clientes Inativos com sucesso.');
+      setTimeout(() => {
+        clienteInativacaoEmProcesso = false;
+        window.fecharModalInativarCliente();
+      }, 700);
+    } catch(e) {
+      console.error('Erro ao inativar cliente:', e);
+      if (registroBanco?.id) await removerRegistroSupabaseSeNecessario(registroBanco.id);
+      statusInativacao('Erro ao inativar: ' + (e.message || 'erro desconhecido'), true);
+      clienteInativacaoEmProcesso = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Deixar inativo'; }
+    }
+  };
+
+  garantirModalInativacao();
+})();
+</script>
+
 </body>
 
     <script>
@@ -8999,7 +9200,7 @@ function renderizarMobileCards(filteredRows, visibleHeaders) {
     list.innerHTML = (filteredRows || []).slice(0, 80).map(row => {
         const cliente = row.CLIENTE || '-'; const cnpj = row.CNPJ || '-';
         const extras = (visibleHeaders || []).filter(h => h !== 'CLIENTE' && h !== 'CNPJ').map(h => '<p><strong>' + escapeHtml(h) + ':</strong> ' + escapeHtml(row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-')) + '</p>').join('');
-        return '<div class="mobile-data-card" onclick="openEditCell(' + rawData.indexOf(row) + ', \'CLIENTE\')"><div class="flex justify-between gap-2"><h4>' + escapeHtml(cliente) + '</h4><button class="favorite-star ' + (isFavorito(cliente) ? 'active' : '') + '" onclick="toggleFavorito(\'' + escapeHtml(String(cliente)).replace(/'/g,'&#39;') + '\', event)">⭐</button></div><p>' + escapeHtml(cnpj) + '</p>' + extras + '</div>';
+        return '<div class="mobile-data-card" onclick="abrirModalInativarCliente(' + rawData.indexOf(row) + ')"><div class="flex justify-between gap-2"><h4>' + escapeHtml(cliente) + '</h4><button class="favorite-star ' + (isFavorito(cliente) ? 'active' : '') + '" onclick="toggleFavorito(\'' + escapeHtml(String(cliente)).replace(/'/g,'&#39;') + '\', event)">⭐</button></div><p>' + escapeHtml(cnpj) + '</p>' + extras + '</div>';
     }).join('');
 }
 
@@ -9075,7 +9276,8 @@ renderTable = function() {
         const hi = dividaAqui ? getHighlightAttrs(getFilterColor('dividas')) : getHighlightAttrs(activeDividas ? null : getColumnHighlight(h, row));
         if (h === 'CNPJ') return '<td class="cnpj-cell' + hi.cls + '" style="cursor:pointer;' + hi.style + '" onclick="copiarCNPJ(\'' + String(val).replace(/'/g,"\\'") + '\', event)">' + escapeHtml(val) + '</td>';
         const colArg = JSON.stringify(h);
-        return '<td class="' + (h==='CLIENTE'?'col-fixed':(s||'')) + hi.cls + '" style="' + hi.style + '" onclick="openEditCell(' + rawData.indexOf(row) + ', ' + colArg.replace(/"/g, '&quot;') + ')">' + escapeHtml(val) + '</td>';
+        if (h === 'CLIENTE') return '<td class="col-fixed' + hi.cls + '" style="cursor:pointer;' + hi.style + '" title="Clique para gerenciar este cliente" onclick="abrirModalInativarCliente(' + rawData.indexOf(row) + ')">' + escapeHtml(val) + '</td>';
+        return '<td class="' + (s||'') + hi.cls + '" style="' + hi.style + '" onclick="openEditCell(' + rawData.indexOf(row) + ', ' + colArg.replace(/"/g, '&quot;') + ')">' + escapeHtml(val) + '</td>';
     }).join('') + '</tr>').join('') : '<tr><td colspan="' + headersComFav.length + '" class="text-center py-10 text-slate-400">Nenhuma empresa com a palavra dívida encontrada.</td></tr>';
 
     renderizarMobileCards(filtered, visibleHeaders);
