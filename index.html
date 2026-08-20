@@ -13076,24 +13076,58 @@ function montarCelulaObservacaoHistorico(item) {
     throw new Error('A aba CLIENTES INATIVOS não foi encontrada entre as abas publicadas');
   }
 
+  function parseCsvInativos(csv){
+    return new Promise((resolve,reject)=>{
+      Papa.parse(csv,{header:true,skipEmptyLines:true,complete:r=>{
+        if(r.errors?.length && !(r.data||[]).length) return reject(new Error(r.errors[0].message));
+        resolve((r.data||[]).map(normalizarLinhaSheet));
+      },error:reject});
+    });
+  }
+
+  async function csvGoogleSheetInativosPorNome(){
+    if(typeof BASE_URL==='undefined' || !BASE_URL) throw new Error('Planilha principal não configurada');
+    const base=String(BASE_URL).split('?')[0];
+    const sheet=encodeURIComponent('CLIENTES INATIVOS');
+    const urls=[
+      base.replace(/\/pub$/,'/gviz/tq') + `?tqx=out:csv&sheet=${sheet}&_v=${Date.now()}`,
+      `${base}?output=csv&sheet=${sheet}&_v=${Date.now()}`
+    ];
+    let ultimoErro=null;
+    for(const url of urls){
+      try{
+        const res=await fetch(url,{cache:'no-store'});
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const csv=await res.text();
+        if(!csv || /^<!doctype html/i.test(csv.trim()) || /google visualization api query language/i.test(csv)) throw new Error('Resposta inválida da aba');
+        const rows=await parseCsvInativos(csv);
+        if(rows.length) return rows;
+      }catch(e){ ultimoErro=e; }
+    }
+    throw ultimoErro || new Error('Não foi possível consultar CLIENTES INATIVOS pelo nome');
+  }
+
   async function csvGoogleSheetInativos(){
     const gid=await descobrirGidInativos();
     const url=String(BASE_URL).replace(/([?&])gid=\d+/,'$1').replace(/[?&]$/,'') + `&gid=${encodeURIComponent(gid)}&single=true&_v=${Date.now()}`;
     const res=await fetch(url,{cache:'no-store'}); if(!res.ok)throw new Error('Falha ao baixar a aba CLIENTES INATIVOS');
-    const csv=await res.text();
-    return await new Promise((resolve,reject)=>{
-      Papa.parse(csv,{header:true,skipEmptyLines:true,complete:r=>{ if(r.errors?.length && !(r.data||[]).length)return reject(new Error(r.errors[0].message)); resolve((r.data||[]).map(normalizarLinhaSheet)); },error:reject});
-    });
+    return await parseCsvInativos(await res.text());
   }
 
   async function carregarInativosGoogle(){
-    let rows=null, erro1=null;
-    try{ rows=await jsonpGoogleSheetInativos(); inativosFonte='Google Sheets'; }catch(e){ erro1=e; }
-    if(!rows){ rows=await csvGoogleSheetInativos(); inativosFonte='Google Sheets'; }
+    let rows=null, erros=[];
+    try{ rows=await jsonpGoogleSheetInativos(); if(rows?.length) inativosFonte='Google Sheets · Apps Script'; }catch(e){ erros.push(e); }
+    if(!rows?.length){
+      try{ rows=await csvGoogleSheetInativosPorNome(); if(rows?.length) inativosFonte='Google Sheets · CLIENTES INATIVOS'; }catch(e){ erros.push(e); }
+    }
+    if(!rows?.length){
+      try{ rows=await csvGoogleSheetInativos(); if(rows?.length) inativosFonte='Google Sheets · CLIENTES INATIVOS'; }catch(e){ erros.push(e); }
+    }
+    if(!rows?.length && erros.length) throw erros[erros.length-1];
     rows=(rows||[]).filter(r=>Object.values(r).some(v=>String(v??'').trim()!==''));
     const hs=[]; rows.forEach(r=>Object.keys(r).forEach(k=>{if(k&&!hs.includes(k))hs.push(k);}));
     inativosHeaders=hs; dados.inativos=rows;
-    if(!rows.length && erro1) console.warn('Consulta alternativa de CLIENTES INATIVOS:',erro1);
+    if(!rows.length && erros.length) console.warn('Consultas de CLIENTES INATIVOS:',erros);
   }
 
   window.carregarCadastroExtra=async function(tipo){
@@ -13102,7 +13136,7 @@ function montarCelulaObservacaoHistorico(item) {
       const body=document.getElementById('inativos-body');
       if(body) body.innerHTML='<tr><td class="text-center py-10 text-slate-400">Carregando a aba CLIENTES INATIVOS do Google Sheets...</td></tr>';
       try{ await carregarInativosGoogle(); renderCadastroExtra('inativos'); }
-      catch(e){ console.error(e); if(body)body.innerHTML=`<tr><td class="text-center py-10 text-amber-600 font-bold">Não foi possível localizar/carregar a aba CLIENTES INATIVOS da planilha Google. Verifique se essa aba está incluída na publicação da planilha.</td></tr>`; const f=document.getElementById('inativos-fonte');if(f)f.textContent=''; }
+      catch(e){ console.error(e); if(body)body.innerHTML=`<tr><td class="text-center py-10 text-amber-600 font-bold">Não foi possível carregar a aba CLIENTES INATIVOS da planilha Google. A guia precisa estar publicada ou disponível pela integração do Google Sheets.</td></tr>`; const f=document.getElementById('inativos-fonte');if(f)f.textContent=''; }
       return;
     }
     if(tipo!=='emendas') return;
