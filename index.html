@@ -13115,19 +13115,22 @@ function montarCelulaObservacaoHistorico(item) {
   }
 
   async function carregarInativosGoogle(){
-    let rows=null, erros=[];
-    try{ rows=await jsonpGoogleSheetInativos(); if(rows?.length) inativosFonte='Google Sheets · Apps Script'; }catch(e){ erros.push(e); }
-    if(!rows?.length){
-      try{ rows=await csvGoogleSheetInativosPorNome(); if(rows?.length) inativosFonte='Google Sheets · CLIENTES INATIVOS'; }catch(e){ erros.push(e); }
-    }
-    if(!rows?.length){
-      try{ rows=await csvGoogleSheetInativos(); if(rows?.length) inativosFonte='Google Sheets · CLIENTES INATIVOS'; }catch(e){ erros.push(e); }
-    }
-    if(!rows?.length && erros.length) throw erros[erros.length-1];
+    // Fonte fixa solicitada: planilha Google / guia CLIENTES INATIVOS (gid 1683540104).
+    // Não usar fallback por nome/aba para evitar carregar VENCIMENTOS ou qualquer outra guia.
+    const spreadsheetId='1kXAYnbHPdJ6UoILliMP-eOduxxpRhIsRvcu4cNYVOxA';
+    const gid='1683540104';
+    const url=`https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_v=${Date.now()}`;
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok) throw new Error(`Falha ao carregar CLIENTES INATIVOS (HTTP ${res.status})`);
+    const csv=await res.text();
+    if(!csv || /^<!doctype html/i.test(csv.trim())) throw new Error('Resposta inválida da guia CLIENTES INATIVOS');
+    let rows=await parseCsvInativos(csv);
     rows=(rows||[]).filter(r=>Object.values(r).some(v=>String(v??'').trim()!==''));
-    const hs=[]; rows.forEach(r=>Object.keys(r).forEach(k=>{if(k&&!hs.includes(k))hs.push(k);}));
-    inativosHeaders=hs; dados.inativos=rows;
-    if(!rows.length && erros.length) console.warn('Consultas de CLIENTES INATIVOS:',erros);
+    const hs=[];
+    rows.forEach(r=>Object.keys(r).forEach(k=>{if(k&&!hs.includes(k))hs.push(k);}));
+    inativosHeaders=hs;
+    dados.inativos=rows;
+    inativosFonte='Google Sheets · CLIENTES INATIVOS · gid 1683540104';
   }
 
   window.carregarCadastroExtra=async function(tipo){
