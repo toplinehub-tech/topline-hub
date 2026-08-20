@@ -12943,62 +12943,262 @@ function montarCelulaObservacaoHistorico(item) {
 
 <script>
 /* ======================================================
-   TOPLINE UPDATE 2026-08-18 - Eduarda, Inativos, Emendas,
-   Agenda Patricia e compatibilidade da distribuicao.
+   TOPLINE UPDATE 2026-08-20
+   - Mantem todas as alteracoes anteriores.
+   - Emendas: formulario enxuto + fase editavel.
+   - Clientes Inativos: leitura da aba INATIVOS do Google Sheets.
    ====================================================== */
 (function(){
-  if (window.__TOPLINE_UPDATE_20260818__) return;
-  window.__TOPLINE_UPDATE_20260818__ = true;
+  if (window.__TOPLINE_UPDATE_20260820__) return;
+  window.__TOPLINE_UPDATE_20260820__ = true;
 
   function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function attr(v){ return esc(v).replace(/`/g,'&#96;'); }
-  function dataBR(v){ if(!v)return '-'; const s=String(v).slice(0,10).split('-'); return s.length===3 ? `${s[2]}/${s[1]}/${s[0]}` : String(v); }
+  function dataBR(v){
+    if(!v) return '-';
+    const s=String(v).trim();
+    if(/^\d{4}-\d{2}-\d{2}/.test(s)){ const p=s.slice(0,10).split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+    return s;
+  }
   function hoje(){ return new Date().toISOString().slice(0,10); }
+  function norm(v){ return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase(); }
+
   const configs = {
     inativos:{ titulo:'Clientes Inativos', singular:'inativo', tabela:'clientes_inativos', cor:'slate' },
     emendas:{ titulo:'Emendas', singular:'Emenda', tabela:'emendas', cor:'indigo' }
   };
   const dados = { inativos:[], emendas:[] };
+  let inativosHeaders = [];
+  let inativosFonte = '';
 
-  function docs(){
-    try {
-      const base=(typeof headers!=='undefined'?headers:[]).filter(h=>h && !['CLIENTE','CNPJ'].includes(String(h).toUpperCase()) && !String(h).endsWith('_DONE'));
-      return [...new Set(base)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
-    } catch(e){ return []; }
+  const FASES_EMENDA = [
+    {v:'andamento', l:'Andamento'},
+    {v:'analise', l:'Análise'},
+    {v:'execucao', l:'Execução'},
+    {v:'prestacao_contas', l:'Prestação de Contas'}
+  ];
+  function faseEmenda(i){
+    const s=String(i?.situacao || i?.status || 'andamento').toLowerCase().trim();
+    return FASES_EMENDA.some(x=>x.v===s) ? s : 'andamento';
   }
-  function opcoesDocs(){ const d=docs(); return '<option value="">Selecione...</option>'+d.map(x=>`<option value="${attr(x)}">${esc(x)}</option>`).join(''); }
-  function statusVisual(i){ const s=String(i.situacao||i.status||'aguardando').toLowerCase(); if(i.enviado)return 'concluido'; return ['analise','andamento'].includes(s)?s:'aguardando'; }
-  function label(s){ return ({aguardando:'Aguardando',analise:'Análise',andamento:'Andamento',concluido:'Enviado'})[s]||'Aguardando'; }
-  function html(tipo){
-    const c=configs[tipo];
+  function labelFase(v){ return FASES_EMENDA.find(x=>x.v===v)?.l || 'Andamento'; }
+  function opcoesFases(valor){ return FASES_EMENDA.map(x=>`<option value="${x.v}" ${x.v===valor?'selected':''}>${x.l}</option>`).join(''); }
+
+  function htmlEmendas(){
     return `<div class="white-card pontuais-page-card p-6 mb-6">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5"><div><h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">${c.titulo}</h2><p class="text-[10px] text-slate-400 mt-1">Cadastro com as mesmas informações da aba Pontuais, mantido separadamente no banco de dados.</p></div><div class="flex gap-2"><button onclick="carregarCadastroExtra('${tipo}')" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button><button onclick="limparCadastroExtra('${tipo}')" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button></div></div>
-      <div class="soft-card mb-5"><div class="pontuais-form-grid">
-        <div class="pontuais-field"><label>CNPJ <span class="text-slate-300 normal-case">(opcional)</span></label><input id="${tipo}-cnpj" type="text" placeholder="00.000.000/0000-00"></div>
-        <div class="pontuais-field"><label>Nome</label><input id="${tipo}-nome" type="text" placeholder="Nome da empresa"></div>
-        <div class="pontuais-field"><label>E-mail</label><input id="${tipo}-email" type="email" placeholder="email@empresa.com"></div>
-        <div class="pontuais-field"><label>Telefone</label><input id="${tipo}-telefone" type="text" placeholder="(00) 00000-0000"></div>
-        <div class="pontuais-field"><label>Documento</label><select id="${tipo}-documento" class="pontuais-doc-select">${opcoesDocs()}</select></div>
-        <div class="pontuais-field"><label>Data Cadastro</label><input id="${tipo}-data-cadastro" type="date" value="${hoje()}"></div>
-        <div class="pontuais-field"><label>Vencimento</label><input id="${tipo}-vencimento" type="date"></div>
-      </div><div class="flex justify-end mt-4"><button onclick="salvarCadastroExtra('${tipo}')" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-lg">Cadastrar ${c.singular}</button></div></div>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4"><div class="mini-kpi"><strong id="${tipo}-kpi-total">0</strong><span>Total</span></div><div class="mini-kpi kpi-vencidos"><strong id="${tipo}-kpi-aguardando">0</strong><span>Aguardando</span></div><div class="mini-kpi kpi-30"><strong id="${tipo}-kpi-analise">0</strong><span>Análise</span></div><div class="mini-kpi kpi-60"><strong id="${tipo}-kpi-andamento">0</strong><span>Andamento</span></div><div class="mini-kpi kpi-90"><strong id="${tipo}-kpi-concluido">0</strong><span>Enviados</span></div></div>
-      <div class="topline-toolbar mb-4"><input type="text" id="${tipo}-search" oninput="renderCadastroExtra('${tipo}')" placeholder="Pesquisar por nome, CNPJ, documento, e-mail ou telefone..." class="flex-1 min-w-[240px]"><select id="${tipo}-status" onchange="renderCadastroExtra('${tipo}')"><option value="">Todas as situações</option><option value="aguardando">Aguardando</option><option value="analise">Análise</option><option value="andamento">Andamento</option><option value="concluido">Enviado</option></select></div>
-      <div class="scroll-container"><table class="w-full text-left border-collapse"><thead><tr><th>Nome</th><th>CNPJ</th><th>E-mail</th><th>Telefone</th><th>Documento</th><th>Data Cadastro</th><th>Vencimento</th><th>Observação</th><th>Ação</th><th>Situação</th></tr></thead><tbody id="${tipo}-body"><tr><td colspan="10" class="text-center py-10 text-slate-400">Nenhum registro carregado.</td></tr></tbody></table></div>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Emendas</h2><p class="text-[10px] text-slate-400 mt-1">Controle das emendas por fase do processo.</p></div>
+        <div class="flex gap-2"><button onclick="carregarCadastroExtra('emendas')" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button><button onclick="limparCadastroExtra('emendas')" class="btn-mini text-slate-700 border-slate-200 bg-white">Limpar</button></div>
+      </div>
+      <div class="soft-card mb-5">
+        <div class="pontuais-form-grid">
+          <div class="pontuais-field"><label>CNPJ <span class="text-slate-300 normal-case">(opcional)</span></label><input id="emendas-cnpj" type="text" placeholder="00.000.000/0000-00"></div>
+          <div class="pontuais-field"><label>Nome</label><input id="emendas-nome" type="text" placeholder="Nome da empresa"></div>
+          <div class="pontuais-field"><label>E-mail</label><input id="emendas-email" type="email" placeholder="email@empresa.com"></div>
+          <div class="pontuais-field"><label>Data de Processo</label><input id="emendas-data-cadastro" type="date" value="${hoje()}"></div>
+          <div class="pontuais-field"><label>Fase da Emenda</label><select id="emendas-fase">${opcoesFases('andamento')}</select></div>
+        </div>
+        <div class="flex justify-end mt-4"><button onclick="salvarCadastroExtra('emendas')" class="bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-lg">Cadastrar Emenda</button></div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+        <div class="mini-kpi"><strong id="emendas-kpi-total">0</strong><span>Total</span></div>
+        <div class="mini-kpi kpi-60"><strong id="emendas-kpi-andamento">0</strong><span>Andamento</span></div>
+        <div class="mini-kpi kpi-30"><strong id="emendas-kpi-analise">0</strong><span>Análise</span></div>
+        <div class="mini-kpi kpi-90"><strong id="emendas-kpi-execucao">0</strong><span>Execução</span></div>
+        <div class="mini-kpi"><strong id="emendas-kpi-prestacao_contas">0</strong><span>Prestação de Contas</span></div>
+      </div>
+      <div class="topline-toolbar mb-4">
+        <input type="text" id="emendas-search" oninput="renderCadastroExtra('emendas')" placeholder="Pesquisar por nome, CNPJ, e-mail ou observação..." class="flex-1 min-w-[240px]">
+        <select id="emendas-status" onchange="renderCadastroExtra('emendas')"><option value="">Todas as fases</option>${FASES_EMENDA.map(x=>`<option value="${x.v}">${x.l}</option>`).join('')}</select>
+      </div>
+      <div class="scroll-container"><table class="w-full text-left border-collapse"><thead><tr><th>Nome</th><th>CNPJ</th><th>E-mail</th><th>Data de Processo</th><th>Observação</th><th>Fase</th></tr></thead><tbody id="emendas-body"><tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhuma emenda carregada.</td></tr></tbody></table></div>
     </div>`;
   }
-  function montar(){ Object.keys(configs).forEach(t=>{ const el=document.getElementById('view-'+t); if(el && !el.dataset.montado){el.innerHTML=html(t);el.dataset.montado='1';} }); }
-  window.carregarCadastroExtra=async function(tipo){ montar(); const c=configs[tipo]; if(!c)return; const body=document.getElementById(tipo+'-body'); if(body)body.innerHTML='<tr><td colspan="10" class="text-center py-10 text-slate-400">Carregando...</td></tr>'; try{ const {data,error}=await supabaseClient.from(c.tabela).select('*').order('created_at',{ascending:false}); if(error)throw error; dados[tipo]=(data||[]).map(x=>({...x,nome:x.nome||x.cliente||''})); }catch(e){ console.error(e); dados[tipo]=[]; if(body)body.innerHTML=`<tr><td colspan="10" class="text-center py-10 text-amber-500 font-bold">Não foi possível carregar ${esc(c.titulo)}. Execute o arquivo SQL enviado no Supabase.</td></tr>`; return; } renderCadastroExtra(tipo); };
-  window.renderCadastroExtra=function(tipo){ const arr=dados[tipo]||[], q=String(document.getElementById(tipo+'-search')?.value||'').toLowerCase(), fs=document.getElementById(tipo+'-status')?.value||''; const counts={total:arr.length,aguardando:0,analise:0,andamento:0,concluido:0}; arr.forEach(i=>counts[statusVisual(i)]++); Object.keys(counts).forEach(k=>{const e=document.getElementById(`${tipo}-kpi-${k}`);if(e)e.textContent=counts[k]||0;}); const lista=arr.filter(i=>{const s=statusVisual(i), txt=[i.nome,i.cnpj,i.email,i.telefone,i.documento,i.observacao].join(' ').toLowerCase();return(!q||txt.includes(q))&&(!fs||s===fs);}); const body=document.getElementById(tipo+'-body'); if(!body)return; if(!lista.length){body.innerHTML='<tr><td colspan="10" class="text-center py-10 text-slate-400">Nenhum registro encontrado.</td></tr>';return;} body.innerHTML=lista.map(i=>`<tr><td class="font-black text-slate-700">${esc(i.nome||'-')}</td><td class="font-mono text-[10px]">${esc(i.cnpj||'-')}</td><td>${esc(i.email||'-')}</td><td>${esc(i.telefone||'-')}</td><td>${esc(i.documento||'-')}</td><td>${dataBR(i.data_cadastro)}</td><td>${dataBR(i.vencimento)}</td><td><button class="text-[9px] font-bold text-slate-600 hover:text-emerald-700" onclick="editarObsCadastroExtra('${tipo}','${attr(i.id)}')">${esc(i.observacao||'Clique para editar')}</button></td><td><button class="pontuais-enviado-btn ${i.enviado?'done':''}" onclick="marcarEnviadoCadastroExtra('${tipo}','${attr(i.id)}')">${i.enviado?'Enviado ✓':'Marcar enviado'}</button></td><td><select class="border rounded-lg p-1 text-[9px] font-bold" onchange="alterarStatusCadastroExtra('${tipo}','${attr(i.id)}',this.value)"><option value="aguardando" ${statusVisual(i)==='aguardando'?'selected':''}>Aguardando</option><option value="analise" ${statusVisual(i)==='analise'?'selected':''}>Análise</option><option value="andamento" ${statusVisual(i)==='andamento'?'selected':''}>Andamento</option></select></td></tr>`).join(''); };
-  window.limparCadastroExtra=function(tipo){ ['cnpj','nome','email','telefone','vencimento'].forEach(k=>{const e=document.getElementById(`${tipo}-${k}`);if(e)e.value='';}); const d=document.getElementById(`${tipo}-data-cadastro`);if(d)d.value=hoje(); const doc=document.getElementById(`${tipo}-documento`);if(doc)doc.value=''; };
-  window.salvarCadastroExtra=async function(tipo){ const c=configs[tipo]; if(!c)return; const get=k=>String(document.getElementById(`${tipo}-${k}`)?.value||'').trim(); const payload={cnpj:get('cnpj')||null,cliente:get('nome'),email:get('email'),telefone:get('telefone'),documento:get('documento'),data_cadastro:get('data-cadastro')||hoje(),vencimento:get('vencimento')||null,validade:get('vencimento')||null,status:'aguardando',situacao:'aguardando',enviado:false,observacao:'',criado_por:currentUser||'Sistema',atualizado_por:currentUser||'Sistema'}; if(!payload.cliente||!payload.documento||!payload.vencimento){showNotification('Preencha Nome, Documento e Vencimento. O CNPJ é opcional.',true);return;} try{const {error}=await supabaseClient.from(c.tabela).insert([payload]);if(error)throw error; await carregarCadastroExtra(tipo); limparCadastroExtra(tipo); showNotification(`${c.titulo}: cadastro realizado com sucesso.`);}catch(e){console.error(e);showNotification('Erro ao salvar. Execute o SQL enviado e verifique as permissões do Supabase.',true);} };
-  window.editarObsCadastroExtra=async function(tipo,id){const c=configs[tipo], i=(dados[tipo]||[]).find(x=>String(x.id)===String(id));if(!i)return;const v=prompt('Editar observação:',i.observacao||'');if(v===null)return;const {error}=await supabaseClient.from(c.tabela).update({observacao:String(v).trim(),atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()}).eq('id',id);if(error){showNotification('Erro ao atualizar observação.',true);return;}await carregarCadastroExtra(tipo);};
-  window.alterarStatusCadastroExtra=async function(tipo,id,status){const c=configs[tipo];const {error}=await supabaseClient.from(c.tabela).update({status,situacao:status,enviado:false,data_status:hoje(),atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()}).eq('id',id);if(error){showNotification('Erro ao atualizar situação.',true);return;}await carregarCadastroExtra(tipo);};
-  window.marcarEnviadoCadastroExtra=async function(tipo,id){const c=configs[tipo],i=(dados[tipo]||[]).find(x=>String(x.id)===String(id));if(!i)return;const novo=!i.enviado;const {error}=await supabaseClient.from(c.tabela).update({enviado:novo,status:novo?'concluido':(i.situacao||'aguardando'),data_status:hoje(),atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()}).eq('id',id);if(error){showNotification('Erro ao atualizar envio.',true);return;}await carregarCadastroExtra(tipo);};
 
-  // Envolve o switchTab original para reconhecer as duas novas abas sem alterar as demais.
+  function htmlInativos(){
+    return `<div class="white-card pontuais-page-card p-6 mb-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Clientes Inativos</h2><p class="text-[10px] text-slate-400 mt-1">Dados carregados diretamente da aba INATIVOS da planilha Google.</p></div>
+        <div class="flex items-center gap-2"><span id="inativos-fonte" class="text-[9px] font-black uppercase text-slate-400"></span><button onclick="carregarCadastroExtra('inativos')" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button></div>
+      </div>
+      <div class="topline-toolbar mb-4"><input type="text" id="inativos-search" oninput="renderCadastroExtra('inativos')" placeholder="Pesquisar nos clientes inativos..." class="flex-1 min-w-[240px]"></div>
+      <div class="scroll-container"><table class="w-full text-left border-collapse"><thead id="inativos-head"><tr><th>Carregando colunas...</th></tr></thead><tbody id="inativos-body"><tr><td class="text-center py-10 text-slate-400">Nenhum registro carregado.</td></tr></tbody></table></div>
+    </div>`;
+  }
+
+  function montar(){
+    const vi=document.getElementById('view-inativos');
+    if(vi && !vi.dataset.montado20260820){ vi.innerHTML=htmlInativos(); vi.dataset.montado20260820='1'; }
+    const ve=document.getElementById('view-emendas');
+    if(ve && !ve.dataset.montado20260820){ ve.innerHTML=htmlEmendas(); ve.dataset.montado20260820='1'; }
+  }
+
+  function normalizarLinhaSheet(row){
+    const out={};
+    Object.keys(row||{}).forEach(k=>{ const key=String(k||'').trim(); if(key) out[key]=row[k]; });
+    return out;
+  }
+
+  function jsonpGoogleSheetInativos(){
+    return new Promise((resolve,reject)=>{
+      if(typeof URL_SCRIPT_GOOGLE==='undefined' || !URL_SCRIPT_GOOGLE) return reject(new Error('Apps Script não configurado'));
+      const callback='topline_inativos_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+      const params=new URLSearchParams({action:'getSheetData',sheet:'INATIVOS',aba:'INATIVOS',callback});
+      let script;
+      const timer=setTimeout(()=>{ cleanup(); reject(new Error('Timeout ao consultar INATIVOS via Apps Script')); },8000);
+      function cleanup(){ clearTimeout(timer); try{delete window[callback];}catch(e){} if(script&&script.parentNode)script.parentNode.removeChild(script); }
+      window[callback]=resp=>{
+        cleanup();
+        const arr=Array.isArray(resp)?resp:(Array.isArray(resp?.data)?resp.data:(Array.isArray(resp?.rows)?resp.rows:null));
+        if(arr) resolve(arr.map(normalizarLinhaSheet)); else reject(new Error(resp?.error||'Resposta sem linhas'));
+      };
+      script=document.createElement('script'); script.src=`${URL_SCRIPT_GOOGLE}?${params.toString()}&_v=${Date.now()}`;
+      script.onerror=()=>{ cleanup(); reject(new Error('Falha de rede no Apps Script')); };
+      document.body.appendChild(script);
+    });
+  }
+
+  async function descobrirGidInativos(){
+    if(typeof BASE_URL==='undefined' || !BASE_URL) throw new Error('Planilha principal não configurada');
+    const pubhtml=String(BASE_URL).replace(/\/pub\?.*$/,'/pubhtml');
+    const res=await fetch(pubhtml+(pubhtml.includes('?')?'&':'?')+'_v='+Date.now(),{cache:'no-store'});
+    if(!res.ok) throw new Error('Não foi possível abrir a publicação da planilha');
+    const html=await res.text();
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    for(const a of doc.querySelectorAll('a[href*="gid="]')){
+      const nome=norm(a.textContent);
+      if(nome.includes('INATIV')){ const m=(a.getAttribute('href')||'').match(/[?&]gid=(\d+)/); if(m)return m[1]; }
+    }
+    const compact=html.replace(/\s+/g,' ');
+    let m=compact.match(/gid=(\d+)[^>]{0,500}>[^<]{0,120}INATIV/iu);
+    if(!m) m=compact.match(/INATIV[^<]{0,120}<[^>]{0,500}gid=(\d+)/iu);
+    if(m) return m[1];
+    throw new Error('A aba INATIVOS não foi encontrada entre as abas publicadas');
+  }
+
+  async function csvGoogleSheetInativos(){
+    const gid=await descobrirGidInativos();
+    const url=String(BASE_URL).replace(/([?&])gid=\d+/,'$1').replace(/[?&]$/,'') + `&gid=${encodeURIComponent(gid)}&single=true&_v=${Date.now()}`;
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok)throw new Error('Falha ao baixar a aba INATIVOS');
+    const csv=await res.text();
+    return await new Promise((resolve,reject)=>{
+      Papa.parse(csv,{header:true,skipEmptyLines:true,complete:r=>{ if(r.errors?.length && !(r.data||[]).length)return reject(new Error(r.errors[0].message)); resolve((r.data||[]).map(normalizarLinhaSheet)); },error:reject});
+    });
+  }
+
+  async function carregarInativosGoogle(){
+    let rows=null, erro1=null;
+    try{ rows=await jsonpGoogleSheetInativos(); inativosFonte='Google Sheets'; }catch(e){ erro1=e; }
+    if(!rows){ rows=await csvGoogleSheetInativos(); inativosFonte='Google Sheets'; }
+    rows=(rows||[]).filter(r=>Object.values(r).some(v=>String(v??'').trim()!==''));
+    const hs=[]; rows.forEach(r=>Object.keys(r).forEach(k=>{if(k&&!hs.includes(k))hs.push(k);}));
+    inativosHeaders=hs; dados.inativos=rows;
+    if(!rows.length && erro1) console.warn('Consulta alternativa de INATIVOS:',erro1);
+  }
+
+  window.carregarCadastroExtra=async function(tipo){
+    montar();
+    if(tipo==='inativos'){
+      const body=document.getElementById('inativos-body');
+      if(body) body.innerHTML='<tr><td class="text-center py-10 text-slate-400">Carregando a aba INATIVOS do Google Sheets...</td></tr>';
+      try{ await carregarInativosGoogle(); renderCadastroExtra('inativos'); }
+      catch(e){ console.error(e); if(body)body.innerHTML=`<tr><td class="text-center py-10 text-amber-600 font-bold">Não foi possível localizar/carregar a aba INATIVOS da planilha Google. Verifique se essa aba está incluída na publicação da planilha.</td></tr>`; const f=document.getElementById('inativos-fonte');if(f)f.textContent=''; }
+      return;
+    }
+    if(tipo!=='emendas') return;
+    const body=document.getElementById('emendas-body'); if(body)body.innerHTML='<tr><td colspan="6" class="text-center py-10 text-slate-400">Carregando...</td></tr>';
+    try{
+      const {data,error}=await supabaseClient.from(configs.emendas.tabela).select('*').order('created_at',{ascending:false}); if(error)throw error;
+      dados.emendas=(data||[]).map(x=>({...x,nome:x.nome||x.cliente||''}));
+      renderCadastroExtra('emendas');
+    }catch(e){ console.error(e); dados.emendas=[]; if(body)body.innerHTML='<tr><td colspan="6" class="text-center py-10 text-amber-500 font-bold">Não foi possível carregar Emendas.</td></tr>'; }
+  };
+
+  window.renderCadastroExtra=function(tipo){
+    montar();
+    if(tipo==='inativos'){
+      const q=String(document.getElementById('inativos-search')?.value||'').toLowerCase().trim();
+      const lista=(dados.inativos||[]).filter(r=>!q || Object.values(r).join(' ').toLowerCase().includes(q));
+      const head=document.getElementById('inativos-head'), body=document.getElementById('inativos-body'), fonte=document.getElementById('inativos-fonte');
+      if(fonte)fonte.textContent=inativosFonte?`Fonte: ${inativosFonte}`:'';
+      if(!head||!body)return;
+      const hs=inativosHeaders.length?inativosHeaders:['CLIENTE'];
+      head.innerHTML='<tr>'+hs.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr>';
+      if(!lista.length){body.innerHTML=`<tr><td colspan="${hs.length}" class="text-center py-10 text-slate-400">Nenhum cliente inativo encontrado.</td></tr>`;return;}
+      body.innerHTML=lista.map(r=>'<tr>'+hs.map(h=>`<td>${esc(r[h]??'-')}</td>`).join('')+'</tr>').join('');
+      return;
+    }
+    if(tipo!=='emendas')return;
+    const arr=dados.emendas||[], q=String(document.getElementById('emendas-search')?.value||'').toLowerCase(), fs=document.getElementById('emendas-status')?.value||'';
+    const counts={total:arr.length,andamento:0,analise:0,execucao:0,prestacao_contas:0};
+    arr.forEach(i=>{ const f=faseEmenda(i); if(counts[f]!==undefined)counts[f]++; });
+    Object.keys(counts).forEach(k=>{const e=document.getElementById(`emendas-kpi-${k}`);if(e)e.textContent=counts[k]||0;});
+    const lista=arr.filter(i=>{const f=faseEmenda(i),txt=[i.nome,i.cliente,i.cnpj,i.email,i.observacao].join(' ').toLowerCase();return(!q||txt.includes(q))&&(!fs||f===fs);});
+    const body=document.getElementById('emendas-body'); if(!body)return;
+    if(!lista.length){body.innerHTML='<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhuma emenda encontrada.</td></tr>';return;}
+    body.innerHTML=lista.map(i=>`<tr>
+      <td class="font-black text-slate-700">${esc(i.nome||i.cliente||'-')}</td>
+      <td class="font-mono text-[10px]">${esc(i.cnpj||'-')}</td>
+      <td>${esc(i.email||'-')}</td>
+      <td>${dataBR(i.data_cadastro)}</td>
+      <td><button class="text-[9px] font-bold text-slate-600 hover:text-emerald-700" onclick="editarObsCadastroExtra('emendas','${attr(i.id)}')">${esc(i.observacao||'Clique para editar')}</button></td>
+      <td><select class="border rounded-lg p-1 text-[9px] font-bold" onchange="alterarStatusCadastroExtra('emendas','${attr(i.id)}',this.value)">${opcoesFases(faseEmenda(i))}</select></td>
+    </tr>`).join('');
+  };
+
+  window.limparCadastroExtra=function(tipo){
+    if(tipo==='emendas'){
+      ['cnpj','nome','email'].forEach(k=>{const e=document.getElementById(`emendas-${k}`);if(e)e.value='';});
+      const d=document.getElementById('emendas-data-cadastro'); if(d)d.value=hoje();
+      const f=document.getElementById('emendas-fase'); if(f)f.value='andamento';
+    }
+  };
+
+  window.salvarCadastroExtra=async function(tipo){
+    if(tipo!=='emendas')return;
+    const get=k=>String(document.getElementById(`emendas-${k}`)?.value||'').trim();
+    const fase=get('fase')||'andamento';
+    const payload={
+      cnpj:get('cnpj')||null,
+      cliente:get('nome'),
+      email:get('email')||null,
+      telefone:null,
+      documento:'EMENDA',
+      data_cadastro:get('data-cadastro')||hoje(),
+      vencimento:null,
+      validade:null,
+      status:fase,
+      situacao:fase,
+      enviado:false,
+      observacao:'',
+      data_status:hoje(),
+      criado_por:currentUser||'Sistema',
+      atualizado_por:currentUser||'Sistema'
+    };
+    if(!payload.cliente){showNotification('Preencha o Nome da empresa.',true);return;}
+    if(!FASES_EMENDA.some(x=>x.v===fase)){showNotification('Selecione uma fase válida para a emenda.',true);return;}
+    try{ const {error}=await supabaseClient.from('emendas').insert([payload]); if(error)throw error; await carregarCadastroExtra('emendas'); limparCadastroExtra('emendas'); showNotification('Emenda cadastrada com sucesso.'); }
+    catch(e){console.error(e);showNotification('Erro ao salvar a emenda no Supabase.',true);}
+  };
+
+  window.editarObsCadastroExtra=async function(tipo,id){
+    if(tipo!=='emendas')return;
+    const i=(dados.emendas||[]).find(x=>String(x.id)===String(id)); if(!i)return;
+    const v=prompt('Editar observação:',i.observacao||''); if(v===null)return;
+    const {error}=await supabaseClient.from('emendas').update({observacao:String(v).trim(),atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()}).eq('id',id);
+    if(error){showNotification('Erro ao atualizar observação.',true);return;} await carregarCadastroExtra('emendas');
+  };
+
+  window.alterarStatusCadastroExtra=async function(tipo,id,status){
+    if(tipo!=='emendas')return;
+    if(!FASES_EMENDA.some(x=>x.v===status)){showNotification('Fase inválida.',true);return;}
+    const {error}=await supabaseClient.from('emendas').update({status,situacao:status,data_status:hoje(),atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()}).eq('id',id);
+    if(error){showNotification('Erro ao atualizar a fase da emenda.',true);return;} await carregarCadastroExtra('emendas');
+  };
+
+  // Envolve o switchTab original apenas para reconhecer as duas abas novas.
   const originalSwitch=window.switchTab || (typeof switchTab==='function'?switchTab:null);
-  if(originalSwitch && !originalSwitch.__extras20260818){
+  if(originalSwitch && !originalSwitch.__extras20260820){
     const novo=function(tab){
       if(tab==='inativos'||tab==='emendas'){
         const all=['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
@@ -13007,15 +13207,15 @@ function montarCelulaObservacaoHistorico(item) {
         const search=document.getElementById('search-bar-wrapper');if(search)search.classList.remove('visible'); carregarCadastroExtra(tab); return;
       }
       return originalSwitch(tab);
-    }; novo.__extras20260818=true; window.switchTab=novo; try{switchTab=novo;}catch(e){}
+    };
+    novo.__extras20260820=true; window.switchTab=novo; try{switchTab=novo;}catch(e){}
   }
 
-  // Agenda: Patricia passa a ser um terceiro responsavel editavel.
+  // Agenda Patricia e filtros da Eduarda permanecem exatamente como na atualizacao anterior.
   const oldAtualizar=window.atualizarAcessoAgendaResponsaveis || (typeof atualizarAcessoAgendaResponsaveis==='function'?atualizarAcessoAgendaResponsaveis:null);
   if(oldAtualizar){ const wrap=function(){oldAtualizar();const p=document.getElementById('agenda-owner-patricia');if(p)p.classList.toggle('active',agendaResponsavelFiltroAtivo==='Patricia');}; window.atualizarAcessoAgendaResponsaveis=wrap; try{atualizarAcessoAgendaResponsaveis=wrap;}catch(e){} }
-
-  // Mantem opcoes de responsavel dos filtros incluindo Eduarda onde houver listas de colaboradores.
   function incluirEduardaNosSelects(){ document.querySelectorAll('select').forEach(sel=>{ const opts=[...sel.options].map(o=>String(o.value||o.textContent).trim()); if(opts.includes('Jordan')&&opts.includes('Sirlene')&&!opts.includes('Eduarda')){ const o=document.createElement('option');o.value='Eduarda';o.textContent='Eduarda';const idx=[...sel.options].findIndex(x=>String(x.value||x.textContent).trim()==='Sirlene');if(idx>=0)sel.insertBefore(o,sel.options[idx]);else sel.appendChild(o); } }); }
+
   montar(); incluirEduardaNosSelects(); setTimeout(incluirEduardaNosSelects,1500);
 })();
 </script>
