@@ -12946,7 +12946,7 @@ function montarCelulaObservacaoHistorico(item) {
    TOPLINE UPDATE 2026-08-20
    - Mantem todas as alteracoes anteriores.
    - Emendas: formulario enxuto + fase editavel.
-   - Clientes Inativos: leitura da aba INATIVOS do Google Sheets.
+   - Clientes Inativos: leitura da aba CLIENTES INATIVOS do Google Sheets.
    ====================================================== */
 (function(){
   if (window.__TOPLINE_UPDATE_20260820__) return;
@@ -13018,7 +13018,7 @@ function montarCelulaObservacaoHistorico(item) {
   function htmlInativos(){
     return `<div class="white-card pontuais-page-card p-6 mb-6">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
-        <div><h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Clientes Inativos</h2><p class="text-[10px] text-slate-400 mt-1">Dados carregados diretamente da aba INATIVOS da planilha Google.</p></div>
+        <div><h2 class="text-lg font-black text-slate-800 uppercase tracking-wider">Clientes Inativos</h2><p class="text-[10px] text-slate-400 mt-1">Dados carregados diretamente da aba CLIENTES INATIVOS da planilha Google.</p></div>
         <div class="flex items-center gap-2"><span id="inativos-fonte" class="text-[9px] font-black uppercase text-slate-400"></span><button onclick="carregarCadastroExtra('inativos')" class="btn-mini text-emerald-700 border-emerald-200 bg-emerald-50">Atualizar</button></div>
       </div>
       <div class="topline-toolbar mb-4"><input type="text" id="inativos-search" oninput="renderCadastroExtra('inativos')" placeholder="Pesquisar nos clientes inativos..." class="flex-1 min-w-[240px]"></div>
@@ -13043,9 +13043,9 @@ function montarCelulaObservacaoHistorico(item) {
     return new Promise((resolve,reject)=>{
       if(typeof URL_SCRIPT_GOOGLE==='undefined' || !URL_SCRIPT_GOOGLE) return reject(new Error('Apps Script não configurado'));
       const callback='topline_inativos_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-      const params=new URLSearchParams({action:'getSheetData',sheet:'INATIVOS',aba:'INATIVOS',callback});
+      const params=new URLSearchParams({action:'getSheetData',sheet:'CLIENTES INATIVOS',aba:'CLIENTES INATIVOS',callback});
       let script;
-      const timer=setTimeout(()=>{ cleanup(); reject(new Error('Timeout ao consultar INATIVOS via Apps Script')); },8000);
+      const timer=setTimeout(()=>{ cleanup(); reject(new Error('Timeout ao consultar CLIENTES INATIVOS via Apps Script')); },8000);
       function cleanup(){ clearTimeout(timer); try{delete window[callback];}catch(e){} if(script&&script.parentNode)script.parentNode.removeChild(script); }
       window[callback]=resp=>{
         cleanup();
@@ -13067,19 +13067,19 @@ function montarCelulaObservacaoHistorico(item) {
     const doc=new DOMParser().parseFromString(html,'text/html');
     for(const a of doc.querySelectorAll('a[href*="gid="]')){
       const nome=norm(a.textContent);
-      if(nome.includes('INATIV')){ const m=(a.getAttribute('href')||'').match(/[?&]gid=(\d+)/); if(m)return m[1]; }
+      if(nome==='CLIENTES INATIVOS' || nome.includes('CLIENTES INATIV')){ const m=(a.getAttribute('href')||'').match(/[?&]gid=(\d+)/); if(m)return m[1]; }
     }
     const compact=html.replace(/\s+/g,' ');
-    let m=compact.match(/gid=(\d+)[^>]{0,500}>[^<]{0,120}INATIV/iu);
-    if(!m) m=compact.match(/INATIV[^<]{0,120}<[^>]{0,500}gid=(\d+)/iu);
+    let m=compact.match(/gid=(\d+)[^>]{0,500}>[^<]{0,160}CLIENTES\s+INATIV/iu);
+    if(!m) m=compact.match(/CLIENTES\s+INATIV[^<]{0,160}<[^>]{0,500}gid=(\d+)/iu);
     if(m) return m[1];
-    throw new Error('A aba INATIVOS não foi encontrada entre as abas publicadas');
+    throw new Error('A aba CLIENTES INATIVOS não foi encontrada entre as abas publicadas');
   }
 
   async function csvGoogleSheetInativos(){
     const gid=await descobrirGidInativos();
     const url=String(BASE_URL).replace(/([?&])gid=\d+/,'$1').replace(/[?&]$/,'') + `&gid=${encodeURIComponent(gid)}&single=true&_v=${Date.now()}`;
-    const res=await fetch(url,{cache:'no-store'}); if(!res.ok)throw new Error('Falha ao baixar a aba INATIVOS');
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok)throw new Error('Falha ao baixar a aba CLIENTES INATIVOS');
     const csv=await res.text();
     return await new Promise((resolve,reject)=>{
       Papa.parse(csv,{header:true,skipEmptyLines:true,complete:r=>{ if(r.errors?.length && !(r.data||[]).length)return reject(new Error(r.errors[0].message)); resolve((r.data||[]).map(normalizarLinhaSheet)); },error:reject});
@@ -13093,16 +13093,16 @@ function montarCelulaObservacaoHistorico(item) {
     rows=(rows||[]).filter(r=>Object.values(r).some(v=>String(v??'').trim()!==''));
     const hs=[]; rows.forEach(r=>Object.keys(r).forEach(k=>{if(k&&!hs.includes(k))hs.push(k);}));
     inativosHeaders=hs; dados.inativos=rows;
-    if(!rows.length && erro1) console.warn('Consulta alternativa de INATIVOS:',erro1);
+    if(!rows.length && erro1) console.warn('Consulta alternativa de CLIENTES INATIVOS:',erro1);
   }
 
   window.carregarCadastroExtra=async function(tipo){
     montar();
     if(tipo==='inativos'){
       const body=document.getElementById('inativos-body');
-      if(body) body.innerHTML='<tr><td class="text-center py-10 text-slate-400">Carregando a aba INATIVOS do Google Sheets...</td></tr>';
+      if(body) body.innerHTML='<tr><td class="text-center py-10 text-slate-400">Carregando a aba CLIENTES INATIVOS do Google Sheets...</td></tr>';
       try{ await carregarInativosGoogle(); renderCadastroExtra('inativos'); }
-      catch(e){ console.error(e); if(body)body.innerHTML=`<tr><td class="text-center py-10 text-amber-600 font-bold">Não foi possível localizar/carregar a aba INATIVOS da planilha Google. Verifique se essa aba está incluída na publicação da planilha.</td></tr>`; const f=document.getElementById('inativos-fonte');if(f)f.textContent=''; }
+      catch(e){ console.error(e); if(body)body.innerHTML=`<tr><td class="text-center py-10 text-amber-600 font-bold">Não foi possível localizar/carregar a aba CLIENTES INATIVOS da planilha Google. Verifique se essa aba está incluída na publicação da planilha.</td></tr>`; const f=document.getElementById('inativos-fonte');if(f)f.textContent=''; }
       return;
     }
     if(tipo!=='emendas') return;
