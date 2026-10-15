@@ -1441,6 +1441,7 @@ body.agenda-modal-open { overflow:hidden; }
                             <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
                             <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
                             <button onclick="switchTab('avisos')" id="tab-avisos" class="text-[10px] font-bold uppercase pb-1 text-slate-400 relative">Avisos<span id="avisos-badge" class="badge-avisos badge-blue">0</span></button>
+                            
                             <button onclick="switchTab('alugueis')" id="tab-alugueis" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Aluguéis</button>
                             <button onclick="switchTab('empresasparcelamentos')" id="tab-empresasparcelamentos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Empresas/Parcelamentos</button>
                             <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
@@ -1868,8 +1869,9 @@ body.agenda-modal-open { overflow:hidden; }
             </div>
 
             <!-- CLIENTES INATIVOS / EMENDAS -->
-            <div id="topline-sheets-error" role="alert" style="display:none;background:#fff1f2;color:#9f1239;padding:12px;border-radius:10px;margin:12px 0"></div><div id="view-inativos" class="hidden"></div>
-            <div id="view-emendas" class="hidden"></div><div id="view-atribuicoesempresas" class="hidden"></div>
+            <div id="view-inativos" class="hidden"></div>
+            <div id="view-emendas" class="hidden"></div>
+            <div id="view-atribuicoesempresas" class="hidden"></div>
 
             <!-- TAREFAS -->
             <div id="view-tasks" class="hidden">
@@ -2252,7 +2254,7 @@ body.agenda-modal-open { overflow:hidden; }
             </div>
 
             <!-- FINANCEIRO -->
-            <div id="view-financeiro" class="hidden" style="display:none!important">
+            <div id="view-financeiro" class="hidden">
                 <div class="white-card p-6 financeiro-page-card">
                     <div class="flex flex-wrap gap-3 justify-between items-center mb-6">
                         <div>
@@ -3367,6 +3369,54 @@ body.agenda-modal-open { overflow:hidden; }
 })();
 </script>
 
+<style>
+#view-atribuicoesempresas .topline-owner {min-height:140px;border:1px solid #cbd5e1;border-radius:14px;padding:16px;background:white}
+#view-atribuicoesempresas .topline-company {padding:8px;margin:6px 0;border:1px solid #e2e8f0;border-radius:8px;cursor:grab;background:#f8fafc;font-size:12px}
+#view-atribuicoesempresas .topline-owner.drag-over {outline:3px solid #10b981}
+#tableBody select.topline-resp {max-width:140px;font-size:11px;padding:5px;border:1px solid #cbd5e1;border-radius:7px;background:white}
+#emendas-body td[tabindex] {cursor:text}
+</style>
+<script>
+/* Módulo isolado: não altera a integração Google Sheets existente. */
+const toplineNomes = ['Jordan','Sirlene','Ryan','Ingrid','Patricia'];
+let toplineResponsaveis = Object.create(null);
+let toplineRespCarregado = false;
+function toplineChaveEmpresa(row){return String(row?.CNPJ||'').replace(/\D/g,'') || String(row?.CLIENTE||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();}
+function toplineResponsavelSelect(row){
+ const chave=toplineChaveEmpresa(row), valor=toplineResponsaveis[chave]||'';
+ return `<select class="topline-resp" title="Responsável da empresa" data-key="${escapeAttr(chave)}" onchange="toplineSalvarResponsavel(this.dataset.key,this.value,this)"><option value="">Sem responsável</option>${toplineNomes.map(n=>`<option value="${n}" ${valor===n?'selected':''}>${n}</option>`).join('')}</select>`;
+}
+async function toplineCarregarResponsaveis(){
+ try {const {data,error}=await supabaseClient.from('responsaveis_empresas').select('empresa_chave,responsavel');if(error)throw error;
+ toplineResponsaveis=Object.create(null);(data||[]).forEach(x=>{toplineResponsaveis[x.empresa_chave]=x.responsavel;});toplineRespCarregado=true;
+ if(typeof renderTable==='function')renderTable();toplineRenderAtribuicoes();
+ }catch(e){console.error('Falha ao ler responsáveis',e);showNotification('Não foi possível consultar responsáveis no Supabase: '+e.message,true);}
+}
+async function toplineSalvarResponsavel(chave,nome,select){
+ const anterior=toplineResponsaveis[chave]||'';
+ if(!chave || (nome && !toplineNomes.includes(nome)))return;
+ if(select)select.disabled=true;
+ try {let q=supabaseClient.from('responsaveis_empresas');let result=nome?await q.upsert({empresa_chave:chave,responsavel:nome,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'}):await q.delete().eq('empresa_chave',chave);
+ if(result.error)throw result.error;
+ if(nome)toplineResponsaveis[chave]=nome;else delete toplineResponsaveis[chave];
+ renderTable();toplineRenderAtribuicoes();
+ }catch(e){console.error(e);if(select){select.value=anterior;select.disabled=false;}showNotification('Não foi possível salvar o responsável: '+e.message,true);}
+}
+function toplineRenderAtribuicoes(){
+ const el=document.getElementById('view-atribuicoesempresas');if(!el)return;
+ const grupos=toplineNomes.map(nome=>({nome,empresas:(typeof rawData!=='undefined'?rawData:[]).filter(r=>toplineResponsaveis[toplineChaveEmpresa(r)]===nome)}));
+ const sem=(typeof rawData!=='undefined'?rawData:[]).filter(r=>!toplineResponsaveis[toplineChaveEmpresa(r)]);
+ const all=[...grupos,{nome:'Sem responsável',empresas:sem}];
+ el.innerHTML=`<div class="white-card p-6"><h2 class="font-black text-lg mb-2">Atribuições de Empresas</h2><p class="text-sm text-slate-500 mb-5">Arraste uma empresa para outro funcionário. A transferência só será salva após sua confirmação.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-4">${all.map(g=>`<section class="topline-owner" data-owner="${g.nome}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="toplineSoltarEmpresa(event,this.dataset.owner);this.classList.remove('drag-over')"><h3 class="font-bold">${g.nome} (${g.empresas.length})</h3><div>${g.empresas.map(r=>`<div draggable="true" class="topline-company" data-key="${escapeAttr(toplineChaveEmpresa(r))}" ondragstart="event.dataTransfer.setData('text/plain',this.dataset.key)">${escapeHtml(r.CLIENTE||'Sem nome')}</div>`).join('')}</div></section>`).join('')}</div></div>`;
+}
+function toplineSoltarEmpresa(event,destino){event.preventDefault();const chave=event.dataTransfer.getData('text/plain');if(!chave)return;const nome=destino==='Sem responsável'?'':destino;if((toplineResponsaveis[chave]||'')===nome)return;const row=rawData.find(r=>toplineChaveEmpresa(r)===chave);if(!confirm(`Transferir ${row?.CLIENTE||'empresa'} para ${nome||'Sem responsável'}?`))return;toplineSalvarResponsavel(chave,nome);}
+function toplineEmendaConcluida(i){return ['concluido','concluida','finalizado','finalizada'].includes(String(i?.status||i?.situacao||'').toLowerCase().trim());}
+function toplineEditarEmenda(td,id,campo){if(td.querySelector('input'))return;const antigo=td.textContent.trim()==='-'?'':td.textContent.trim();const inp=document.createElement('input');inp.className='w-full border border-emerald-400 rounded p-1';inp.type=campo==='data_cadastro'?'date':'text';inp.value=antigo;td.textContent='';td.appendChild(inp);inp.focus();
+ const cancel=()=>renderCadastroExtra('emendas');inp.addEventListener('keydown',async e=>{if(e.key==='Escape')cancel();if(e.key!=='Enter')return;e.preventDefault();inp.disabled=true;try{const payload={[campo]:inp.value,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()};const {error}=await supabaseClient.from('emendas').update(payload).eq('id',id);if(error)throw error;await carregarCadastroExtra('emendas');}catch(err){inp.disabled=false;showNotification('Erro ao salvar emenda: '+err.message,true);}});
+}
+// Carregamento assíncrono separado da planilha; não bloqueia o Painel.
+window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500);});
+</script>
 </body>
 
     <script>
@@ -3883,7 +3933,7 @@ body.agenda-modal-open { overflow:hidden; }
             if (tabLogs) tabLogs.classList.remove('hidden');
             
             const tabFinanceiro = document.getElementById('tab-financeiro');
-            if (PERFIS_FINANCEIRO.includes(currentUser)) { tabFinanceiro.classList.remove('hidden'); } else { tabFinanceiro.classList.add('hidden'); }
+            if (tabFinanceiro) tabFinanceiro.classList.add('hidden');
 
             aplicarPermissaoMenuAlugueis();
             
@@ -3933,10 +3983,14 @@ body.agenda-modal-open { overflow:hidden; }
         }
         
         function atualizarBotoesSorteio() {
-            const pode = usuarioPodeSortear();
-            document.getElementById('botoesSorteioTasks').innerHTML = `<button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700 ${pode?'':'btn-disabled'}" ${pode?'':'disabled'}>🎲 Sorteio 90D — Vencidas</button>`;
-            document.getElementById('resetButtonContainer').innerHTML = pode ? `<button onclick="resetarDistribuicao()" class="btn-mini border-red-500 text-red-700 bg-red-50">🔄 Resetar Distribuição</button>` : '';
-            document.getElementById('avisoRestricao').classList.toggle('hidden',pode);
+            const c = document.getElementById('botoesSorteioTasks');
+            const reset = document.getElementById('resetButtonContainer');
+            const aviso = document.getElementById('avisoRestricao');
+            if (c) c.innerHTML = usuarioPodeSortear()
+              ? '<button onclick="distribuirTarefas(\'90\')" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90D (vencidos)</button>'
+              : '<button disabled class="btn-mini btn-disabled">🔒 Sorteio 90D</button>';
+            if (reset) reset.innerHTML = usuarioPodeSortear() ? '<button onclick="resetarDistribuicao()" class="btn-mini border-red-500 text-red-700">🔄 Resetar Distribuição</button>' : '';
+            if (aviso) aviso.classList.toggle('hidden', usuarioPodeSortear());
         }
 
         // ============================================
@@ -4390,7 +4444,7 @@ body.agenda-modal-open { overflow:hidden; }
                                 if (linha) {
                                     // SÓ ADICIONA SE AINDA ESTIVER PENDENTE NO RAWDATA
                                     // Se virou OK, CONCLUÍDO, ANÁLISE ou EM ANDAMENTO, não volta para o card ao atualizar a página.
-                                    if (isTarefaPendente(idx, documento)) {
+                                    if (isTarefaPendente(idx, documento) && (status !== '90' || getStatus(linha[documento], linha, documento) === 'vencido')) {
                                         dest.push({ cliente: linha.CLIENTE, documento, rowIndex: idx, prazo: linha[documento] instanceof Date ? linha[documento].toLocaleDateString('pt-BR') : (linha[documento] || '-') });
                                     }
                                 }
@@ -4498,24 +4552,17 @@ body.agenda-modal-open { overflow:hidden; }
 
         async function fetchGoogleSheets(isFirstLoad, forceSenhas = false) {
             try {
-                // A planilha principal nao deve depender da consulta auxiliar de inativos.
-                const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime(), {cache:'no-store'});
-                if (!resDados.ok) throw new Error('Planilha principal: HTTP ' + resDados.status);
-                const csvDados = await resDados.text();
-                if (!csvDados.trim() || /^\s*</.test(csvDados)) throw new Error('Google Sheets nao retornou CSV valido');
                 const inativosPainel = lerCacheInativosPainel();
-                obterChavesInativosPainel().then(fresh => {
-                    if (fresh.size !== inativosPainel.size) fetchGoogleSheets(false);
-                }).catch(err => console.warn('Filtro de inativos indisponivel',err));
+                obterChavesInativosPainel().then(fresh => { if (fresh.size !== inativosPainel.size) fetchGoogleSheets(false); }).catch(console.warn);
+                const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
+                const csvDados = await resDados.text();
                 if (!isFirstLoad && csvDados === lastKnownDataHash) return;
                 Papa.parse(csvDados, {
                     header: true, dynamicTyping: true, skipEmptyLines: true,
                     complete: (results) => {
-                        if (results.errors && results.errors.length) console.warn('Avisos ao ler CSV:',results.errors);
                         const newData = results.data.map(processRow).filter(row => !clienteEstaInativoNoPainel(row, inativosPainel));
                         if (!isFirstLoad && rawData.length > 0) detectChanges(rawData, newData);
                         rawData = newData;
-                        const avisoSheets = document.getElementById('topline-sheets-error'); if(avisoSheets) avisoSheets.style.display='none';
                         lastKnownDataHash = csvDados;
                         if (rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable(); if (!pontuaisData.length) carregarPontuais(); renderizarTarefas(); atualizarDashboardDesempenho(); atualizarResumoParcelamentos();
@@ -4528,11 +4575,7 @@ body.agenda-modal-open { overflow:hidden; }
                     const csvSenhas = await resSenhas.text();
                     Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = (r.data || []).map(processSenhaRow); renderSenhas(); } });
                 }
-            } catch (e) {
-                console.error("Erro na sincronização do Google Sheets.", e);
-                const aviso = document.getElementById('topline-sheets-error');
-                if (aviso) { aviso.textContent = 'Falha ao carregar empresas do Google Sheets: ' + (e.message || e) + '. Verifique a publicacao e acesso a planilha.'; aviso.style.display = 'block'; }
-            }
+            } catch (e) { console.error("Erro na sincronização.", e); }
         }
 
 
@@ -7509,7 +7552,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 tab = 'dash';
             }
 
-            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','atribuicoesempresas','alugueis','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','atribuicoesempresas','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -7539,7 +7582,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 searchBar.classList.remove('visible');
             }
 
-            if (tab === 'atribuicoesempresas') renderAtribuicoesEmpresas();
+            if (tab === 'atribuicoesempresas') toplineRenderAtribuicoes();
             if (tab === 'centralpendencias') centralPendenciasAtualizar();
             if (tab === 'senhas') renderSenhas();
             if (tab === 'atribuicoes') renderAtribuicoes();
@@ -7556,7 +7599,10 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             if (tab === 'historico') carregarHistorico();
             if (tab === 'alugueis') { if (!alugueisCarregadoBanco || !alugueisData.length) alugueisCarregarBanco(false, false); else alugueisRender(); }
             if (tab === 'empresasparcelamentos') { carregarPGDASMensalSilencioso(); renderEmpresasParcelamentos(); carregarHistoricoParcelamentosSilencioso(); }
-
+            if (tab === 'financeiro') {
+                if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
+                carregarFinanceiro();
+            }
         }
 
         function closeModal() { 
@@ -7897,19 +7943,20 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                     showNotification(`⚠️ Nenhuma tarefa para: ${n[statusAlvo]||statusAlvo}`, true);
                     loadingOverlay.style.display = 'none'; return;
                 }
-                let arr = Array.from(empresasComTarefas.entries());
-                arr.sort((a, b) => b[1].length - a[1].length);
-                await carregarResponsaveisEmpresas();
-                const novaDistribuicao = Object.fromEntries(FUNCIONARIOS_EMPRESAS.map(n => [n, []]));
+                const novaDistribuicao = { Jordan: [], Sirlene: [], Ryan: [] };
                 let semResponsavel = 0;
-                for (const [empresa, tarefas] of arr) {
-                    const primeira = tarefas.find(t => Number.isInteger(t.rowIndex));
-                    const linha = primeira ? rawData[primeira.rowIndex] : null;
-                    const escolhido = linha ? responsavelDaEmpresa(linha) : '';
-                    if (!escolhido || !novaDistribuicao[escolhido]) { semResponsavel++; continue; }
-                    novaDistribuicao[escolhido].push(...tarefas);
+                for (const [empresa, tarefas] of empresasComTarefas) {
+                    const row = tarefas.find(t => Number.isInteger(t.rowIndex));
+                    const empresaRow = row ? rawData[row.rowIndex] : null;
+                    const dono = empresaRow ? toplineResponsaveis[toplineChaveEmpresa(empresaRow)] : '';
+                    if (dono && Object.prototype.hasOwnProperty.call(novaDistribuicao, dono)) novaDistribuicao[dono].push(...tarefas);
+                    else semResponsavel += tarefas.length;
                 }
-                if (semResponsavel) showNotification(`${semResponsavel} empresa(s) sem responsável não entraram no sorteio. Atribua-as no Painel.`,true);
+                if (!Object.values(novaDistribuicao).some(lista => lista.length)) {
+                    showNotification('Nenhuma pendência vencida com responsável atribuído. Defina os responsáveis no Painel.', true);
+                    return;
+                }
+                if (semResponsavel) showNotification(semResponsavel + ' pendências sem responsável ficaram fora do sorteio.', true);
                 distribuicaoAtual = novaDistribuicao;
                 statusDistribuicaoAtual = statusAlvo;
                 rodadaDistribuicaoAtual = new Date().toISOString();
@@ -9344,7 +9391,7 @@ renderTable = function() {
     };
 
     head.innerHTML = '<tr>' + headersComFav.map(h => {
-        if (h === '__RESP__') return '<th style="min-width:135px">Resp.</th>';
+        if (h === '__RESP__') return '<th style="min-width:145px">Resp.</th>';
         if (h === '__FAV__') return '<th style="width:38px">⭐</th>';
         const hi = getHighlightAttrs(activeDividas && activeDoc && h === activeDoc ? getFilterColor('dividas') : (activeDividas ? null : getColumnHighlight(h)));
         return '<th class="' + (h==='CLIENTE'?'col-fixed':'') + hi.cls + '" style="' + hi.style + '">' + h + '</th>';
@@ -9365,7 +9412,7 @@ renderTable = function() {
     }).sort((a,b) => (isFavorito(b.CLIENTE) ? 1 : 0) - (isFavorito(a.CLIENTE) ? 1 : 0));
 
     body.innerHTML = filtered.length ? filtered.map(row => '<tr class="' + (isFavorito(row.CLIENTE) ? 'favorite-row' : '') + '">' + headersComFav.map(h => {
-        if (h === '__RESP__') return '<td>' + seletorResponsavelEmpresa(row) + '</td>';
+        if (h === '__RESP__') return '<td>' + toplineResponsavelSelect(row) + '</td>';
         if (h === '__FAV__') return '<td><button class="favorite-star ' + (isFavorito(row.CLIENTE) ? 'active' : '') + '" onclick="toggleFavorito(\'' + escapeHtml(String(row.CLIENTE || '')).replace(/'/g,'&#39;') + '\', event)">⭐</button></td>';
         const s = getStatus(row[h], row, h);
         const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
@@ -9615,7 +9662,7 @@ let financeiroLogsData = [];
 function competenciaFinanceiraAtual() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 function chaveFinanceira(item) { const cnpj = String(item?.CNPJ || '').replace(/\D/g, ''); const cliente = String(item?.CLIENTE || '').trim().toUpperCase(); return cnpj || cliente; }
 function podeVerLogFinanceiro() { return PERFIS_FINANCEIRO_LOG.includes(currentUser); }
-function aplicarAcessoBrendaFinanceiro() { if (currentUser !== 'Brenda') return; document.querySelectorAll('button[id^="tab-"]').forEach(btn => { if (btn.id !== 'tab-financeiro') btn.classList.add('hidden'); }); const financeiro = document.getElementById('tab-financeiro'); if (financeiro) financeiro.classList.remove('hidden'); setTimeout(() => switchTab('financeiro'), 80); }
+function aplicarAcessoBrendaFinanceiro() { return; }
 const _loginFinanceiroBase = typeof login === 'function' ? login : null;
 if (_loginFinanceiroBase && !_loginFinanceiroBase.__financeiroV20) { const wrappedLoginFinanceiro = function(userName, isAuto = false) { _loginFinanceiroBase(userName, isAuto); aplicarAcessoBrendaFinanceiro(); }; wrappedLoginFinanceiro.__financeiroV20 = true; login = wrappedLoginFinanceiro; }
 const _fetchGoogleSheetsFinanceiroBase = typeof fetchGoogleSheets === 'function' ? fetchGoogleSheets : null;
@@ -9635,7 +9682,7 @@ function limparFiltrosFinanceiro() { ['filtroFinanceiroNome','filtroFinanceiroDa
 async function carregarLogsFinanceiro() { const tbody = document.getElementById('financeiro-log-body'); if (!tbody || !podeVerLogFinanceiro()) return; tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Carregando logs financeiros...</td></tr>'; try { const { data, error } = await supabaseClient.from('financeiro_logs').select('*').order('created_at', { ascending: false }).limit(150); if (error) throw error; financeiroLogsData = data || []; renderizarLogsFinanceiro(financeiroLogsData); } catch (e) { console.warn('Tabela financeiro_logs indisponível.', e); tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-amber-500 font-bold">Crie a tabela financeiro_logs no Supabase para visualizar o log financeiro.</td></tr>'; } }
 function renderizarLogsFinanceiro(logs) { const tbody = document.getElementById('financeiro-log-body'); if (!tbody) return; if (!logs || !logs.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum log financeiro encontrado.</td></tr>'; return; } tbody.innerHTML = logs.map(log => { const dt = log.created_at ? new Date(log.created_at) : new Date(); const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}); return `<tr><td class="font-mono text-[10px] text-slate-500">${escapeHtml(dataStr)}</td><td class="font-bold text-slate-700">${escapeHtml(log.usuario || '-')}</td><td class="font-bold text-slate-700">${escapeHtml(log.cliente || '-')}</td><td><span class="log-action-pill alteracao">${escapeHtml(log.acao || 'Financeiro')}</span></td><td>${escapeHtml(log.detalhes || '-')}</td></tr>`; }).join(''); }
 const _switchTabFinanceiroBase = typeof switchTab === 'function' ? switchTab : null;
-if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { const wrappedSwitchFinanceiro = function(tab) { if (currentUser === 'Brenda' && tab !== 'financeiro') tab = 'financeiro'; return _switchTabFinanceiroBase(tab); }; wrappedSwitchFinanceiro.__financeiroV20 = true; switchTab = wrappedSwitchFinanceiro; }
+if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { const wrappedSwitchFinanceiro = function(tab) { if (tab === 'financeiro') tab = 'dash'; return _switchTabFinanceiroBase(tab); }; wrappedSwitchFinanceiro.__financeiroV20 = true; switchTab = wrappedSwitchFinanceiro; }
 
 </script>
 
@@ -9936,64 +9983,6 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 })();
 </script>
 
-<style>
-.resp-select{min-width:125px;max-width:155px;border:1px solid #cbd5e1;border-radius:8px;padding:5px;font-size:11px;background:#f8fafc}
-.atrib-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-.atrib-col{border:1px solid #dbe3ec;border-radius:14px;background:white;padding:15px;min-height:160px}
-.atrib-col.drag-over{outline:3px dashed #10b981;background:#ecfdf5}
-.atrib-chip{padding:9px;margin:7px 0;border:1px solid #dbeafe;border-radius:9px;background:#eff6ff;cursor:grab;font-size:12px}
-</style>
-<script>
-const FUNCIONARIOS_EMPRESAS=['Ingrid','Jordan','Ryan','Patricia','Sirlene'];
-let mapaResponsaveisEmpresas={}, responsaveisCarregados=false;
-const chaveEmpresa = r => String(r.CNPJ||'').replace(/\D/g,'') || 'NOME:'+String(r.CLIENTE||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
-const responsavelDaEmpresa = r => mapaResponsaveisEmpresas[chaveEmpresa(r)]||'';
-async function carregarResponsaveisEmpresas(){
- const {data,error}=await supabaseClient.from('responsaveis_empresas').select('empresa_chave,responsavel');
- if(error){console.warn('Responsaveis nao disponiveis no Supabase:',error);responsaveisCarregados=true;return;}
- mapaResponsaveisEmpresas=Object.fromEntries((data||[]).map(r=>[r.empresa_chave,r.responsavel]));responsaveisCarregados=true;
-}
-function seletorResponsavelEmpresa(r){
- const k=chaveEmpresa(r),atual=responsavelDaEmpresa(r);
- return `<select class="resp-select" aria-label="Responsável da empresa" data-empresa="${escapeHtml(k)}" onchange="salvarResponsavelEmpresa(this)"><option value="">Sem responsável</option>${FUNCIONARIOS_EMPRESAS.map(n=>`<option value="${n}" ${n===atual?'selected':''}>${n}</option>`).join('')}</select>`;
-}
-async function salvarResponsavelEmpresa(el){
- const k=el.dataset.empresa,anterior=mapaResponsaveisEmpresas[k]||'',novo=el.value;
- el.disabled=true;
- try{
-  let result=novo?await supabaseClient.from('responsaveis_empresas').upsert({empresa_chave:k,responsavel:novo,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'}):await supabaseClient.from('responsaveis_empresas').delete().eq('empresa_chave',k);
-  if(result.error)throw result.error;
-  if(novo)mapaResponsaveisEmpresas[k]=novo;else delete mapaResponsaveisEmpresas[k];
-  showNotification('Responsável atualizado.');
-  if(!document.getElementById('view-atribuicoesempresas').classList.contains('hidden'))renderAtribuicoesEmpresas(false);
- }catch(e){console.error(e);el.value=anterior;showNotification('Erro ao salvar responsável no banco.',true);}finally{el.disabled=false;}
-}
-let empresaArrastada='';
-async function renderAtribuicoesEmpresas(recarregar=true){
- const box=document.getElementById('view-atribuicoesempresas');if(!box)return;
- if(recarregar){try{await carregarResponsaveisEmpresas();}catch(e){return;}}
- const grupos=Object.fromEntries(['Sem responsável',...FUNCIONARIOS_EMPRESAS].map(n=>[n,[]]));
- const usadas=new Set();
- (rawData||[]).forEach(r=>{if(!r.CLIENTE)return;const k=chaveEmpresa(r);if(usadas.has(k))return;usadas.add(k);const n=responsavelDaEmpresa(r);(grupos[n]||grupos['Sem responsável']).push({k,nome:r.CLIENTE});});
- box.innerHTML=`<div class="white-card p-6"><h2 class="text-lg font-black uppercase mb-2">Atribuições de Empresas</h2><p class="text-xs text-slate-500 mb-5">Arraste uma empresa para outro colaborador. A transferência exige confirmação.</p><div class="atrib-grid">${Object.entries(grupos).map(([nome,empresas])=>`<section class="atrib-col" data-destino="${nome}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="soltarEmpresa(event,this)"><h3 class="font-black text-sm mb-3">${nome} (${empresas.length})</h3>${empresas.map(e=>`<div class="atrib-chip" draggable="true" data-chave="${escapeHtml(e.k)}" ondragstart="empresaArrastada=this.dataset.chave">${escapeHtml(e.nome)}</div>`).join('')}</section>`).join('')}</div></div>`;
-}
-async function soltarEmpresa(event,el){event.preventDefault();el.classList.remove('drag-over');const destino=el.dataset.destino,k=empresaArrastada;empresaArrastada='';if(!k||destino===(mapaResponsaveisEmpresas[k]||'Sem responsável'))return;const linha=rawData.find(r=>chaveEmpresa(r)===k);if(!confirm(`Transferir ${linha?.CLIENTE||'empresa'} para ${destino}?`))return;const fake=document.createElement('select');fake.dataset.empresa=k;const opt=document.createElement('option');opt.value=destino==='Sem responsável'?'':destino;opt.textContent=destino;fake.appendChild(opt);fake.value=opt.value;await salvarResponsavelEmpresa(fake);renderTable();}
-async function editarCelulaEmenda(td,id,campo){
- if(td.querySelector('input'))return;
- const registro=(typeof dados!=='undefined'?dados.emendas:[]).find(x=>String(x.id)===String(id));if(!registro)return;
- const valor=String(campo==='cliente'?(registro.cliente||registro.nome||''):(registro[campo]||''));
- const input=document.createElement('input');input.type=campo==='data_cadastro'?'date':'text';input.value=valor;input.className='border rounded p-2 w-full text-xs';td.textContent='';td.appendChild(input);input.focus();input.select();
- let encerrado=false;
- const restaurar=()=>{if(encerrado)return;encerrado=true;td.textContent=campo==='data_cadastro'?(valor?new Date(valor+'T12:00:00').toLocaleDateString('pt-BR'):'—'):(valor||'—');};
- input.onkeydown=async e=>{if(e.key==='Escape'){restaurar();return;}if(e.key!=='Enter')return;e.preventDefault();const novo=input.value.trim();input.disabled=true;
- try{const payload={[campo]:novo||null,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()};const {error}=await supabaseClient.from('emendas').update(payload).eq('id',id);if(error)throw error;registro[campo]=novo;encerrado=true;renderCadastroExtra('emendas');showNotification('Emenda atualizada.');}catch(err){console.error(err);showNotification('Erro ao salvar edição.',true);input.disabled=false;}};
- input.onblur=()=>{if(!input.disabled)restaurar();};
-}
-const _trocarAbaEmpresa=switchTab;
-switchTab=function(tab){if(tab==='financeiro'){tab='dash';} _trocarAbaEmpresa(tab);if(tab==='atribuicoesempresas')renderAtribuicoesEmpresas();};
-const _renderTabelaResponsavel=renderTable;
-renderTable=function(...args){const r=_renderTabelaResponsavel(...args);if(!responsaveisCarregados){carregarResponsaveisEmpresas().then(()=>_renderTabelaResponsavel(...args)).catch(err=>console.warn('Atribuições indisponíveis, dados do Sheets preservados.',err));}return r;};
-</script>
 </body>
 
 <style id="financeiro-v22-style">
@@ -13530,11 +13519,11 @@ function montarCelulaObservacaoHistorico(item) {
     const counts={total:arr.length,andamento:0,analise:0,execucao:0,prestacao_contas:0};
     arr.forEach(i=>{ const f=faseEmenda(i); if(counts[f]!==undefined)counts[f]++; });
     Object.keys(counts).forEach(k=>{const e=document.getElementById(`emendas-kpi-${k}`);if(e)e.textContent=counts[k]||0;});
-    const lista=arr.filter(i=>{const f=faseEmenda(i),txt=[i.nome,i.cliente,i.cnpj,i.email,i.observacao].join(' ').toLowerCase();return(!q||txt.includes(q))&&(!fs||f===fs);}).sort((a,b)=>Number(faseEmenda(a)==='concluido')-Number(faseEmenda(b)==='concluido'));
+    const lista=arr.filter(i=>{const f=faseEmenda(i),txt=[i.nome,i.cliente,i.cnpj,i.email,i.observacao].join(' ').toLowerCase();return(!q||txt.includes(q))&&(!fs||f===fs);}).sort((a,b)=>Number(toplineEmendaConcluida(a))-Number(toplineEmendaConcluida(b)));
     const body=document.getElementById('emendas-body'); if(!body)return;
     if(!lista.length){body.innerHTML='<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhuma emenda encontrada.</td></tr>';return;}
-    body.innerHTML=lista.map(i=>`<tr class="${faseEmenda(i)==='concluido'?'!bg-green-100':''}" style="${faseEmenda(i)==='concluido'?'background:#dcfce7':''}">
-      ${[['cliente',i.nome||i.cliente||''],['cnpj',i.cnpj||''],['email',i.email||''],['data_cadastro',i.data_cadastro||''],['observacao',i.observacao||'']].map(([campo,valor])=>`<td title="Clique para editar e pressione Enter" style="cursor:text" onclick="editarCelulaEmenda(this,'${attr(i.id)}','${campo}')">${esc(campo==='data_cadastro'?dataBR(valor):valor||'—')}</td>`).join('')}
+    body.innerHTML=lista.map(i=>`<tr style="${toplineEmendaConcluida(i)?'background:#bbf7d0;':''}">
+      ${['cliente','cnpj','email','data_cadastro','observacao'].map(c=>`<td tabindex="0" title="Clique para editar; Enter salva" onclick="toplineEditarEmenda(this,'${attr(i.id)}','${c}')">${esc(c==='data_cadastro'?dataBR(i[c]):(i[c]||'-'))}</td>`).join('')}
       <td><select class="border rounded-lg p-1 text-[9px] font-bold" onchange="alterarStatusCadastroExtra('emendas','${attr(i.id)}',this.value)">${opcoesFases(faseEmenda(i))}</select></td>
     </tr>`).join('');
   };
@@ -13584,7 +13573,7 @@ function montarCelulaObservacaoHistorico(item) {
 
   window.alterarStatusCadastroExtra=async function(tipo,id,status){
     if(tipo!=='emendas')return;
-    if(!FASES_EMENDA.some(x=>x.v===status)){showNotification('Fase inválida.',true);return;}
+    if(!FASES_EMENDA.some(x=>x.v===status) && status!=='concluido'){showNotification('Fase inválida.',true);return;}
     const {error}=await supabaseClient.from('emendas').update({status,situacao:status,data_status:hoje(),atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()}).eq('id',id);
     if(error){showNotification('Erro ao atualizar a fase da emenda.',true);return;} await carregarCadastroExtra('emendas');
   };
@@ -13594,7 +13583,7 @@ function montarCelulaObservacaoHistorico(item) {
   if(originalSwitch && !originalSwitch.__extras20260820){
     const novo=function(tab){
       if(tab==='inativos'||tab==='emendas'){
-        const all=['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','atribuicoesempresas','alugueis','empresasparcelamentos'];
+        const all=['dash','centralpendencias','tasks','senhas','atribuicoes','atribuicoesempresas','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
         all.forEach(t=>{const v=document.getElementById('view-'+t),b=document.getElementById('tab-'+t);if(v)v.classList.add('hidden');if(b){b.classList.remove('tab-active');b.classList.add('text-slate-400');}});
         const v=document.getElementById('view-'+tab),b=document.getElementById('tab-'+tab);if(v)v.classList.remove('hidden');if(b){b.classList.add('tab-active');b.classList.remove('text-slate-400');}
         const search=document.getElementById('search-bar-wrapper');if(search)search.classList.remove('visible'); carregarCadastroExtra(tab); return;
