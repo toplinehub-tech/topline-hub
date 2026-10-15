@@ -1868,7 +1868,7 @@ body.agenda-modal-open { overflow:hidden; }
             </div>
 
             <!-- CLIENTES INATIVOS / EMENDAS -->
-            <div id="view-inativos" class="hidden"></div>
+            <div id="topline-sheets-error" role="alert" style="display:none;background:#fff1f2;color:#9f1239;padding:12px;border-radius:10px;margin:12px 0"></div><div id="view-inativos" class="hidden"></div>
             <div id="view-emendas" class="hidden"></div><div id="view-atribuicoesempresas" class="hidden"></div>
 
             <!-- TAREFAS -->
@@ -4498,16 +4498,24 @@ body.agenda-modal-open { overflow:hidden; }
 
         async function fetchGoogleSheets(isFirstLoad, forceSenhas = false) {
             try {
-                const inativosPainel = await obterChavesInativosPainel();
-                const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime());
+                // A planilha principal nao deve depender da consulta auxiliar de inativos.
+                const resDados = await fetch(URL_DADOS_PRINCIPAIS + "&cache=" + new Date().getTime(), {cache:'no-store'});
+                if (!resDados.ok) throw new Error('Planilha principal: HTTP ' + resDados.status);
                 const csvDados = await resDados.text();
+                if (!csvDados.trim() || /^\s*</.test(csvDados)) throw new Error('Google Sheets nao retornou CSV valido');
+                const inativosPainel = lerCacheInativosPainel();
+                obterChavesInativosPainel().then(fresh => {
+                    if (fresh.size !== inativosPainel.size) fetchGoogleSheets(false);
+                }).catch(err => console.warn('Filtro de inativos indisponivel',err));
                 if (!isFirstLoad && csvDados === lastKnownDataHash) return;
                 Papa.parse(csvDados, {
                     header: true, dynamicTyping: true, skipEmptyLines: true,
                     complete: (results) => {
+                        if (results.errors && results.errors.length) console.warn('Avisos ao ler CSV:',results.errors);
                         const newData = results.data.map(processRow).filter(row => !clienteEstaInativoNoPainel(row, inativosPainel));
                         if (!isFirstLoad && rawData.length > 0) detectChanges(rawData, newData);
                         rawData = newData;
+                        const avisoSheets = document.getElementById('topline-sheets-error'); if(avisoSheets) avisoSheets.style.display='none';
                         lastKnownDataHash = csvDados;
                         if (rawData.length > 0) headers = Object.keys(rawData[0]).filter(h => !h.endsWith('_DONE') && !h.endsWith('_OBS'));
                         renderTable(); if (!pontuaisData.length) carregarPontuais(); renderizarTarefas(); atualizarDashboardDesempenho(); atualizarResumoParcelamentos();
@@ -4520,7 +4528,11 @@ body.agenda-modal-open { overflow:hidden; }
                     const csvSenhas = await resSenhas.text();
                     Papa.parse(csvSenhas, { header: true, skipEmptyLines: true, complete: (r) => { passwordData = (r.data || []).map(processSenhaRow); renderSenhas(); } });
                 }
-            } catch (e) { console.error("Erro na sincronização.", e); }
+            } catch (e) {
+                console.error("Erro na sincronização do Google Sheets.", e);
+                const aviso = document.getElementById('topline-sheets-error');
+                if (aviso) { aviso.textContent = 'Falha ao carregar empresas do Google Sheets: ' + (e.message || e) + '. Verifique a publicacao e acesso a planilha.'; aviso.style.display = 'block'; }
+            }
         }
 
 
@@ -9938,7 +9950,7 @@ const chaveEmpresa = r => String(r.CNPJ||'').replace(/\D/g,'') || 'NOME:'+String
 const responsavelDaEmpresa = r => mapaResponsaveisEmpresas[chaveEmpresa(r)]||'';
 async function carregarResponsaveisEmpresas(){
  const {data,error}=await supabaseClient.from('responsaveis_empresas').select('empresa_chave,responsavel');
- if(error){console.error(error);showNotification('Não foi possível carregar responsáveis. Execute o SQL fornecido no Supabase.',true);throw error;}
+ if(error){console.warn('Responsaveis nao disponiveis no Supabase:',error);responsaveisCarregados=true;return;}
  mapaResponsaveisEmpresas=Object.fromEntries((data||[]).map(r=>[r.empresa_chave,r.responsavel]));responsaveisCarregados=true;
 }
 function seletorResponsavelEmpresa(r){
