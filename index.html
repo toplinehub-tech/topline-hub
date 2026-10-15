@@ -1432,6 +1432,7 @@ body.agenda-modal-open { overflow:hidden; }
                             <button onclick="switchTab('tasks')" id="tab-tasks" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Tarefas</button>
                             <button onclick="switchTab('senhas')" id="tab-senhas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Senhas</button>
                             <button onclick="switchTab('atribuicoes')" id="tab-atribuicoes" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atribuições</button>
+                            <button onclick="switchTab('atribuicoesempresas')" id="tab-atribuicoesempresas" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atribuições de Empresas</button>
                             <button onclick="switchTab('pontuais')" id="tab-pontuais" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Pontuais</button>
                             <button onclick="switchTab('agendageral')" id="tab-agendageral" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Agenda Geral</button>
                             <button onclick="switchTab('comm')" id="tab-comm" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Comunicar</button>
@@ -1440,7 +1441,6 @@ body.agenda-modal-open { overflow:hidden; }
                             <button onclick="switchTab('atalhos')" id="tab-atalhos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Atalhos</button>
                             <button onclick="switchTab('historico')" id="tab-historico" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Histórico</button>
                             <button onclick="switchTab('avisos')" id="tab-avisos" class="text-[10px] font-bold uppercase pb-1 text-slate-400 relative">Avisos<span id="avisos-badge" class="badge-avisos badge-blue">0</span></button>
-                            <button onclick="switchTab('financeiro')" id="tab-financeiro" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Financeiro</button>
                             <button onclick="switchTab('alugueis')" id="tab-alugueis" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Aluguéis</button>
                             <button onclick="switchTab('empresasparcelamentos')" id="tab-empresasparcelamentos" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Empresas/Parcelamentos</button>
                             <button onclick="switchTab('monitor')" id="tab-monitor" class="text-[10px] font-bold uppercase pb-1 text-slate-400">Monitor</button>
@@ -1869,7 +1869,7 @@ body.agenda-modal-open { overflow:hidden; }
 
             <!-- CLIENTES INATIVOS / EMENDAS -->
             <div id="view-inativos" class="hidden"></div>
-            <div id="view-emendas" class="hidden"></div>
+            <div id="view-emendas" class="hidden"></div><div id="view-atribuicoesempresas" class="hidden"></div>
 
             <!-- TAREFAS -->
             <div id="view-tasks" class="hidden">
@@ -2252,7 +2252,7 @@ body.agenda-modal-open { overflow:hidden; }
             </div>
 
             <!-- FINANCEIRO -->
-            <div id="view-financeiro" class="hidden">
+            <div id="view-financeiro" class="hidden" style="display:none!important">
                 <div class="white-card p-6 financeiro-page-card">
                     <div class="flex flex-wrap gap-3 justify-between items-center mb-6">
                         <div>
@@ -3367,6 +3367,64 @@ body.agenda-modal-open { overflow:hidden; }
 })();
 </script>
 
+<style>
+.resp-select{min-width:125px;max-width:155px;border:1px solid #cbd5e1;border-radius:8px;padding:5px;font-size:11px;background:#f8fafc}
+.atrib-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.atrib-col{border:1px solid #dbe3ec;border-radius:14px;background:white;padding:15px;min-height:160px}
+.atrib-col.drag-over{outline:3px dashed #10b981;background:#ecfdf5}
+.atrib-chip{padding:9px;margin:7px 0;border:1px solid #dbeafe;border-radius:9px;background:#eff6ff;cursor:grab;font-size:12px}
+</style>
+<script>
+const FUNCIONARIOS_EMPRESAS=['Ingrid','Jordan','Ryan','Patricia','Sirlene','Dev'];
+let mapaResponsaveisEmpresas={}, responsaveisCarregados=false;
+const chaveEmpresa = r => String(r.CNPJ||'').replace(/\D/g,'') || 'NOME:'+String(r.CLIENTE||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+const responsavelDaEmpresa = r => mapaResponsaveisEmpresas[chaveEmpresa(r)]||'';
+async function carregarResponsaveisEmpresas(){
+ const {data,error}=await supabaseClient.from('responsaveis_empresas').select('empresa_chave,responsavel');
+ if(error){console.error(error);showNotification('Não foi possível carregar responsáveis. Execute o SQL fornecido no Supabase.',true);throw error;}
+ mapaResponsaveisEmpresas=Object.fromEntries((data||[]).map(r=>[r.empresa_chave,r.responsavel]));responsaveisCarregados=true;
+}
+function seletorResponsavelEmpresa(r){
+ const k=chaveEmpresa(r),atual=responsavelDaEmpresa(r);
+ return `<select class="resp-select" aria-label="Responsável da empresa" data-empresa="${escapeHtml(k)}" onchange="salvarResponsavelEmpresa(this)"><option value="">Sem responsável</option>${FUNCIONARIOS_EMPRESAS.map(n=>`<option value="${n}" ${n===atual?'selected':''}>${n}</option>`).join('')}</select>`;
+}
+async function salvarResponsavelEmpresa(el){
+ const k=el.dataset.empresa,anterior=mapaResponsaveisEmpresas[k]||'',novo=el.value;
+ el.disabled=true;
+ try{
+  let result=novo?await supabaseClient.from('responsaveis_empresas').upsert({empresa_chave:k,responsavel:novo,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'}):await supabaseClient.from('responsaveis_empresas').delete().eq('empresa_chave',k);
+  if(result.error)throw result.error;
+  if(novo)mapaResponsaveisEmpresas[k]=novo;else delete mapaResponsaveisEmpresas[k];
+  showNotification('Responsável atualizado.');
+  if(!document.getElementById('view-atribuicoesempresas').classList.contains('hidden'))renderAtribuicoesEmpresas(false);
+ }catch(e){console.error(e);el.value=anterior;showNotification('Erro ao salvar responsável no banco.',true);}finally{el.disabled=false;}
+}
+let empresaArrastada='';
+async function renderAtribuicoesEmpresas(recarregar=true){
+ const box=document.getElementById('view-atribuicoesempresas');if(!box)return;
+ if(recarregar){try{await carregarResponsaveisEmpresas();}catch(e){return;}}
+ const grupos=Object.fromEntries(['Sem responsável',...FUNCIONARIOS_EMPRESAS].map(n=>[n,[]]));
+ const usadas=new Set();
+ (rawData||[]).forEach(r=>{if(!r.CLIENTE)return;const k=chaveEmpresa(r);if(usadas.has(k))return;usadas.add(k);const n=responsavelDaEmpresa(r);(grupos[n]||grupos['Sem responsável']).push({k,nome:r.CLIENTE});});
+ box.innerHTML=`<div class="white-card p-6"><h2 class="text-lg font-black uppercase mb-2">Atribuições de Empresas</h2><p class="text-xs text-slate-500 mb-5">Arraste uma empresa para outro colaborador. A transferência exige confirmação.</p><div class="atrib-grid">${Object.entries(grupos).map(([nome,empresas])=>`<section class="atrib-col" data-destino="${nome}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="soltarEmpresa(event,this)"><h3 class="font-black text-sm mb-3">${nome} (${empresas.length})</h3>${empresas.map(e=>`<div class="atrib-chip" draggable="true" data-chave="${escapeHtml(e.k)}" ondragstart="empresaArrastada=this.dataset.chave">${escapeHtml(e.nome)}</div>`).join('')}</section>`).join('')}</div></div>`;
+}
+async function soltarEmpresa(event,el){event.preventDefault();el.classList.remove('drag-over');const destino=el.dataset.destino,k=empresaArrastada;empresaArrastada='';if(!k||destino===(mapaResponsaveisEmpresas[k]||'Sem responsável'))return;const linha=rawData.find(r=>chaveEmpresa(r)===k);if(!confirm(`Transferir ${linha?.CLIENTE||'empresa'} para ${destino}?`))return;const fake=document.createElement('select');fake.dataset.empresa=k;fake.value=destino==='Sem responsável'?'':destino;await salvarResponsavelEmpresa(fake);renderTable();}
+async function editarCelulaEmenda(td,id,campo){
+ if(td.querySelector('input'))return;
+ const registro=(typeof dados!=='undefined'?dados.emendas:[]).find(x=>String(x.id)===String(id));if(!registro)return;
+ const valor=String(campo==='cliente'?(registro.cliente||registro.nome||''):(registro[campo]||''));
+ const input=document.createElement('input');input.type=campo==='data_cadastro'?'date':'text';input.value=valor;input.className='border rounded p-2 w-full text-xs';td.textContent='';td.appendChild(input);input.focus();input.select();
+ let encerrado=false;
+ const restaurar=()=>{if(encerrado)return;encerrado=true;td.textContent=campo==='data_cadastro'?(valor?new Date(valor+'T12:00:00').toLocaleDateString('pt-BR'):'—'):(valor||'—');};
+ input.onkeydown=async e=>{if(e.key==='Escape'){restaurar();return;}if(e.key!=='Enter')return;e.preventDefault();const novo=input.value.trim();input.disabled=true;
+ try{const payload={[campo]:novo||null,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()};const {error}=await supabaseClient.from('emendas').update(payload).eq('id',id);if(error)throw error;registro[campo]=novo;encerrado=true;renderCadastroExtra('emendas');showNotification('Emenda atualizada.');}catch(err){console.error(err);showNotification('Erro ao salvar edição.',true);input.disabled=false;}};
+ input.onblur=()=>{if(!input.disabled)restaurar();};
+}
+const _trocarAbaEmpresa=switchTab;
+switchTab=function(tab){if(tab==='financeiro'){tab='dash';} _trocarAbaEmpresa(tab);if(tab==='atribuicoesempresas')renderAtribuicoesEmpresas();};
+const _renderTabelaResponsavel=renderTable;
+renderTable=function(...args){const r=_renderTabelaResponsavel(...args);if(!responsaveisCarregados){carregarResponsaveisEmpresas().then(()=>_renderTabelaResponsavel(...args)).catch(()=>{});}return r;};
+</script>
 </body>
 
     <script>
@@ -3933,35 +3991,10 @@ body.agenda-modal-open { overflow:hidden; }
         }
         
         function atualizarBotoesSorteio() {
-            const podeSort = usuarioPodeSortear();
-            const containerTasks = document.getElementById('botoesSorteioTasks');
-            const avisoRestricao = document.getElementById('avisoRestricao');
-            const resetContainer = document.getElementById('resetButtonContainer');
-            if (podeSort) {
-                containerTasks.innerHTML = `
-                    <button onclick="distribuirTarefas('vencido')" class="btn-mini border-red-200 text-red-700">🎲 Sortear Vencidas</button>
-                    <button onclick="distribuirTarefas('30')" class="btn-mini border-amber-200 text-amber-700">🎲 Sortear 30 D</button>
-                    <button onclick="distribuirTarefas('60')" class="btn-mini border-emerald-200 text-emerald-700">🎲 Sortear 60 D</button>
-                    <button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700">🎲 Sortear 90 D</button>
-                    <button onclick="distribuirTarefas('analise')" class="btn-mini border-orange-200 text-orange-700 bg-orange-50">🎲 Sortear em Análise</button>
-                    <button onclick="distribuirTarefas('andamento')" class="btn-mini border-purple-200 text-purple-700 bg-purple-50">🎲 Sortear em Andamento</button>
-                    <button onclick="distribuirTarefasDividas()" class="btn-mini border-red-300 text-red-700 bg-red-50">🎲 Sortear Dívidas</button>
-                `;
-                resetContainer.innerHTML = `<button onclick="resetarDistribuicao()" class="btn-mini border-red-500 text-red-700 bg-red-50">🔄 Resetar Distribuição</button>`;
-                avisoRestricao.classList.add('hidden');
-            } else {
-                containerTasks.innerHTML = `
-                    <button class="btn-mini border-red-200 text-red-700 btn-disabled" disabled>🔒 Sortear Vencidas</button>
-                    <button class="btn-mini border-amber-200 text-amber-700 btn-disabled" disabled>🔒 Sortear 30 D</button>
-                    <button class="btn-mini border-emerald-200 text-emerald-700 btn-disabled" disabled>🔒 Sortear 60 D</button>
-                    <button class="btn-mini border-sky-200 text-sky-700 btn-disabled" disabled>🔒 Sortear 90 D</button>
-                    <button class="btn-mini border-orange-200 text-orange-700 bg-orange-50 btn-disabled" disabled>🔒 Sortear em Análise</button>
-                    <button class="btn-mini border-purple-200 text-purple-700 bg-purple-50 btn-disabled" disabled>🔒 Sortear em Andamento</button>
-                    <button class="btn-mini border-red-300 text-red-700 bg-red-50 btn-disabled" disabled>🔒 Sortear Dívidas</button>
-                `;
-                resetContainer.innerHTML = '';
-                avisoRestricao.classList.remove('hidden');
-            }
+            const pode = usuarioPodeSortear();
+            document.getElementById('botoesSorteioTasks').innerHTML = `<button onclick="distribuirTarefas('90')" class="btn-mini border-sky-200 text-sky-700 ${pode?'':'btn-disabled'}" ${pode?'':'disabled'}>🎲 Sorteio 90D — Vencidas</button>`;
+            document.getElementById('resetButtonContainer').innerHTML = pode ? `<button onclick="resetarDistribuicao()" class="btn-mini border-red-500 text-red-700 bg-red-50">🔄 Resetar Distribuição</button>` : '';
+            document.getElementById('avisoRestricao').classList.toggle('hidden',pode);
         }
 
         // ============================================
@@ -7522,7 +7555,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 tab = 'dash';
             }
 
-            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
+            const allTabs = ['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','atribuicoesempresas','alugueis','empresasparcelamentos'];
             allTabs.forEach(t => {
                 const view = document.getElementById('view-'+t);
                 const btn = document.getElementById('tab-'+t);
@@ -7552,6 +7585,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 searchBar.classList.remove('visible');
             }
 
+            if (tab === 'atribuicoesempresas') renderAtribuicoesEmpresas();
             if (tab === 'centralpendencias') centralPendenciasAtualizar();
             if (tab === 'senhas') renderSenhas();
             if (tab === 'atribuicoes') renderAtribuicoes();
@@ -7568,10 +7602,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
             if (tab === 'historico') carregarHistorico();
             if (tab === 'alugueis') { if (!alugueisCarregadoBanco || !alugueisData.length) alugueisCarregarBanco(false, false); else alugueisRender(); }
             if (tab === 'empresasparcelamentos') { carregarPGDASMensalSilencioso(); renderEmpresasParcelamentos(); carregarHistoricoParcelamentosSilencioso(); }
-            if (tab === 'financeiro') {
-                if (!PERFIS_FINANCEIRO.includes(currentUser)) { switchTab('dash'); showNotification('Acesso restrito ao Financeiro.', true); return; }
-                carregarFinanceiro();
-            }
+
         }
 
         function closeModal() { 
@@ -7888,7 +7919,7 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                     for (let colIndex = 0; colIndex < headers.length; colIndex++) {
                         const col = headers[colIndex];
                         if (col === 'CLIENTE' || col === 'CNPJ') continue;
-                        if (getStatus(row[col], row, col) === statusAlvo) tarefasDaEmpresa.push({ rowIndex, documento: col });
+                        if (getStatus(row[col], row, col) === 'vencido') tarefasDaEmpresa.push({ rowIndex, documento: col });
                     }
                     if (tarefasDaEmpresa.length > 0) {
                         const listaExistente = empresasComTarefas.get(chaveEmpresa) || [];
@@ -7914,15 +7945,17 @@ create policy "alugueis_darf_update" on public.alugueis_darf for update using (t
                 }
                 let arr = Array.from(empresasComTarefas.entries());
                 arr.sort((a, b) => b[1].length - a[1].length);
-                const novaDistribuicao = { Jordan: [], Sirlene: [], Ryan: [] };
-                const cargas = { Jordan: 0, Sirlene: 0, Ryan: 0 };
+                await carregarResponsaveisEmpresas();
+                const novaDistribuicao = Object.fromEntries(FUNCIONARIOS_EMPRESAS.map(n => [n, []]));
+                let semResponsavel = 0;
                 for (const [empresa, tarefas] of arr) {
-                    let escolhido = 'Jordan', menor = cargas.Jordan;
-                    if (cargas.Sirlene < menor) { menor = cargas.Sirlene; escolhido = 'Sirlene'; }
-                    if (cargas.Ryan < menor) { menor = cargas.Ryan; escolhido = 'Ryan'; }
+                    const primeira = tarefas.find(t => Number.isInteger(t.rowIndex));
+                    const linha = primeira ? rawData[primeira.rowIndex] : null;
+                    const escolhido = linha ? responsavelDaEmpresa(linha) : '';
+                    if (!escolhido || !novaDistribuicao[escolhido]) { semResponsavel++; continue; }
                     novaDistribuicao[escolhido].push(...tarefas);
-                    cargas[escolhido] += tarefas.length;
                 }
+                if (semResponsavel) showNotification(`${semResponsavel} empresa(s) sem responsável não entraram no sorteio. Atribua-as no Painel.`,true);
                 distribuicaoAtual = novaDistribuicao;
                 statusDistribuicaoAtual = statusAlvo;
                 rodadaDistribuicaoAtual = new Date().toISOString();
@@ -9324,7 +9357,7 @@ renderTable = function() {
     // Mantém as colunas originais da planilha e mostra somente empresas que tenham
     // "divida" ou "dívida" em algum campo real da linha.
     const visibleHeaders = activeDividas ? getVisibleHeadersForCurrentFilter() : getVisibleHeadersForCurrentFilter();
-    const headersComFav = ['__FAV__'].concat(visibleHeaders);
+    const headersComFav = ['__RESP__','__FAV__'].concat(visibleHeaders);
 
     const normalizarDividaLocal = (valor) => String(valor ?? '')
         .normalize('NFD')
@@ -9357,6 +9390,7 @@ renderTable = function() {
     };
 
     head.innerHTML = '<tr>' + headersComFav.map(h => {
+        if (h === '__RESP__') return '<th style="min-width:135px">Resp.</th>';
         if (h === '__FAV__') return '<th style="width:38px">⭐</th>';
         const hi = getHighlightAttrs(activeDividas && activeDoc && h === activeDoc ? getFilterColor('dividas') : (activeDividas ? null : getColumnHighlight(h)));
         return '<th class="' + (h==='CLIENTE'?'col-fixed':'') + hi.cls + '" style="' + hi.style + '">' + h + '</th>';
@@ -9377,6 +9411,7 @@ renderTable = function() {
     }).sort((a,b) => (isFavorito(b.CLIENTE) ? 1 : 0) - (isFavorito(a.CLIENTE) ? 1 : 0));
 
     body.innerHTML = filtered.length ? filtered.map(row => '<tr class="' + (isFavorito(row.CLIENTE) ? 'favorite-row' : '') + '">' + headersComFav.map(h => {
+        if (h === '__RESP__') return '<td>' + seletorResponsavelEmpresa(row) + '</td>';
         if (h === '__FAV__') return '<td><button class="favorite-star ' + (isFavorito(row.CLIENTE) ? 'active' : '') + '" onclick="toggleFavorito(\'' + escapeHtml(String(row.CLIENTE || '')).replace(/'/g,'&#39;') + '\', event)">⭐</button></td>';
         const s = getStatus(row[h], row, h);
         const val = row[h] instanceof Date ? row[h].toLocaleDateString('pt-BR') : (row[h] || '-');
@@ -9947,6 +9982,64 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 })();
 </script>
 
+<style>
+.resp-select{min-width:125px;max-width:155px;border:1px solid #cbd5e1;border-radius:8px;padding:5px;font-size:11px;background:#f8fafc}
+.atrib-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.atrib-col{border:1px solid #dbe3ec;border-radius:14px;background:white;padding:15px;min-height:160px}
+.atrib-col.drag-over{outline:3px dashed #10b981;background:#ecfdf5}
+.atrib-chip{padding:9px;margin:7px 0;border:1px solid #dbeafe;border-radius:9px;background:#eff6ff;cursor:grab;font-size:12px}
+</style>
+<script>
+const FUNCIONARIOS_EMPRESAS=['Ingrid','Jordan','Ryan','Patricia','Sirlene','Dev'];
+let mapaResponsaveisEmpresas={}, responsaveisCarregados=false;
+const chaveEmpresa = r => String(r.CNPJ||'').replace(/\D/g,'') || 'NOME:'+String(r.CLIENTE||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+const responsavelDaEmpresa = r => mapaResponsaveisEmpresas[chaveEmpresa(r)]||'';
+async function carregarResponsaveisEmpresas(){
+ const {data,error}=await supabaseClient.from('responsaveis_empresas').select('empresa_chave,responsavel');
+ if(error){console.error(error);showNotification('Não foi possível carregar responsáveis. Execute o SQL fornecido no Supabase.',true);throw error;}
+ mapaResponsaveisEmpresas=Object.fromEntries((data||[]).map(r=>[r.empresa_chave,r.responsavel]));responsaveisCarregados=true;
+}
+function seletorResponsavelEmpresa(r){
+ const k=chaveEmpresa(r),atual=responsavelDaEmpresa(r);
+ return `<select class="resp-select" aria-label="Responsável da empresa" data-empresa="${escapeHtml(k)}" onchange="salvarResponsavelEmpresa(this)"><option value="">Sem responsável</option>${FUNCIONARIOS_EMPRESAS.map(n=>`<option value="${n}" ${n===atual?'selected':''}>${n}</option>`).join('')}</select>`;
+}
+async function salvarResponsavelEmpresa(el){
+ const k=el.dataset.empresa,anterior=mapaResponsaveisEmpresas[k]||'',novo=el.value;
+ el.disabled=true;
+ try{
+  let result=novo?await supabaseClient.from('responsaveis_empresas').upsert({empresa_chave:k,responsavel:novo,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'}):await supabaseClient.from('responsaveis_empresas').delete().eq('empresa_chave',k);
+  if(result.error)throw result.error;
+  if(novo)mapaResponsaveisEmpresas[k]=novo;else delete mapaResponsaveisEmpresas[k];
+  showNotification('Responsável atualizado.');
+  if(!document.getElementById('view-atribuicoesempresas').classList.contains('hidden'))renderAtribuicoesEmpresas(false);
+ }catch(e){console.error(e);el.value=anterior;showNotification('Erro ao salvar responsável no banco.',true);}finally{el.disabled=false;}
+}
+let empresaArrastada='';
+async function renderAtribuicoesEmpresas(recarregar=true){
+ const box=document.getElementById('view-atribuicoesempresas');if(!box)return;
+ if(recarregar){try{await carregarResponsaveisEmpresas();}catch(e){return;}}
+ const grupos=Object.fromEntries(['Sem responsável',...FUNCIONARIOS_EMPRESAS].map(n=>[n,[]]));
+ const usadas=new Set();
+ (rawData||[]).forEach(r=>{if(!r.CLIENTE)return;const k=chaveEmpresa(r);if(usadas.has(k))return;usadas.add(k);const n=responsavelDaEmpresa(r);(grupos[n]||grupos['Sem responsável']).push({k,nome:r.CLIENTE});});
+ box.innerHTML=`<div class="white-card p-6"><h2 class="text-lg font-black uppercase mb-2">Atribuições de Empresas</h2><p class="text-xs text-slate-500 mb-5">Arraste uma empresa para outro colaborador. A transferência exige confirmação.</p><div class="atrib-grid">${Object.entries(grupos).map(([nome,empresas])=>`<section class="atrib-col" data-destino="${nome}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="soltarEmpresa(event,this)"><h3 class="font-black text-sm mb-3">${nome} (${empresas.length})</h3>${empresas.map(e=>`<div class="atrib-chip" draggable="true" data-chave="${escapeHtml(e.k)}" ondragstart="empresaArrastada=this.dataset.chave">${escapeHtml(e.nome)}</div>`).join('')}</section>`).join('')}</div></div>`;
+}
+async function soltarEmpresa(event,el){event.preventDefault();el.classList.remove('drag-over');const destino=el.dataset.destino,k=empresaArrastada;empresaArrastada='';if(!k||destino===(mapaResponsaveisEmpresas[k]||'Sem responsável'))return;const linha=rawData.find(r=>chaveEmpresa(r)===k);if(!confirm(`Transferir ${linha?.CLIENTE||'empresa'} para ${destino}?`))return;const fake=document.createElement('select');fake.dataset.empresa=k;fake.value=destino==='Sem responsável'?'':destino;await salvarResponsavelEmpresa(fake);renderTable();}
+async function editarCelulaEmenda(td,id,campo){
+ if(td.querySelector('input'))return;
+ const registro=(typeof dados!=='undefined'?dados.emendas:[]).find(x=>String(x.id)===String(id));if(!registro)return;
+ const valor=String(campo==='cliente'?(registro.cliente||registro.nome||''):(registro[campo]||''));
+ const input=document.createElement('input');input.type=campo==='data_cadastro'?'date':'text';input.value=valor;input.className='border rounded p-2 w-full text-xs';td.textContent='';td.appendChild(input);input.focus();input.select();
+ let encerrado=false;
+ const restaurar=()=>{if(encerrado)return;encerrado=true;td.textContent=campo==='data_cadastro'?(valor?new Date(valor+'T12:00:00').toLocaleDateString('pt-BR'):'—'):(valor||'—');};
+ input.onkeydown=async e=>{if(e.key==='Escape'){restaurar();return;}if(e.key!=='Enter')return;e.preventDefault();const novo=input.value.trim();input.disabled=true;
+ try{const payload={[campo]:novo||null,atualizado_por:currentUser||'Sistema',updated_at:new Date().toISOString()};const {error}=await supabaseClient.from('emendas').update(payload).eq('id',id);if(error)throw error;registro[campo]=novo;encerrado=true;renderCadastroExtra('emendas');showNotification('Emenda atualizada.');}catch(err){console.error(err);showNotification('Erro ao salvar edição.',true);input.disabled=false;}};
+ input.onblur=()=>{if(!input.disabled)restaurar();};
+}
+const _trocarAbaEmpresa=switchTab;
+switchTab=function(tab){if(tab==='financeiro'){tab='dash';} _trocarAbaEmpresa(tab);if(tab==='atribuicoesempresas')renderAtribuicoesEmpresas();};
+const _renderTabelaResponsavel=renderTable;
+renderTable=function(...args){const r=_renderTabelaResponsavel(...args);if(!responsaveisCarregados){carregarResponsaveisEmpresas().then(()=>_renderTabelaResponsavel(...args)).catch(()=>{});}return r;};
+</script>
 </body>
 
 <style id="financeiro-v22-style">
@@ -13285,7 +13378,8 @@ function montarCelulaObservacaoHistorico(item) {
     {v:'andamento', l:'Andamento'},
     {v:'analise', l:'Análise'},
     {v:'execucao', l:'Execução'},
-    {v:'prestacao_contas', l:'Prestação de Contas'}
+    {v:'prestacao_contas', l:'Prestação de Contas'},
+    {v:'concluido', l:'Concluído'}
   ];
   function faseEmenda(i){
     const s=String(i?.situacao || i?.status || 'andamento').toLowerCase().trim();
@@ -13482,15 +13576,11 @@ function montarCelulaObservacaoHistorico(item) {
     const counts={total:arr.length,andamento:0,analise:0,execucao:0,prestacao_contas:0};
     arr.forEach(i=>{ const f=faseEmenda(i); if(counts[f]!==undefined)counts[f]++; });
     Object.keys(counts).forEach(k=>{const e=document.getElementById(`emendas-kpi-${k}`);if(e)e.textContent=counts[k]||0;});
-    const lista=arr.filter(i=>{const f=faseEmenda(i),txt=[i.nome,i.cliente,i.cnpj,i.email,i.observacao].join(' ').toLowerCase();return(!q||txt.includes(q))&&(!fs||f===fs);});
+    const lista=arr.filter(i=>{const f=faseEmenda(i),txt=[i.nome,i.cliente,i.cnpj,i.email,i.observacao].join(' ').toLowerCase();return(!q||txt.includes(q))&&(!fs||f===fs);}).sort((a,b)=>Number(faseEmenda(a)==='concluido')-Number(faseEmenda(b)==='concluido'));
     const body=document.getElementById('emendas-body'); if(!body)return;
     if(!lista.length){body.innerHTML='<tr><td colspan="6" class="text-center py-10 text-slate-400">Nenhuma emenda encontrada.</td></tr>';return;}
-    body.innerHTML=lista.map(i=>`<tr>
-      <td class="font-black text-slate-700">${esc(i.nome||i.cliente||'-')}</td>
-      <td class="font-mono text-[10px]">${esc(i.cnpj||'-')}</td>
-      <td>${esc(i.email||'-')}</td>
-      <td>${dataBR(i.data_cadastro)}</td>
-      <td><button class="text-[9px] font-bold text-slate-600 hover:text-emerald-700" onclick="editarObsCadastroExtra('emendas','${attr(i.id)}')">${esc(i.observacao||'Clique para editar')}</button></td>
+    body.innerHTML=lista.map(i=>`<tr class="${faseEmenda(i)==='concluido'?'!bg-green-100':''}" style="${faseEmenda(i)==='concluido'?'background:#dcfce7':''}">
+      ${[['cliente',i.nome||i.cliente||''],['cnpj',i.cnpj||''],['email',i.email||''],['data_cadastro',i.data_cadastro||''],['observacao',i.observacao||'']].map(([campo,valor])=>`<td title="Clique para editar e pressione Enter" style="cursor:text" onclick="editarCelulaEmenda(this,'${attr(i.id)}','${campo}')">${esc(campo==='data_cadastro'?dataBR(valor):valor||'—')}</td>`).join('')}
       <td><select class="border rounded-lg p-1 text-[9px] font-bold" onchange="alterarStatusCadastroExtra('emendas','${attr(i.id)}',this.value)">${opcoesFases(faseEmenda(i))}</select></td>
     </tr>`).join('');
   };
@@ -13550,7 +13640,7 @@ function montarCelulaObservacaoHistorico(item) {
   if(originalSwitch && !originalSwitch.__extras20260820){
     const novo=function(tab){
       if(tab==='inativos'||tab==='emendas'){
-        const all=['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','financeiro','alugueis','empresasparcelamentos'];
+        const all=['dash','centralpendencias','tasks','senhas','atribuicoes','pontuais','inativos','emendas','agendageral','comm','atalhos','historico','avisos','monitor','logs','atribuicoesempresas','alugueis','empresasparcelamentos'];
         all.forEach(t=>{const v=document.getElementById('view-'+t),b=document.getElementById('tab-'+t);if(v)v.classList.add('hidden');if(b){b.classList.remove('tab-active');b.classList.add('text-slate-400');}});
         const v=document.getElementById('view-'+tab),b=document.getElementById('tab-'+tab);if(v)v.classList.remove('hidden');if(b){b.classList.add('tab-active');b.classList.remove('text-slate-400');}
         const search=document.getElementById('search-bar-wrapper');if(search)search.classList.remove('visible'); carregarCadastroExtra(tab); return;
