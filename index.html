@@ -1312,6 +1312,19 @@ body.agenda-modal-open { overflow:hidden; }
 @media (max-width: 900px) { .alugueis-page-head { flex-direction:column; } .alugueis-head-actions { justify-content:flex-start; } .alugueis-table { min-width:1180px; } .alugueis-toolbar input, .alugueis-toolbar select, .alugueis-toolbar button { width:100%; } .alugueis-clientes-grid { grid-template-columns:1fr; } }
 
 
+
+/* Navegacao compacta, alinhada e responsiva */
+#main-nav { max-width: 1080px !important; gap: 5px !important; padding: 0 8px !important; }
+#main-nav .nav-row { gap: 4px 7px !important; flex-wrap: nowrap !important; justify-content: center !important; }
+#main-nav button { display: inline-flex !important; align-items: center !important; justify-content: center !important; min-height: 32px !important; padding: 7px 9px !important; font-size: 10px !important; line-height: 1.2 !important; border-radius: 8px !important; transform: none !important; }
+#main-nav button:hover { transform: none !important; box-shadow: 0 2px 8px rgba(15,23,42,.08) !important; }
+#main-nav button.tab-active { box-shadow: none !important; }
+#main-nav button.tab-active::after { left: 10px !important; right: 10px !important; bottom: 2px !important; }
+#main-nav #tab-avisos { padding-right: 19px !important; }
+#main-nav .badge-avisos { top: -3px !important; right: -3px !important; font-size: 9px !important; }
+@media(max-width: 1200px) { #main-nav { width: 100% !important; max-width: none !important; } #main-nav .nav-row { flex-wrap: wrap !important; } }
+@media(max-width: 700px) { #main-nav .nav-row { justify-content: flex-start !important; } }
+
 </style>
 </head>
 <body>
@@ -9141,7 +9154,7 @@ carregarAvisos = async function() {
 
         // A aba Avisos deve mostrar todo o histórico de mensagens.
         // O filtro controla somente se serão mostradas todas, lidas ou não lidas.
-        const avisosVisiveis = avisos || [];
+        const avisosVisiveis = (avisos || []).filter(a => !a.expira_em || new Date(a.expira_em).getTime() > Date.now());
         const listaFiltrada = avisosVisiveis.filter(a => {
             if (filtro === 'lidos') return lidosIds.has(a.id);
             if (filtro === 'nao_lidos') return !lidosIds.has(a.id);
@@ -10487,7 +10500,7 @@ async function abrirHistoricoModal(cliente, documento) {
             const { data: lidos, error: errLidos } = await sb.from('avisos_lidos').select('*').eq('usuario', (window.currentUser || currentUser || ''));
             if (errLidos) throw errLidos;
             const lidosIds = new Set((lidos || []).map(l => l.aviso_id));
-            const pendentes = (avisos || []).filter(a => !lidosIds.has(a.id));
+            const pendentes = (avisos || []).filter(a => (!a.expira_em || new Date(a.expira_em).getTime() > Date.now()) && !lidosIds.has(a.id));
             setCount('central-count-avisos', pendentes.length);
             tbody.innerHTML = pendentes.length ? pendentes.slice(0,80).map(a => `<tr><td>${safeHtml(dtBr(a.created_at))}</td><td class="font-bold text-slate-700">${safeHtml(a.titulo || '-')}</td><td><span class="central-chip green">${safeHtml(a.autor || '-')}</span></td></tr>`).join('') : linhaVazia(3,'Nenhum aviso não lido.');
         } catch(e) {
