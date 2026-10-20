@@ -6206,14 +6206,19 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
                 if (overlay) overlay.style.display = 'flex';
                 try {
                     // Persist first: a failed request must not silently display a saved reset.
+                    // O Apps Script não possui colunas de envio para zerar.
+                    // Persistimos PGDAS na tabela mensal e Parcelamento no histórico existente.
+                    // Não chamar editCell com nomes de colunas que não existem.
                     await salvarPGDASMensal(row, 'nao_enviado', observacao, '');
-                    await Promise.all([
-                        enviarParaGoogleSheets(cliente, 'PGDAS', 'pgdas', 'Não enviado'),
-                        enviarParaGoogleSheets(cliente, 'DT.ENVIO.PGDAS', 'pgdas', ''),
-                        enviarParaGoogleSheets(cliente, 'DT.ENVIO.PARC', 'parcelamento', ''),
-                        registrarLog('Reset de envios', cliente, 'PARCELAMENTOS', 'RESET ENVIOS: Parcelamento e PGDAS definidos como Não enviado' + (observacao ? ' | Obs: ' + observacao : ''), `${oldParc}/${oldPgdas}`, 'Não enviado/Não enviado'),
-                        salvarObservacao(cliente, 'PARCELAMENTOS', 'RESET ENVIOS: Parcelamento e PGDAS definidos como Não enviado' + (observacao ? ' | Obs: ' + observacao : ''), 'RESET ENVIOS')
-                    ]);
+                    await salvarObservacao(cliente, 'PARCELAMENTOS',
+                        'RESET ENVIOS: Parcelamento e PGDAS definidos como Não enviado' +
+                        (observacao ? ' | Obs: ' + observacao : ''), 'RESET ENVIOS');
+                    // Log operacional é complementar, não deve impedir o reset já persistido.
+                    try {
+                        await registrarLog('Reset de envios', cliente, 'PARCELAMENTOS',
+                            'RESET ENVIOS: Parcelamento e PGDAS definidos como Não enviado',
+                            `${oldParc}/${oldPgdas}`, 'Não enviado/Não enviado');
+                    } catch (logError) { console.warn('Log do reset não registrado:', logError); }
                     parcelamentoStatusMensal[key] = 'nao_enviado';
                     parcelamentoStatusMensal[keyCliente] = 'nao_enviado';
                     parcelamentoDataEnvioMensal[key] = '';
