@@ -5883,7 +5883,7 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
                     .select('*')
                     .eq('documento', 'PARCELAMENTOS')
                     .order('created_at', { ascending: false })
-                    .limit(20);
+                    .limit(10000);
                 if (error) throw error;
                 const outros = (historicoData || []).filter(h => String(h.documento || '').toUpperCase() !== 'PARCELAMENTOS');
                 historicoData = [...(data || []), ...outros];
@@ -5908,7 +5908,8 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
         }
 
         function getPGDASStatus(row) {
-            const status = pgdasStatusMensal[getPGDASKey(row)] || row?.PGDAS || row?.['PGDAS'] || '';
+            const key = getPGDASKey(row);
+            const status = Object.prototype.hasOwnProperty.call(pgdasStatusMensal, key) ? pgdasStatusMensal[key] : (row?.PGDAS || row?.['PGDAS'] || '');
             return String(status || '').toLowerCase().includes('enviado') && !String(status || '').toLowerCase().includes('não') && !String(status || '').toLowerCase().includes('nao') ? 'enviado' : 'nao_enviado';
         }
 
@@ -5923,8 +5924,7 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
         }
 
         function reconstruirStatusParcelamentoEnviadoPorHistorico() {
-            parcelamentoStatusMensal = {};
-            parcelamentoDataEnvioMensal = {};
+            // Preserve previously confirmed sends; history is a supplemental source, not a reset.
             (historicoData || []).forEach(h => {
                 const doc = String(h.documento || '').toUpperCase();
                 if (doc !== 'PARCELAMENTOS') return;
@@ -5995,8 +5995,7 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
             const competencia = getCompetenciaPGDAS();
             if (pgdasStatusCarregado && pgdasCompetenciaAtual === competencia) return;
             pgdasCompetenciaAtual = competencia;
-            pgdasStatusMensal = {};
-            pgdasDataEnvioMensal = {};
+            // Do not erase optimistic/saved statuses while the remote data loads.
             try {
                 const { data, error } = await supabaseClient
                     .from('pgdas_status_mensal')
@@ -6005,8 +6004,8 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
                 if (error) throw error;
                 (data || []).forEach(item => {
                     const key = getPGDASKey(item.cliente, item.cnpj);
-                    pgdasStatusMensal[key] = String(item.status || '').toLowerCase().includes('enviado') ? 'enviado' : 'nao_enviado';
-                    pgdasDataEnvioMensal[key] = item.data_envio || item.data_envio_pgdas || item.enviado_em || '';
+                    if (!(key in pgdasStatusMensal)) pgdasStatusMensal[key] = String(item.status || '').toLowerCase().includes('enviado') ? 'enviado' : 'nao_enviado';
+                    if (!(key in pgdasDataEnvioMensal)) pgdasDataEnvioMensal[key] = item.data_envio || item.data_envio_pgdas || item.enviado_em || '';
                 });
                 pgdasStatusCarregado = true;
                 if (!document.getElementById('view-empresasparcelamentos')?.classList.contains('hidden')) renderEmpresasParcelamentos();
