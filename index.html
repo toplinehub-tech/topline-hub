@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        window.TOPLINE_APP_VERSION = "2026.08.20.reativacao-v8-limpa";
+        window.TOPLINE_APP_VERSION = "2026.10.20.reset-persistente-v2";
         (function() {
             var key = "toplinehub_app_version";
             var reloadKey = "toplinehub_last_forced_reload";
@@ -5942,7 +5942,7 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
                     if (reset) {
                         parcelamentoStatusMensal[key] = 'nao_enviado';
                         parcelamentoDataEnvioMensal[key] = '';
-                    } else if (!(key in parcelamentoStatusMensal)) {
+                    } else {
                         parcelamentoStatusMensal[key] = 'enviado';
                         parcelamentoDataEnvioMensal[key] = h.data_envio || h.data_envio_parc || h.created_at || '';
                     }
@@ -5967,6 +5967,7 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
         function getParcelamentoDataEnvio(row) {
             const key = getParcelamentoStatusKey(row);
             const keyCliente = getParcelamentoStatusKey(row?.CLIENTE || '', '');
+            if (parcelamentoStatusMensal[key] === 'nao_enviado' || parcelamentoStatusMensal[keyCliente] === 'nao_enviado') return '';
             return parcelamentoDataEnvioMensal[key] || parcelamentoDataEnvioMensal[keyCliente] || row?.DATA_ENVIO_PARC || row?.['DATA ENVIO PARC'] || row?.['DT.ENVIO.PARC'] || row?.['DT ENVIO PARC'] || row?.DATA_ENVIO_PARCELAMENTO || row?.['DATA ENVIO PARCELAMENTO'] || '';
         }
 
@@ -5984,6 +5985,7 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
 
         function getPGDASDataEnvio(row) {
             const key = getPGDASKey(row);
+            if (pgdasStatusMensal[key] === 'nao_enviado') return '';
             return pgdasDataEnvioMensal[key] || row?.DATA_ENVIO_PGDAS || row?.['DATA ENVIO'] || row?.['DATA ENVIO PGDAS'] || '';
         }
 
@@ -6013,8 +6015,8 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
                 if (error) throw error;
                 (data || []).forEach(item => {
                     const key = getPGDASKey(item.cliente, item.cnpj);
-                    if (!(key in pgdasStatusMensal)) pgdasStatusMensal[key] = String(item.status || '').toLowerCase().includes('enviado') ? 'enviado' : 'nao_enviado';
-                    if (!(key in pgdasDataEnvioMensal)) pgdasDataEnvioMensal[key] = item.data_envio || item.data_envio_pgdas || item.enviado_em || '';
+                    pgdasStatusMensal[key] = String(item.status || '').toLowerCase() === 'enviado' ? 'enviado' : 'nao_enviado';
+                    pgdasDataEnvioMensal[key] = item.data_envio || item.data_envio_pgdas || item.enviado_em || '';
                 });
                 pgdasStatusCarregado = true;
                 if (!document.getElementById('view-empresasparcelamentos')?.classList.contains('hidden')) renderEmpresasParcelamentos();
@@ -6232,6 +6234,10 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
                     row['DT.ENVIO.PARC'] = '';
                     historicoParcelamentosCarregado = false;
                     await carregarHistoricoParcelamentosSilencioso();
+                    // Reset is authoritative for both columns after the history refresh.
+                    parcelamentoStatusMensal[key] = 'nao_enviado';
+                    parcelamentoStatusMensal[keyCliente] = 'nao_enviado';
+                    pgdasStatusMensal[getPGDASKey(row)] = 'nao_enviado';
                     renderEmpresasParcelamentos();
                     atualizarResumoParcelamentos();
                     closeModal();
