@@ -5924,20 +5924,29 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
         }
 
         function reconstruirStatusParcelamentoEnviadoPorHistorico() {
-            // Preserve previously confirmed sends; history is a supplemental source, not a reset.
-            (historicoData || []).forEach(h => {
-                const doc = String(h.documento || '').toUpperCase();
-                if (doc !== 'PARCELAMENTOS') return;
+            // Newest history event wins, including explicit reset. Never resurrect an old send.
+            const decididos = new Set();
+            const historicoOrdenado = [...(historicoData || [])].sort((a,b) =>
+                new Date(b.created_at || b.atualizado_em || 0) - new Date(a.created_at || a.atualizado_em || 0));
+            historicoOrdenado.forEach(h => {
+                if (String(h.documento || '').toUpperCase() !== 'PARCELAMENTOS') return;
                 const texto = `${h.observacao || ''} ${h.valor_novo || ''} ${h.valor || ''}`.toLowerCase();
-                const marcouEnviado = texto.includes('parcelamento marcado como enviado') || texto.includes('status do parcelamento: enviado') || String(h.valor_novo || '').toLowerCase() === 'enviado';
-                if (!marcouEnviado) return;
-                const key = getParcelamentoStatusKey(h.cliente || '', h.cnpj || '');
-                const keyCliente = getParcelamentoStatusKey(h.cliente || '', '');
-                const dataHistorico = h.data_envio || h.data_envio_parc || h.created_at || h.atualizado_em || '';
-                if (key && !parcelamentoStatusMensal[key]) parcelamentoStatusMensal[key] = 'enviado';
-                if (keyCliente && !parcelamentoStatusMensal[keyCliente]) parcelamentoStatusMensal[keyCliente] = 'enviado';
-                if (key && dataHistorico && !parcelamentoDataEnvioMensal[key]) parcelamentoDataEnvioMensal[key] = dataHistorico;
-                if (keyCliente && dataHistorico && !parcelamentoDataEnvioMensal[keyCliente]) parcelamentoDataEnvioMensal[keyCliente] = dataHistorico;
+                const reset = texto.includes('reset envios');
+                const enviado = texto.includes('parcelamento marcado como enviado') || texto.includes('status do parcelamento: enviado') || String(h.valor_novo || '').toLowerCase() === 'enviado';
+                if (!reset && !enviado) return;
+                const keys = [getParcelamentoStatusKey(h.cliente || '', h.cnpj || ''), getParcelamentoStatusKey(h.cliente || '', '')];
+                keys.forEach(key => {
+                    if (!key || decididos.has(key)) return;
+                    decididos.add(key);
+                    // An explicit reset must override previously loaded sent states.
+                    if (reset) {
+                        parcelamentoStatusMensal[key] = 'nao_enviado';
+                        parcelamentoDataEnvioMensal[key] = '';
+                    } else if (!(key in parcelamentoStatusMensal)) {
+                        parcelamentoStatusMensal[key] = 'enviado';
+                        parcelamentoDataEnvioMensal[key] = h.data_envio || h.data_envio_parc || h.created_at || '';
+                    }
+                });
             });
         }
 
@@ -6045,6 +6054,8 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
 
         function selecionarAcaoPGDAS() {
             selectedOption = 'pgdas';
+            document.getElementById('option-reset')?.classList.remove('ring-2', 'ring-rose-500');
+            document.getElementById('resetParcelamentoAviso')?.classList.add('hidden');
             const cardPGDAS = document.getElementById('option-pgdas');
             const cardParcelamento = document.getElementById('option-parcelamento');
             const boxPGDAS = document.getElementById('pgdasStatusContainer');
@@ -6057,6 +6068,8 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
 
         function abrirListaParcelamento() {
             selectedOption = 'parcelamento';
+            document.getElementById('option-reset')?.classList.remove('ring-2', 'ring-rose-500');
+            document.getElementById('resetParcelamentoAviso')?.classList.add('hidden');
             const card = document.getElementById('option-parcelamento');
             const box = document.getElementById('parcelamentoQuantidadeContainer');
             if (card) card.classList.add('option-selected');
@@ -6123,6 +6136,8 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
                             <div class="text-[8px] text-blue-500 mt-0.5">Marcar como enviado</div>
                         </div>
                     </div>
+                    <button type="button" id="option-reset" onclick="selecionarResetParcelamento()" class="w-full mt-2 py-2.5 rounded-lg border-2 border-rose-200 bg-rose-50 text-rose-700 text-[10px] font-black hover:bg-rose-100">↺ RESET — ambas as colunas como Não enviado</button>
+                    <div id="resetParcelamentoAviso" class="hidden mt-2 text-[9px] font-bold text-rose-700">Reset selecionado. Clique em Salvar para definir Parcelamento e PGDAS como Não enviado somente para esta empresa.</div>
                 </div>
                 <div id="parcelamentoQuantidadeContainer" class="${quantidadeAtual ? '' : 'hidden'} mt-3">
                     <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 tracking-wider">Quantidade de parcelamento</label>
@@ -6165,12 +6180,64 @@ window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500)
             document.getElementById('editModal').classList.remove('hidden');
         }
 
+        function selecionarResetParcelamento() {
+            selectedOption = 'reset';
+            document.getElementById('option-reset')?.classList.add('ring-2', 'ring-rose-500');
+            document.getElementById('option-parcelamento')?.classList.remove('option-selected');
+            document.getElementById('option-pgdas')?.classList.remove('pgdas-action-selected');
+            document.getElementById('parcelamentoQuantidadeContainer')?.classList.add('hidden');
+            document.getElementById('pgdasStatusContainer')?.classList.add('hidden');
+            document.getElementById('resetParcelamentoAviso')?.classList.remove('hidden');
+        }
+
         async function saveParcelamentoInfo() {
             const { r, c } = currentEditTarget || {};
             if (r === undefined || !rawData[r]) return;
             const row = rawData[r];
             const cliente = row.CLIENTE;
             const observacao = document.getElementById('modalObservacao')?.value || '';
+
+            if (selectedOption === 'reset') {
+                const key = getParcelamentoStatusKey(row);
+                const keyCliente = getParcelamentoStatusKey(cliente, '');
+                const oldPgdas = getPGDASStatus(row);
+                const oldParc = getParcelamentoEnvioStatus(row);
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) overlay.style.display = 'flex';
+                try {
+                    // Persist first: a failed request must not silently display a saved reset.
+                    await salvarPGDASMensal(row, 'nao_enviado', observacao, '');
+                    await Promise.all([
+                        enviarParaGoogleSheets(cliente, 'PGDAS', 'pgdas', 'Não enviado'),
+                        enviarParaGoogleSheets(cliente, 'DT.ENVIO.PGDAS', 'pgdas', ''),
+                        enviarParaGoogleSheets(cliente, 'DT.ENVIO.PARC', 'parcelamento', ''),
+                        registrarLog('Reset de envios', cliente, 'PARCELAMENTOS', 'RESET ENVIOS: Parcelamento e PGDAS definidos como Não enviado' + (observacao ? ' | Obs: ' + observacao : ''), `${oldParc}/${oldPgdas}`, 'Não enviado/Não enviado'),
+                        salvarObservacao(cliente, 'PARCELAMENTOS', 'RESET ENVIOS: Parcelamento e PGDAS definidos como Não enviado' + (observacao ? ' | Obs: ' + observacao : ''), 'RESET ENVIOS')
+                    ]);
+                    parcelamentoStatusMensal[key] = 'nao_enviado';
+                    parcelamentoStatusMensal[keyCliente] = 'nao_enviado';
+                    parcelamentoDataEnvioMensal[key] = '';
+                    parcelamentoDataEnvioMensal[keyCliente] = '';
+                    pgdasStatusMensal[getPGDASKey(row)] = 'nao_enviado';
+                    pgdasDataEnvioMensal[getPGDASKey(row)] = '';
+                    row.PGDAS = 'Não enviado';
+                    row.DATA_ENVIO_PGDAS = '';
+                    row['DT.ENVIO.PGDAS'] = '';
+                    row.DATA_ENVIO_PARC = '';
+                    row['DT.ENVIO.PARC'] = '';
+                    historicoParcelamentosCarregado = false;
+                    await carregarHistoricoParcelamentosSilencioso();
+                    renderEmpresasParcelamentos();
+                    atualizarResumoParcelamentos();
+                    closeModal();
+                    showNotification(`Reset concluído para ${cliente}: ambas as colunas estão como Não enviado.`, false);
+                } catch (error) {
+                    showNotification('Não foi possível concluir o reset: ' + error.message, true);
+                } finally {
+                    if (overlay) overlay.style.display = 'none';
+                }
+                return;
+            }
 
             if (selectedOption === 'pgdas') {
                 const valorParaSalvar = document.getElementById('pgdasEnviadoCheck')?.checked ? 'enviado' : 'nao_enviado';
