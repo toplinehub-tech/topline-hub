@@ -3502,19 +3502,17 @@ function filtrarLinhasRenderizadas(){if(!filtroRespPainel)return;const tbody=doc
 }
 function ativarCnpjEdicao(){document.querySelectorAll('#tableBody td.cnpj-cell').forEach(td=>{
  td.classList.add('cnpj-editavel');td.title='Clique para editar o CNPJ';td.onclick=function(e){e.stopPropagation();if(td.querySelector('input'))return;
- const tr=td.closest('tr');const select=tr?.querySelector('select.topline-resp');const idx=[...tr.parentElement.children].indexOf(tr);
+ const tr=td.closest('tr');
  // Usa o nome da empresa na celula CLIENTE, que e a chave estavel da tabela compartilhada.
  const cliente=tr?.querySelector('td.col-fixed')?.textContent?.trim()||'';
  const row=rawData.find(r=>String(r.CLIENTE||'').trim()===cliente);
  if(!row){showNotification('Empresa não localizada para edição.',true);return;}
  const original=String(row.CNPJ||'').trim();const input=document.createElement('input');input.value=original==='-'?'':original;input.placeholder='00.000.000/0000-00';td.replaceChildren(input);input.focus();input.select();
  let finalizado=false;const restaurar=()=>{td.textContent=row.CNPJ||'-';};
- const salvar=async()=>{if(finalizado)return;finalizado=true;const digitos=input.value.replace(/\D/g,'');if(digitos.length!==14){showNotification('Informe um CNPJ com 14 dígitos.',true);restaurar();return;}
+ const salvar=async()=>{if(finalizado)return;finalizado=true;const digitos=input.value.replace(/\D/g,'');if(digitos.length!==14){showNotification('Informe um CNPJ com 14 dígitos.',true);restaurar();return;} if(digitos===original.replace(/\D/g,'')){restaurar();return;}
  const formatado=digitos.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');const chave=chaveNome(row);input.disabled=true;
  try{const {error}=await supabaseClient.from('cnpjs_empresas').upsert({empresa_chave:chave,cnpj:formatado,atualizado_por:typeof currentUser!=='undefined'?currentUser:'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'});if(error)throw error;
- const chaveAntiga=typeof toplineChaveEmpresa==='function'?toplineChaveEmpresa(row):'';const resp=typeof toplineResponsaveis!=='undefined'?toplineResponsaveis[chaveAntiga]:'';
  cnpjsPainel[chave]=formatado;row.CNPJ=formatado;
- if(resp&&chaveAntiga!==digitos&&typeof toplineSalvarResponsavel==='function')await toplineSalvarResponsavel(digitos,resp);
  renderTable();showNotification('CNPJ salvo e disponível para todos os usuários.');
  }catch(err){console.error(err);showNotification('Erro ao salvar CNPJ no banco de dados: '+err.message,true);restaurar();}
  };
@@ -4784,6 +4782,7 @@ window.addEventListener('load',()=>{montarFiltroResp();setTimeout(carregarCnpjsP
                         <div id="option-analise" onclick="selectOption('analise')" class="option-card bg-orange-50 border-2 border-orange-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">🔍</div><div class="text-[8px] font-black text-orange-700 uppercase">Análise</div><div class="text-[7px] text-orange-500 mt-0.5">ANALISE</div></div>
                         <div id="option-andamento" onclick="selectOption('andamento')" class="option-card bg-purple-50 border-2 border-purple-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">⚡</div><div class="text-[8px] font-black text-purple-700 uppercase">Andamento</div><div class="text-[7px] text-purple-500 mt-0.5">EM ANDAMENTO</div></div>
                         <div id="option-data" onclick="selectOption('data')" class="option-card bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">📅</div><div class="text-[8px] font-black text-emerald-700 uppercase">Data</div><div class="text-[7px] text-emerald-500 mt-0.5">Define data</div></div>
+                        <div id="option-sem-necessidade" onclick="selectOption('sem-necessidade')" class="option-card bg-slate-50 border-2 border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all col-span-2"><div class="text-lg mb-1">➖</div><div class="text-[9px] font-black text-slate-700 uppercase">Sem necessidade</div><div class="text-[8px] text-slate-500 mt-0.5">SEM NECESSIDADE</div></div>
                         <div id="option-divida" onclick="selectOption('divida')" class="option-card bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"><div class="text-lg mb-1">💰</div><div class="text-[8px] font-black text-red-700 uppercase">Dívida</div><div class="text-[7px] text-red-500 mt-0.5">Define data da dívida</div></div>
                     </div>
                 </div>
@@ -4821,7 +4820,7 @@ window.addEventListener('load',()=>{montarFiltroResp();setTimeout(carregarCnpjsP
         function selectOption(option) {
             selectedOption = option;
             andamentoLembreteDiasSelecionado = null;
-            ['analise','andamento','data','divida'].forEach(o => { const el=document.getElementById('option-'+o); if(el) el.classList.remove('option-selected'); });
+            ['analise','andamento','data','divida','sem-necessidade'].forEach(o => { const el=document.getElementById('option-'+o); if(el) el.classList.remove('option-selected'); });
             document.getElementById(`option-${option}`).classList.add('option-selected');
             document.getElementById('datePickerContainer').classList.add('hidden');
             const reminder = document.getElementById('andamentoReminderContainer');
@@ -4834,9 +4833,10 @@ window.addEventListener('load',()=>{montarFiltroResp();setTimeout(carregarCnpjsP
             const { r, c } = currentEditTarget;
             let valorParaSalvar = null;
             let tipo = selectedOption;
-            if (!selectedOption) { showNotification('Selecione uma opção (Análise, Andamento, Data ou Dívida)', true); return; }
+            if (!selectedOption) { showNotification('Selecione uma opção (Análise, Andamento, Data, Dívida ou Sem necessidade)', true); return; }
             if (selectedOption === 'andamento' && !andamentoLembreteDiasSelecionado) { showNotification('Selecione se deseja lembrar em 5 ou 10 dias.', true); return; }
-            if (selectedOption === 'analise') valorParaSalvar = "ANALISE";
+            if (selectedOption === 'sem-necessidade') valorParaSalvar = "SEM NECESSIDADE";
+            else if (selectedOption === 'analise') valorParaSalvar = "ANALISE";
             else if (selectedOption === 'andamento') valorParaSalvar = "EM ANDAMENTO";
             else if (selectedOption === 'data') {
                 const dataInput = document.getElementById('dateValue').value;
@@ -5024,6 +5024,7 @@ window.addEventListener('load',()=>{montarFiltroResp();setTimeout(carregarCnpjsP
 
         function getStatus(val, row, col) {
             const strVal = normalizarStatusPlanilha(val);
+            if (strVal === "SEM NECESSIDADE") return 'concluido';
             if (strVal === "CONCLUIDO" || strVal === "CONCLUIDA" || strVal === "OK") return 'concluido';
             if (strVal === "EM ANDAMENTO" || strVal === "ANDAMENTO") return 'andamento';
             if (strVal === "ANALISE" || strVal === "EM ANALISE") return 'analise';
@@ -10218,19 +10219,17 @@ function filtrarLinhasRenderizadas(){if(!filtroRespPainel)return;const tbody=doc
 }
 function ativarCnpjEdicao(){document.querySelectorAll('#tableBody td.cnpj-cell').forEach(td=>{
  td.classList.add('cnpj-editavel');td.title='Clique para editar o CNPJ';td.onclick=function(e){e.stopPropagation();if(td.querySelector('input'))return;
- const tr=td.closest('tr');const select=tr?.querySelector('select.topline-resp');const idx=[...tr.parentElement.children].indexOf(tr);
+ const tr=td.closest('tr');
  // Usa o nome da empresa na celula CLIENTE, que e a chave estavel da tabela compartilhada.
  const cliente=tr?.querySelector('td.col-fixed')?.textContent?.trim()||'';
  const row=rawData.find(r=>String(r.CLIENTE||'').trim()===cliente);
  if(!row){showNotification('Empresa não localizada para edição.',true);return;}
  const original=String(row.CNPJ||'').trim();const input=document.createElement('input');input.value=original==='-'?'':original;input.placeholder='00.000.000/0000-00';td.replaceChildren(input);input.focus();input.select();
  let finalizado=false;const restaurar=()=>{td.textContent=row.CNPJ||'-';};
- const salvar=async()=>{if(finalizado)return;finalizado=true;const digitos=input.value.replace(/\D/g,'');if(digitos.length!==14){showNotification('Informe um CNPJ com 14 dígitos.',true);restaurar();return;}
+ const salvar=async()=>{if(finalizado)return;finalizado=true;const digitos=input.value.replace(/\D/g,'');if(digitos.length!==14){showNotification('Informe um CNPJ com 14 dígitos.',true);restaurar();return;} if(digitos===original.replace(/\D/g,'')){restaurar();return;}
  const formatado=digitos.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');const chave=chaveNome(row);input.disabled=true;
  try{const {error}=await supabaseClient.from('cnpjs_empresas').upsert({empresa_chave:chave,cnpj:formatado,atualizado_por:typeof currentUser!=='undefined'?currentUser:'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'});if(error)throw error;
- const chaveAntiga=typeof toplineChaveEmpresa==='function'?toplineChaveEmpresa(row):'';const resp=typeof toplineResponsaveis!=='undefined'?toplineResponsaveis[chaveAntiga]:'';
  cnpjsPainel[chave]=formatado;row.CNPJ=formatado;
- if(resp&&chaveAntiga!==digitos&&typeof toplineSalvarResponsavel==='function')await toplineSalvarResponsavel(digitos,resp);
  renderTable();showNotification('CNPJ salvo e disponível para todos os usuários.');
  }catch(err){console.error(err);showNotification('Erro ao salvar CNPJ no banco de dados: '+err.message,true);restaurar();}
  };
