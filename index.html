@@ -3457,6 +3457,79 @@ function toplineEditarEmenda(td,id,campo){if(td.querySelector('input'))return;co
 // Carregamento assíncrono separado da planilha; não bloqueia o Painel.
 window.addEventListener('load',()=>{setTimeout(toplineCarregarResponsaveis,1500);});
 </script>
+
+<style>
+#respPainelWrap{position:relative;display:inline-flex;align-items:center}
+#respPainelMenu{position:absolute;top:calc(100% + 7px);left:0;z-index:200;background:white;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 12px 30px #0f172a22;min-width:195px;padding:6px;max-height:330px;overflow:auto}
+#respPainelMenu button{display:block;width:100%;text-align:left;padding:9px 11px;font-size:11px;border-radius:7px;color:#334155}
+#respPainelMenu button:hover,#respPainelMenu button.selected{background:#e0f2fe;color:#0369a1;font-weight:700}
+#btn-resp-painel.active{background:#0284c7;color:white;border-color:#0284c7}
+.cnpj-editavel{cursor:text!important}.cnpj-editavel:hover{background:#eff6ff!important;outline:1px solid #93c5fd;outline-offset:-1px}
+.cnpj-editavel input{width:145px;max-width:100%;padding:5px;border:1px solid #0284c7;border-radius:5px;background:white;font-size:11px}
+</style>
+<script>
+/* Melhorias Painel: filtro por responsavel e CNPJ compartilhado no Supabase. */
+(function(){
+let filtroRespPainel='';
+let cnpjsPainel=Object.create(null);
+let carregadoCnpjs=false;
+const chaveNome=row=>String(row?.CLIENTE||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase().replace(/\s+/g,' ');
+function aplicarCnpjs(){if(typeof rawData==='undefined')return;rawData.forEach(r=>{const chave=chaveNome(r);if(Object.prototype.hasOwnProperty.call(cnpjsPainel,chave))r.CNPJ=cnpjsPainel[chave];});}
+async function carregarCnpjsPainel(){
+ try{const {data,error}=await supabaseClient.from('cnpjs_empresas').select('empresa_chave,cnpj');if(error)throw error;
+ cnpjsPainel=Object.create(null);(data||[]).forEach(r=>cnpjsPainel[r.empresa_chave]=r.cnpj||'');carregadoCnpjs=true;aplicarCnpjs();renderTable();
+ }catch(e){console.error('Erro ao carregar CNPJs compartilhados',e);if(typeof showNotification==='function')showNotification('Não foi possível consultar os CNPJs no Supabase. Verifique a tabela cnpjs_empresas.',true);}
+}
+function montarFiltroResp(){const container=document.getElementById('docButtons');if(!container||document.getElementById('respPainelWrap'))return;
+ const wrap=document.createElement('div');wrap.id='respPainelWrap';
+ wrap.innerHTML='<button type="button" id="btn-resp-painel" class="btn-mini" aria-expanded="false">RESP. ▾</button><div id="respPainelMenu" hidden></div>';
+ container.appendChild(wrap);
+ wrap.querySelector('button').addEventListener('click',e=>{e.stopPropagation();const menu=document.getElementById('respPainelMenu');menu.hidden=!menu.hidden;atualizarMenuResp();});
+ document.addEventListener('click',e=>{if(!wrap.contains(e.target))document.getElementById('respPainelMenu').hidden=true;});
+ atualizarMenuResp();
+}
+function atualizarMenuResp(){const menu=document.getElementById('respPainelMenu');if(!menu)return;
+ const nomes=typeof toplineNomes!=='undefined'?toplineNomes:[];
+ menu.replaceChildren();[['','Todos os responsáveis'],...nomes.map(n=>[n,n]),['__SEM__','Sem responsável']].forEach(([valor,rotulo])=>{
+ const btn=document.createElement('button');btn.type='button';btn.textContent=rotulo;btn.classList.toggle('selected',filtroRespPainel===valor);
+ btn.onclick=()=>{filtroRespPainel=valor;menu.hidden=true;document.getElementById('btn-resp-painel').classList.toggle('active',!!valor);document.getElementById('btn-resp-painel').textContent=valor&&valor!=='__SEM__'?'RESP.: '+valor:'RESP. ▾';renderTable();};menu.appendChild(btn);
+ });}
+function responsavelDaLinha(row){const mapa=typeof toplineResponsaveis!=='undefined'?toplineResponsaveis:{};const key=typeof toplineChaveEmpresa==='function'?toplineChaveEmpresa(row):'';
+ return mapa[key]||mapa[chaveNome(row)]||'';}
+function filtrarLinhasRenderizadas(){if(!filtroRespPainel)return;const tbody=document.getElementById('tableBody');if(!tbody)return;
+ let visiveis=0;tbody.querySelectorAll('tr').forEach(tr=>{const sel=tr.querySelector('select.topline-resp');if(!sel)return;const resp=sel.value||'';const exibir=filtroRespPainel==='__SEM__'?!resp:resp===filtroRespPainel;tr.style.display=exibir?'':'none';if(exibir)visiveis++;});
+ if(!visiveis){const tr=document.createElement('tr');tr.className='resp-empty';const td=document.createElement('td');td.colSpan=document.querySelectorAll('#tableHeader th').length;td.className='text-center py-10 text-slate-400';td.textContent='Nenhuma empresa encontrada para este responsável.';tr.appendChild(td);tbody.appendChild(tr);}
+}
+function ativarCnpjEdicao(){document.querySelectorAll('#tableBody td.cnpj-cell').forEach(td=>{
+ td.classList.add('cnpj-editavel');td.title='Clique para editar o CNPJ';td.onclick=function(e){e.stopPropagation();if(td.querySelector('input'))return;
+ const tr=td.closest('tr');const select=tr?.querySelector('select.topline-resp');const idx=[...tr.parentElement.children].indexOf(tr);
+ // Usa o nome da empresa na celula CLIENTE, que e a chave estavel da tabela compartilhada.
+ const cliente=tr?.querySelector('td.col-fixed')?.textContent?.trim()||'';
+ const row=rawData.find(r=>String(r.CLIENTE||'').trim()===cliente);
+ if(!row){showNotification('Empresa não localizada para edição.',true);return;}
+ const original=String(row.CNPJ||'').trim();const input=document.createElement('input');input.value=original==='-'?'':original;input.placeholder='00.000.000/0000-00';td.replaceChildren(input);input.focus();input.select();
+ let finalizado=false;const restaurar=()=>{td.textContent=row.CNPJ||'-';};
+ const salvar=async()=>{if(finalizado)return;finalizado=true;const digitos=input.value.replace(/\D/g,'');if(digitos.length!==14){showNotification('Informe um CNPJ com 14 dígitos.',true);restaurar();return;}
+ const formatado=digitos.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');const chave=chaveNome(row);input.disabled=true;
+ try{const {error}=await supabaseClient.from('cnpjs_empresas').upsert({empresa_chave:chave,cnpj:formatado,atualizado_por:typeof currentUser!=='undefined'?currentUser:'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'});if(error)throw error;
+ const chaveAntiga=typeof toplineChaveEmpresa==='function'?toplineChaveEmpresa(row):'';const resp=typeof toplineResponsaveis!=='undefined'?toplineResponsaveis[chaveAntiga]:'';
+ cnpjsPainel[chave]=formatado;row.CNPJ=formatado;
+ if(resp&&chaveAntiga!==digitos&&typeof toplineSalvarResponsavel==='function')await toplineSalvarResponsavel(digitos,resp);
+ renderTable();showNotification('CNPJ salvo e disponível para todos os usuários.');
+ }catch(err){console.error(err);showNotification('Erro ao salvar CNPJ no banco de dados: '+err.message,true);restaurar();}
+ };
+ input.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();salvar();}if(ev.key==='Escape'){finalizado=true;restaurar();}});
+ input.addEventListener('blur',salvar);
+ };});}
+const renderAnterior=renderTable;
+renderTable=function(){if(carregadoCnpjs)aplicarCnpjs();renderAnterior.apply(this,arguments);filtrarLinhasRenderizadas();ativarCnpjEdicao();};
+const resetAnterior=resetAllFilters;
+resetAllFilters=function(){filtroRespPainel='';const btn=document.getElementById('btn-resp-painel');if(btn){btn.classList.remove('active');btn.textContent='RESP. ▾';}resetAnterior.apply(this,arguments);};
+const fetchAnterior=fetchGoogleSheets;
+fetchGoogleSheets=async function(){const r=await fetchAnterior.apply(this,arguments);if(carregadoCnpjs){aplicarCnpjs();renderTable();}return r;};
+window.addEventListener('load',()=>{montarFiltroResp();setTimeout(carregarCnpjsPainel,1700);});
+})();
+</script>
 </body>
 
     <script>
@@ -10100,6 +10173,79 @@ if (_switchTabFinanceiroBase && !_switchTabFinanceiroBase.__financeiroV20) { con
 })();
 </script>
 
+
+<style>
+#respPainelWrap{position:relative;display:inline-flex;align-items:center}
+#respPainelMenu{position:absolute;top:calc(100% + 7px);left:0;z-index:200;background:white;border:1px solid #dbe3ef;border-radius:12px;box-shadow:0 12px 30px #0f172a22;min-width:195px;padding:6px;max-height:330px;overflow:auto}
+#respPainelMenu button{display:block;width:100%;text-align:left;padding:9px 11px;font-size:11px;border-radius:7px;color:#334155}
+#respPainelMenu button:hover,#respPainelMenu button.selected{background:#e0f2fe;color:#0369a1;font-weight:700}
+#btn-resp-painel.active{background:#0284c7;color:white;border-color:#0284c7}
+.cnpj-editavel{cursor:text!important}.cnpj-editavel:hover{background:#eff6ff!important;outline:1px solid #93c5fd;outline-offset:-1px}
+.cnpj-editavel input{width:145px;max-width:100%;padding:5px;border:1px solid #0284c7;border-radius:5px;background:white;font-size:11px}
+</style>
+<script>
+/* Melhorias Painel: filtro por responsavel e CNPJ compartilhado no Supabase. */
+(function(){
+let filtroRespPainel='';
+let cnpjsPainel=Object.create(null);
+let carregadoCnpjs=false;
+const chaveNome=row=>String(row?.CLIENTE||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase().replace(/\s+/g,' ');
+function aplicarCnpjs(){if(typeof rawData==='undefined')return;rawData.forEach(r=>{const chave=chaveNome(r);if(Object.prototype.hasOwnProperty.call(cnpjsPainel,chave))r.CNPJ=cnpjsPainel[chave];});}
+async function carregarCnpjsPainel(){
+ try{const {data,error}=await supabaseClient.from('cnpjs_empresas').select('empresa_chave,cnpj');if(error)throw error;
+ cnpjsPainel=Object.create(null);(data||[]).forEach(r=>cnpjsPainel[r.empresa_chave]=r.cnpj||'');carregadoCnpjs=true;aplicarCnpjs();renderTable();
+ }catch(e){console.error('Erro ao carregar CNPJs compartilhados',e);if(typeof showNotification==='function')showNotification('Não foi possível consultar os CNPJs no Supabase. Verifique a tabela cnpjs_empresas.',true);}
+}
+function montarFiltroResp(){const container=document.getElementById('docButtons');if(!container||document.getElementById('respPainelWrap'))return;
+ const wrap=document.createElement('div');wrap.id='respPainelWrap';
+ wrap.innerHTML='<button type="button" id="btn-resp-painel" class="btn-mini" aria-expanded="false">RESP. ▾</button><div id="respPainelMenu" hidden></div>';
+ container.appendChild(wrap);
+ wrap.querySelector('button').addEventListener('click',e=>{e.stopPropagation();const menu=document.getElementById('respPainelMenu');menu.hidden=!menu.hidden;atualizarMenuResp();});
+ document.addEventListener('click',e=>{if(!wrap.contains(e.target))document.getElementById('respPainelMenu').hidden=true;});
+ atualizarMenuResp();
+}
+function atualizarMenuResp(){const menu=document.getElementById('respPainelMenu');if(!menu)return;
+ const nomes=typeof toplineNomes!=='undefined'?toplineNomes:[];
+ menu.replaceChildren();[['','Todos os responsáveis'],...nomes.map(n=>[n,n]),['__SEM__','Sem responsável']].forEach(([valor,rotulo])=>{
+ const btn=document.createElement('button');btn.type='button';btn.textContent=rotulo;btn.classList.toggle('selected',filtroRespPainel===valor);
+ btn.onclick=()=>{filtroRespPainel=valor;menu.hidden=true;document.getElementById('btn-resp-painel').classList.toggle('active',!!valor);document.getElementById('btn-resp-painel').textContent=valor&&valor!=='__SEM__'?'RESP.: '+valor:'RESP. ▾';renderTable();};menu.appendChild(btn);
+ });}
+function responsavelDaLinha(row){const mapa=typeof toplineResponsaveis!=='undefined'?toplineResponsaveis:{};const key=typeof toplineChaveEmpresa==='function'?toplineChaveEmpresa(row):'';
+ return mapa[key]||mapa[chaveNome(row)]||'';}
+function filtrarLinhasRenderizadas(){if(!filtroRespPainel)return;const tbody=document.getElementById('tableBody');if(!tbody)return;
+ let visiveis=0;tbody.querySelectorAll('tr').forEach(tr=>{const sel=tr.querySelector('select.topline-resp');if(!sel)return;const resp=sel.value||'';const exibir=filtroRespPainel==='__SEM__'?!resp:resp===filtroRespPainel;tr.style.display=exibir?'':'none';if(exibir)visiveis++;});
+ if(!visiveis){const tr=document.createElement('tr');tr.className='resp-empty';const td=document.createElement('td');td.colSpan=document.querySelectorAll('#tableHeader th').length;td.className='text-center py-10 text-slate-400';td.textContent='Nenhuma empresa encontrada para este responsável.';tr.appendChild(td);tbody.appendChild(tr);}
+}
+function ativarCnpjEdicao(){document.querySelectorAll('#tableBody td.cnpj-cell').forEach(td=>{
+ td.classList.add('cnpj-editavel');td.title='Clique para editar o CNPJ';td.onclick=function(e){e.stopPropagation();if(td.querySelector('input'))return;
+ const tr=td.closest('tr');const select=tr?.querySelector('select.topline-resp');const idx=[...tr.parentElement.children].indexOf(tr);
+ // Usa o nome da empresa na celula CLIENTE, que e a chave estavel da tabela compartilhada.
+ const cliente=tr?.querySelector('td.col-fixed')?.textContent?.trim()||'';
+ const row=rawData.find(r=>String(r.CLIENTE||'').trim()===cliente);
+ if(!row){showNotification('Empresa não localizada para edição.',true);return;}
+ const original=String(row.CNPJ||'').trim();const input=document.createElement('input');input.value=original==='-'?'':original;input.placeholder='00.000.000/0000-00';td.replaceChildren(input);input.focus();input.select();
+ let finalizado=false;const restaurar=()=>{td.textContent=row.CNPJ||'-';};
+ const salvar=async()=>{if(finalizado)return;finalizado=true;const digitos=input.value.replace(/\D/g,'');if(digitos.length!==14){showNotification('Informe um CNPJ com 14 dígitos.',true);restaurar();return;}
+ const formatado=digitos.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');const chave=chaveNome(row);input.disabled=true;
+ try{const {error}=await supabaseClient.from('cnpjs_empresas').upsert({empresa_chave:chave,cnpj:formatado,atualizado_por:typeof currentUser!=='undefined'?currentUser:'Sistema',updated_at:new Date().toISOString()},{onConflict:'empresa_chave'});if(error)throw error;
+ const chaveAntiga=typeof toplineChaveEmpresa==='function'?toplineChaveEmpresa(row):'';const resp=typeof toplineResponsaveis!=='undefined'?toplineResponsaveis[chaveAntiga]:'';
+ cnpjsPainel[chave]=formatado;row.CNPJ=formatado;
+ if(resp&&chaveAntiga!==digitos&&typeof toplineSalvarResponsavel==='function')await toplineSalvarResponsavel(digitos,resp);
+ renderTable();showNotification('CNPJ salvo e disponível para todos os usuários.');
+ }catch(err){console.error(err);showNotification('Erro ao salvar CNPJ no banco de dados: '+err.message,true);restaurar();}
+ };
+ input.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();salvar();}if(ev.key==='Escape'){finalizado=true;restaurar();}});
+ input.addEventListener('blur',salvar);
+ };});}
+const renderAnterior=renderTable;
+renderTable=function(){if(carregadoCnpjs)aplicarCnpjs();renderAnterior.apply(this,arguments);filtrarLinhasRenderizadas();ativarCnpjEdicao();};
+const resetAnterior=resetAllFilters;
+resetAllFilters=function(){filtroRespPainel='';const btn=document.getElementById('btn-resp-painel');if(btn){btn.classList.remove('active');btn.textContent='RESP. ▾';}resetAnterior.apply(this,arguments);};
+const fetchAnterior=fetchGoogleSheets;
+fetchGoogleSheets=async function(){const r=await fetchAnterior.apply(this,arguments);if(carregadoCnpjs){aplicarCnpjs();renderTable();}return r;};
+window.addEventListener('load',()=>{montarFiltroResp();setTimeout(carregarCnpjsPainel,1700);});
+})();
+</script>
 </body>
 
 <style id="financeiro-v22-style">
